@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 import shutil
 from pydantic import BaseModel
-from rag_engine import LibraryRAG
+from backend.rag_engine import LibraryRAG
 import uvicorn
 
 app = FastAPI()
