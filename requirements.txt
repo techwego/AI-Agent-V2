@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+langchain
+langchain-huggingface
+langchain-google-genai
+chromadb
+pypdf
+docx2txt
+sentence-transformers
+unstructured
+python-multipart
