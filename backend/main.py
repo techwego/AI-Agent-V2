@@ -1,7 +1,8 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+import shutil
 from pydantic import BaseModel
 from rag_engine import LibraryRAG
 import uvicorn
@@ -39,8 +40,34 @@ def chat(request: ChatRequest):
     answer = rag.query(request.message)
     return ChatResponse(response=answer)
 
-# Mount the static files (like logo.png)
-app.mount("/assets", StaticFiles(directory=os.path.join(BASE_DIR, "assets")), name="assets")
+@app.post("/api/upload")
+async def upload_file(file: UploadFile = File(...)):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+    
+    # Save the file to the data directory
+    file_path = os.path.join(DATA_DIR, file.filename)
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
+        
+    # Ingest into RAG
+    if not rag.vector_store:
+        try:
+            rag.initialize()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to init RAG: {e}")
+            
+    success = rag.ingest_file(file_path)
+    if success:
+        return JSONResponse(content={"message": f"Successfully uploaded and ingested {file.filename}"})
+    else:
+        raise HTTPException(status_code=500, detail="File saved but failed to ingest into AI database.")
+
+
+
 
 @app.get("/")
 def read_index():

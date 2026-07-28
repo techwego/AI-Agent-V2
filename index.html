@@ -326,6 +326,20 @@
   @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.plan .cam{animation:none}}
   @media (max-width:980px){.work{grid-template-columns:1fr}.ctx{display:none}.welcome h1{font-size:32px}.dock-pills{display:none}}
   @media (max-width:620px){body{padding:0}.app{height:100vh;border-radius:0;grid-template-columns:1fr}.rail{display:none}.live{display:none}}
+
+  /* Modal & Upload UI */
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 30px; width: 90%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 15px; }
+  .modal h2 { font-size: 22px; margin-bottom: 10px; }
+  .modal input { background: var(--bg); border: 1px solid var(--line); color: var(--ink); padding: 12px 16px; border-radius: 10px; font-size: 14px; outline: none; }
+  .modal input:focus { border-color: var(--blue); }
+  .modal button { background: var(--blue); color: #fff; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+  .modal button:hover { background: var(--purple); }
+  .close-modal { align-self: flex-end; cursor: pointer; color: var(--muted); background: none; border: none; font-size: 24px; line-height: 1; }
+  .file-drop { border: 2px dashed var(--line); border-radius: 12px; padding: 30px; text-align: center; color: var(--muted); cursor: pointer; transition: 0.2s; }
+  .file-drop:hover { border-color: var(--blue); color: var(--blue); }
+
 </style>
 </head>
 <body data-lang="en">
@@ -367,15 +381,48 @@
       </div>
       
       <script>
+
         function promptLogin() {
-          const username = prompt("Enter Username:");
-          if (username) {
-            const pwd = prompt("Enter Password:");
-            if (pwd) {
-              alert("Login successful! Welcome, " + username);
-            }
+          document.getElementById('authModal').classList.add('show');
+        }
+        function closeModals() {
+          document.getElementById('authModal').classList.remove('show');
+        }
+        function doLogin() {
+          const u = document.getElementById('username').value;
+          const p = document.getElementById('password').value;
+          if(u === 'admin' && p === 'admin') {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('uploadSection').style.display = 'flex';
+          } else {
+            alert('Invalid credentials');
           }
         }
+        async function uploadFile() {
+          const file = document.getElementById('fileInput').files[0];
+          if(!file) return;
+          const stat = document.getElementById('uploadStatus');
+          stat.innerText = "Uploading & Training AI...";
+          
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          try {
+            const res = await fetch('/api/upload', {
+              method: 'POST',
+              body: formData
+            });
+            if(res.ok) {
+              stat.innerText = "Success! The AI has learned the new document.";
+              stat.style.color = "var(--orange)";
+            } else {
+              stat.innerText = "Error uploading file.";
+            }
+          } catch(e) {
+            stat.innerText = "Error uploading file.";
+          }
+        }
+
       </script>
     </header>
 
@@ -668,16 +715,37 @@ function speakText(text, callback) {
   utterance.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
   
   const voices = window.speechSynthesis.getVoices();
-  const femaleVoice = voices.find(voice => 
-    voice.name.toLowerCase().includes('female') || 
-    voice.name.toLowerCase().includes('zira') || 
-    voice.name.toLowerCase().includes('samantha')
-  );
+  
+  // Stricter female voice filtering
+  const femaleVoice = voices.find(voice => {
+    const name = voice.name.toLowerCase();
+    // Exclude known male voices
+    if (name.includes('male') && !name.includes('female')) return false;
+    if (name.includes('ravi') || name.includes('david') || name.includes('mark') || name.includes('george')) return false;
+    
+    // Prioritize Indian female
+    if (voice.lang.includes('IN') && (name.includes('female') || name.includes('heera') || name.includes('neerja') || name.includes('sita'))) {
+      return true;
+    }
+    return false;
+  }) || voices.find(voice => {
+    const name = voice.name.toLowerCase();
+    if (name.includes('male') && !name.includes('female')) return false;
+    if (name.includes('ravi') || name.includes('david') || name.includes('mark') || name.includes('george')) return false;
+    
+    // Fallback to any known English female
+    if (voice.lang.includes('en') && (name.includes('female') || name.includes('zira') || name.includes('samantha') || name.includes('hazel') || name.includes('susan') || name.includes('catherine'))) {
+      return true;
+    }
+    return false;
+  });
+
   if (femaleVoice) {
     utterance.voice = femaleVoice;
   }
   
-  utterance.rate = 1.0;
+  utterance.rate = 1.2;
+  utterance.pitch = 1.0;
   
   if (callback) {
     utterance.onend = () => callback();
@@ -690,7 +758,11 @@ function speakText(text, callback) {
 function startSpeechRecognition() {
   if (!hasIntroduced) {
     hasIntroduced = true;
-    const introText = "Hi, I'm Sam, your library assistant. How can I help you?";
+    const hour = new Date().getHours();
+    let greeting = "Good evening";
+    if (hour < 12) greeting = "Good morning";
+    else if (hour < 17) greeting = "Good afternoon";
+    const introText = `${greeting}. Welcome to the University Library. I'm your virtual library assistant. How may I assist you today?`;
     renderCustomAnswer("", introText, true);
     speakText(introText, () => {
       startListening();
@@ -719,6 +791,7 @@ function startListening() {
   recognition.onresult = (event) => {
     const speechResult = event.results[0][0].transcript;
     document.getElementById('chatInput').value = speechResult;
+    recognition.stop(); // Force stop immediately to remove the 1.5s silence delay
     app.classList.remove('busy');
     askCustom();
   };
@@ -752,13 +825,16 @@ async function askQuery(queryText) {
   } catch (error) {
     console.error('Error fetching chat response:', error);
     app.classList.remove('busy');
-    setLevel(.32);
-    const errorMsg = "Sorry, I couldn't reach the backend server.";
-    renderCustomAnswer(queryText, errorMsg);
-    speakText(errorMsg);
+    document.getElementById('dockStatus').textContent = "Connection error.";
   }
 }
 
+// Preload voices to fix empty voice list on first click
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
+}
 function ask(kind){
   let promptText = "";
   if (kind === 'book') promptText = "Can you find a book about computer science and guide me there?";
@@ -948,5 +1024,60 @@ window.addEventListener('resize',glide);
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <script src="app.js?v=3"></script>
+
+<script>
+const container = document.getElementById('three-avatar-container');
+if(container && typeof THREE !== 'undefined') {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  container.appendChild(renderer.domElement);
+  
+  const geometry = new THREE.IcosahedronGeometry(1.2, 3);
+  const material = new THREE.MeshBasicMaterial({ color: 0x8B6CFF, wireframe: true, transparent: true, opacity: 0.8 });
+  const orb = new THREE.Mesh(geometry, material);
+  scene.add(orb);
+  camera.position.z = 2.5;
+  
+  function animateOrb() {
+    requestAnimationFrame(animateOrb);
+    orb.rotation.x += 0.005;
+    orb.rotation.y += 0.005;
+    if(document.getElementById('app').classList.contains('busy')) {
+      const scale = 1 + Math.sin(Date.now() * 0.01) * 0.1;
+      orb.scale.set(scale, scale, scale);
+      material.color.setHex(0xFF7A3D);
+    } else {
+      orb.scale.set(1, 1, 1);
+      material.color.setHex(0x8B6CFF);
+    }
+    renderer.render(scene, camera);
+  }
+  animateOrb();
+}
+</script>
+
+
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <button class="close-modal" onclick="closeModals()">×</button>
+    <div id="loginSection">
+      <h2>Librarian Login</h2>
+      <input type="text" id="username" placeholder="Username">
+      <input type="password" id="password" placeholder="Password">
+      <button onclick="doLogin()">Login</button>
+    </div>
+    <div id="uploadSection" style="display: none;">
+      <h2>Upload Document</h2>
+      <div class="file-drop" onclick="document.getElementById('fileInput').click()">
+        Click to select or drag and drop a PDF/Word file here.
+      </div>
+      <input type="file" id="fileInput" style="display: none;" onchange="uploadFile()">
+      <p id="uploadStatus" style="font-size: 13px; color: var(--blue); margin-top: 10px;"></p>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
