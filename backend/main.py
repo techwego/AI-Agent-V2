@@ -21,6 +21,18 @@ CHROMA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chroma_db
 rag = LibraryRAG(data_dir=DATA_DIR, persist_dir=CHROMA_DIR)
 
 
+import threading
+
+# Initialize RAG in background so it doesn't block FastAPI startup or cause 504 timeouts
+def init_rag_bg():
+    try:
+        print("Starting background RAG initialization...")
+        rag.initialize()
+        print("Background RAG initialization complete.")
+    except Exception as e:
+        print(f"Background RAG init failed: {e}")
+
+threading.Thread(target=init_rag_bg, daemon=True).start()
 
 class ChatRequest(BaseModel):
     message: str
@@ -31,10 +43,7 @@ class ChatResponse(BaseModel):
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     if not rag.qa_chain:
-        try:
-            rag.initialize()
-        except Exception as e:
-            return ChatResponse(response=f"Error initializing RAG: {e}")
+        return ChatResponse(response="I am currently organizing the massive library archives you uploaded. Please give me about one minute to finish reading them, and then ask your question again!")
     
     answer = rag.query(request.message)
     return ChatResponse(response=answer)
