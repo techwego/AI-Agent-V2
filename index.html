@@ -716,29 +716,30 @@ function speakText(text, callback) {
   
   const voices = window.speechSynthesis.getVoices();
   
-  // Stricter female voice filtering
-  const femaleVoice = voices.find(voice => {
+  // Priority 1: Google US English female voices
+  let femaleVoice = voices.find(voice => {
     const name = voice.name.toLowerCase();
-    // Exclude known male voices
-    if (name.includes('male') && !name.includes('female')) return false;
-    if (name.includes('ravi') || name.includes('david') || name.includes('mark') || name.includes('george')) return false;
-    
-    // Prioritize Indian female
-    if (voice.lang.includes('IN') && (name.includes('female') || name.includes('heera') || name.includes('neerja') || name.includes('sita'))) {
-      return true;
-    }
-    return false;
-  }) || voices.find(voice => {
-    const name = voice.name.toLowerCase();
-    if (name.includes('male') && !name.includes('female')) return false;
-    if (name.includes('ravi') || name.includes('david') || name.includes('mark') || name.includes('george')) return false;
-    
-    // Fallback to any known English female
-    if (voice.lang.includes('en') && (name.includes('female') || name.includes('zira') || name.includes('samantha') || name.includes('hazel') || name.includes('susan') || name.includes('catherine'))) {
-      return true;
-    }
-    return false;
+    return name.includes('google') && voice.lang.includes('en-US') && 
+           (name.includes('female') || !name.includes('male'));
   });
+  
+  // Priority 2: Other US English female voices (Samantha, Zira, etc.)
+  if (!femaleVoice) {
+    femaleVoice = voices.find(voice => {
+      const name = voice.name.toLowerCase();
+      return voice.lang.includes('en-US') && 
+             (name.includes('female') || name.includes('samantha') || name.includes('zira') || name.includes('susan') || name.includes('jenny'));
+    });
+  }
+  
+  // Priority 3: Any English female voice
+  if (!femaleVoice) {
+    femaleVoice = voices.find(voice => {
+      const name = voice.name.toLowerCase();
+      if (name.includes('male') && !name.includes('female')) return false;
+      return voice.lang.includes('en');
+    });
+  }
 
   if (femaleVoice) {
     utterance.voice = femaleVoice;
