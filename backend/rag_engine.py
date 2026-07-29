@@ -71,7 +71,7 @@ class LibraryRAG:
             else:
                 self.vector_store = Chroma.from_documents(documents=splits, embedding=self.embeddings, persist_directory=self.persist_dir)
             
-        self.retriever = self.vector_store.as_retriever(search_kwargs={"k": 4})
+        self.retriever = self.vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 20, "fetch_k": 50})
         
         system_prompt = (
             "You are Sam, a virtual library assistant for the University Library. "
