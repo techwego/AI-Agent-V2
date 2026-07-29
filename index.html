@@ -798,12 +798,13 @@ function startListening() {
   };
 
   recognition.onspeechend = () => {
-    recognition.stop();
+    // Let the browser handle stopping; manually calling stop() here can break the transcription.
   };
 
   recognition.onerror = (event) => {
-    console.error(event.error);
+    console.error("Speech recognition error:", event.error);
     app.classList.remove('busy');
+    document.getElementById('dockStatus').textContent = "Microphone error: " + event.error + ". Tap to try again.";
   };
 }
 
