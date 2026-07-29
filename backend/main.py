@@ -20,11 +20,7 @@ CHROMA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chroma_db
 # Initialize RAG engine
 rag = LibraryRAG(data_dir=DATA_DIR, persist_dir=CHROMA_DIR)
 
-# Try to initialize at startup
-try:
-    rag.initialize()
-except Exception as e:
-    print(f"Warning: RAG initialization failed during startup: {e}. (Did you set GEMINI_API_KEY?)")
+
 
 class ChatRequest(BaseModel):
     message: str
