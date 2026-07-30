@@ -691,6 +691,99 @@ let tt=null;
 function showToast(m){const e=document.getElementById('toast');document.getElementById('toastText').textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(hideToast,4200);}
 function hideToast(){document.getElementById('toast').classList.remove('show');}
 
+
+const State = {
+  IDLE: 'IDLE',
+  INTRODUCING: 'INTRODUCING',
+  LISTENING: 'LISTENING',
+  PROCESSING: 'PROCESSING',
+  RETRIEVING: 'RETRIEVING',
+  GENERATING: 'GENERATING',
+  SPEAKING: 'SPEAKING'
+};
+
+let currentState = State.IDLE;
+let activeRecognition = null;
+let hasIntroduced = false;
+
+function setState(newState) {
+  currentState = newState;
+  console.log(`STATE -> ${newState}`);
+  const statusEl = document.getElementById('dockStatus');
+  if (statusEl) {
+    if (newState === State.IDLE) statusEl.textContent = T[lang].dockIdle || "Tap to speak";
+    else if (newState === State.LISTENING) statusEl.textContent = T[lang].listening + '...';
+    else if (newState === State.PROCESSING || newState === State.RETRIEVING || newState === State.GENERATING) statusEl.textContent = T[lang].thinking;
+    else if (newState === State.SPEAKING || newState === State.INTRODUCING) statusEl.textContent = "Assistant speaking...";
+  }
+}
+
+function stopMicrophone() {
+  if (activeRecognition) {
+    try {
+      activeRecognition.abort();
+    } catch(e) {}
+    activeRecognition = null;
+    console.log("Microphone Disabled");
+    console.log("STT Stopped");
+  }
+  app.classList.remove('busy');
+}
+
+function startMicrophone() {
+  if (currentState !== State.IDLE && currentState !== State.LISTENING) {
+    console.log(`[STT Blocked] Cannot start STT in state: ${currentState}`);
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert("Speech Recognition is not supported in this browser.");
+    return;
+  }
+
+  stopMicrophone();
+
+  activeRecognition = new SpeechRecognition();
+  activeRecognition.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
+  activeRecognition.interimResults = false;
+  activeRecognition.maxAlternatives = 1;
+
+  setState(State.LISTENING);
+  app.classList.add('busy');
+
+  activeRecognition.onstart = () => {
+    console.log("Microphone Enabled");
+    console.log("STT Started");
+  };
+
+  activeRecognition.onresult = (event) => {
+    const speechResult = event.results[0][0].transcript;
+    stopMicrophone();
+    document.getElementById('chatInput').value = speechResult;
+    askCustom();
+  };
+
+  activeRecognition.onerror = (event) => {
+    console.error("Speech recognition error:", event.error);
+    stopMicrophone();
+    setState(State.IDLE);
+    document.getElementById('dockStatus').textContent = "Microphone error: " + event.error + ". Tap to try again.";
+  };
+
+  activeRecognition.onend = () => {
+    if (currentState === State.LISTENING) {
+      console.log("STT Stopped");
+    }
+  };
+
+  try {
+    activeRecognition.start();
+  } catch(e) {
+    console.error("STT start error:", e);
+  }
+}
+
 function askCustom() {
   const inputEl = document.getElementById('chatInput');
   const query = inputEl.value.trim();
@@ -699,16 +792,13 @@ function askCustom() {
   askQuery(query);
 }
 
-let hasIntroduced = false;
-
 function speakText(text, callback) {
   if (!('speechSynthesis' in window)) {
     if (callback) callback();
     return;
   }
-  window.speechSynthesis.cancel(); // Stop any ongoing speech
+  window.speechSynthesis.cancel();
   
-  // Create a clean text version without markdown for speaking
   const cleanText = text.replace(/\*\*/g, '').replace(/_/g, '').replace(/#/g, '');
   
   const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -716,34 +806,22 @@ function speakText(text, callback) {
   
   const voices = window.speechSynthesis.getVoices();
   
-  // Priority 1: Google US English female voices
   let femaleVoice = voices.find(voice => {
     const name = voice.name.toLowerCase();
-    return name.includes('google') && voice.lang.includes('en-US') && 
-           (name.includes('female') || !name.includes('male'));
+    return name.includes('google') && voice.lang.includes('en-US') && (name.includes('female') || !name.includes('male'));
   });
   
-  // Priority 2: Other US English female voices (Samantha, Zira, etc.)
   if (!femaleVoice) {
     femaleVoice = voices.find(voice => {
       const name = voice.name.toLowerCase();
-      return voice.lang.includes('en-US') && 
-             (name.includes('female') || name.includes('samantha') || name.includes('zira') || name.includes('susan') || name.includes('jenny'));
+      return voice.lang.includes('en-US') && (name.includes('female') || name.includes('samantha') || name.includes('zira'));
     });
   }
   
-  // Priority 3: Any English female voice
   if (!femaleVoice) {
-    femaleVoice = voices.find(voice => {
-      const name = voice.name.toLowerCase();
-      if (name.includes('male') && !name.includes('female')) return false;
-      return voice.lang.includes('en');
-    });
+    femaleVoice = voices.find(voice => voice.lang.includes('en'));
   }
-
-  if (femaleVoice) {
-    utterance.voice = femaleVoice;
-  }
+  if (femaleVoice) utterance.voice = femaleVoice;
   
   utterance.rate = 1.2;
   utterance.pitch = 1.0;
@@ -757,76 +835,109 @@ function speakText(text, callback) {
 }
 
 function startSpeechRecognition() {
+  if (currentState === State.SPEAKING || currentState === State.INTRODUCING || currentState === State.PROCESSING) {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    stopMicrophone();
+    setState(State.IDLE);
+    return;
+  }
+
+  if (currentState === State.LISTENING) {
+    stopMicrophone();
+    setState(State.IDLE);
+    return;
+  }
+
   if (!hasIntroduced) {
     hasIntroduced = true;
+    setState(State.INTRODUCING);
+    stopMicrophone();
+
     const hour = new Date().getHours();
     let greeting = "Good evening";
     if (hour < 12) greeting = "Good morning";
     else if (hour < 17) greeting = "Good afternoon";
     const introText = `${greeting}. Welcome to the University Library. I'm your virtual library assistant. How may I assist you today?`;
     renderCustomAnswer("", introText, true);
+
+    console.log("TTS Started");
     speakText(introText, () => {
-      startListening();
+      console.log("TTS Finished");
+      setTimeout(() => {
+        setState(State.IDLE);
+        startMicrophone();
+      }, 350);
     });
   } else {
-    startListening();
+    startMicrophone();
   }
-}
-
-function startListening() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert("Speech Recognition is not supported in this browser.");
-    return;
-  }
-  const recognition = new SpeechRecognition();
-  recognition.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-
-  document.getElementById('dockStatus').textContent = T[lang].listening + '...';
-  app.classList.add('busy');
-
-  recognition.start();
-
-  recognition.onresult = (event) => {
-    const speechResult = event.results[0][0].transcript;
-    document.getElementById('chatInput').value = speechResult;
-    recognition.stop(); // Force stop immediately to remove the 1.5s silence delay
-    app.classList.remove('busy');
-    askCustom();
-  };
-
-  recognition.onspeechend = () => {
-    // Let the browser handle stopping; manually calling stop() here can break the transcription.
-  };
-
-  recognition.onerror = (event) => {
-    console.error("Speech recognition error:", event.error);
-    app.classList.remove('busy');
-    document.getElementById('dockStatus').textContent = "Microphone error: " + event.error + ". Tap to try again.";
-  };
 }
 
 async function askQuery(queryText) {
-  if (app.classList.contains('busy')) return;
-  currentScenario = 'custom'; setLevel(1); app.classList.add('busy');
-  document.getElementById('dockStatus').textContent = T[lang].thinking;
+  if (currentState === State.PROCESSING || currentState === State.SPEAKING) return;
+
+  stopMicrophone();
+  setState(State.PROCESSING);
+  currentScenario = 'custom'; 
+  setLevel(1);
 
   try {
+    setState(State.RETRIEVING);
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: queryText })
     });
-    const data = await response.json();
-    app.classList.remove('busy');
+
+    if (response.status === 503) {
+      const fallbackMsg = "I'm having trouble connecting. Please try again in a moment.";
+      renderCustomAnswer(queryText, fallbackMsg);
+      setState(State.SPEAKING);
+      speakText(fallbackMsg, () => {
+        setTimeout(() => {
+          setState(State.IDLE);
+          startMicrophone();
+        }, 350);
+      });
+      return;
+    }
+
+    renderCustomAnswer(queryText, '');
+    const answerTextEl = document.querySelector('.a-text');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let fullText = '';
+
+    setState(State.GENERATING);
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      fullText += chunk;
+
+      if (answerTextEl) {
+        answerTextEl.innerHTML = fullText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br/>');
+      }
+    }
+
     setLevel(.32);
-    renderCustomAnswer(queryText, data.response);
-    speakText(data.response);
+    setState(State.SPEAKING);
+    console.log("TTS Started");
+    speakText(fullText, () => {
+      console.log("TTS Finished");
+      setTimeout(() => {
+        setState(State.IDLE);
+        startMicrophone();
+      }, 400);
+    });
+
   } catch (error) {
     console.error('Error fetching chat response:', error);
-    app.classList.remove('busy');
+    stopMicrophone();
+    setState(State.IDLE);
     document.getElementById('dockStatus').textContent = "Connection error.";
   }
 }

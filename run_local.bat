@@ -1,3 +1,2 @@
 @echo off
-set GEMINI_API_KEY=YOUR_GEMINI_API_KEY_HERE
-py backend\main.py
+C:\Users\arunp\AppData\Local\Programs\Python\Python312\python.exe -m uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --reload
