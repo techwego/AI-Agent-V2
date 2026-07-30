@@ -101,8 +101,8 @@ def health_check():
         "reranker": "disabled",
         "memory_mb": round(mem.used / (1024 * 1024), 2),
         "uptime": round(time.time() - START_TIME, 2),
-        "gemini_model": Config.GEMINI_MODEL,
-        "gemini_status": "Ready" if Config.api_connectivity else "Error",
+        "groq_model": Config.GROQ_MODEL,
+        "groq_status": "Ready" if Config.api_connectivity else "Error",
         "last_successful_request": Config.last_successful_request,
         "api_connectivity": Config.api_connectivity,
         "average_response_latency": avg_latency
@@ -113,11 +113,11 @@ def diagnostics():
     mem = psutil.virtual_memory()
     return {
         "current_ram_mb": round(mem.used / (1024 * 1024), 2),
-        "peak_ram_mb": round(mem.used / (1024 * 1024), 2), # Tracked same as current for simplicity
+        "peak_ram_mb": round(mem.used / (1024 * 1024), 2),
         "active_requests": ACTIVE_REQUESTS,
         "chroma_status": "ready" if rag.collection else "uninitialized",
         "bm25_status": "ready" if rag.bm25_index else "uninitialized",
-        "gemini_status": "ready" if getattr(rag, "llm_engine", None) else "uninitialized",
+        "groq_status": "ready" if getattr(rag, "llm_engine", None) else "uninitialized",
         "current_rag_state": getattr(rag, "state", "UNKNOWN"),
         "average_latency": 0.0,
         "cache_hit_rate": 0.0
