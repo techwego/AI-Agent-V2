@@ -19,6 +19,9 @@ app = FastAPI()
 
 import time
 import psutil
+
+START_TIME = time.time()
+ACTIVE_REQUESTS = 0
 try:
     from backend.config import Config
 except ImportError:
