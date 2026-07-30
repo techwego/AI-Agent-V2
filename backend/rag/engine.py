@@ -317,15 +317,15 @@ class LibraryRAG:
         self.embed_model = TextEmbedding(Config.EMBEDDING_MODEL, threads=1)
         
         # Reranker is completely disabled for memory constraints on 512MB RAM tier
-        self.reranker = None
-        self.diagnostics["models_time"] = round(time.time() - t0, 3)
-
         # State
         self.llm_engine = None
         self.collection = None
         self.bm25_index = None
-        self.bm25_doc_map: list[dict] = []  # [{id, text, metadata}, ...]
-        self.ready = False
+        self.bm25_doc_map: list[dict] = []
+
+    @property
+    def ready(self) -> bool:
+        return self.state == RAGState.READY
 
     def initialize(self):
         """Load ChromaDB, build BM25 index, connect to Groq."""
