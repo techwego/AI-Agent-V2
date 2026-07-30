@@ -369,7 +369,6 @@ class LibraryRAG:
                 self._warmup_pipeline()
                 
                 self.state = RAGState.READY
-                self.ready = True
                 self.diagnostics["startup_time"] = round(time.time() - startup_t0, 3)
                 
                 print("\n=========================")
