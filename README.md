@@ -1,139 +1,76 @@
-# Athenaeum Voice Concierge (Sam) 🎙️📚
+# Library Virtual Assistant (Speech-to-Speech RAG System)
 
-A complete, end-to-end Voice AI Library Assistant that helps students navigate the library, search for books, and ask questions about library services. Powered by **Retrieval-Augmented Generation (RAG)**, **Gemini Flash**, and **Web Speech API**, this project provides a dynamic, professional, and entirely voice-driven interactive experience.
+An enterprise-grade, speech-enabled conversational AI for library management. This system allows users to interact with a library catalog (10,000+ records), policies, and research guides entirely via voice.
+
+## 🚀 Tech Stack
+
+### Frontend (Client-Side)
+* **HTML/CSS/JS (Vanilla)**: A lightweight, ultra-fast user interface.
+* **Speech-to-Text (STT)**: HTML5 `MediaRecorder` API combined with the Web Audio API (`AnalyserNode`) to automatically detect when a user starts and stops speaking.
+* **Text-to-Speech (TTS)**: Browser native Web Speech API (`speechSynthesis`) configured with natural-sounding female voices.
+
+### Backend (Server-Side)
+* **FastAPI (Python)**: High-performance asynchronous backend server.
+* **Groq SDK**: Connects to Groq's specialized inference hardware for blazing-fast AI execution.
+
+### Artificial Intelligence & RAG
+* **LLM (Language Model)**: `llama-3.1-8b-instant` (via Groq API)
+* **Transcription (STT)**: `whisper-large-v3-turbo` (via Groq API) - Used to transcribe user voice blobs robustly.
+* **Vector Database**: ChromaDB (Persistent Local Storage)
+* **Dense Embedding Model**: `BAAI/bge-small-en-v1.5` (via `fastembed` for fast CPU execution)
+* **Sparse Keyword Search**: BM25 (Pre-tokenized and cached locally)
+* **Cross-Encoder Reranker**: `Xenova/ms-marco-MiniLM-L-6-v2` (via `fastembed`)
 
 ---
 
-## 🌟 Key Features
+## 🏗️ Architecture Workflow
 
-1. **Professional Voice AI (Sam):** A carefully tuned, conversational virtual receptionist that responds instantly and accurately, strictly providing the information requested without unnecessary filler.
-2. **Retrieval-Augmented Generation (RAG):** The AI answers are grounded entirely in your custom documents. It won't hallucinate information outside of the provided library database.
-3. **Real-time Librarian Upload:** A hidden admin panel allows librarians to upload new PDFs, Word documents, or text files directly from the web interface, instantly training the AI on new material.
-4. **Instant Voice Interaction:** Optimized Web Speech API integration that cuts out microphone latency, triggering the LLM the millisecond you finish speaking.
-5. **Dynamic 3D User Interface:** Glassmorphic UI featuring a live-rendered Three.js interactive orb that reacts to voice input and application states.
-6. **Smart Map Routing:** An A* algorithm that dynamically draws routes on an isometric floor plan based on the user's queries.
+### 1. Data Ingestion (One-Time Setup)
+The data ingestion pipeline handles massive datasets (tested up to 10,000+ items).
+1. `index_books.py` reads `book_catalog.csv`, `.xlsx`, `.docx`, and `.txt` files.
+2. It parses and maps the data into highly structured semantic "chunks" (e.g., combining Title, Author, Call Number, and Location).
+3. The chunks are embedded using the dense model and stored into **ChromaDB**.
+4. A **BM25** index is simultaneously generated, tokenized, and serialized to disk (`bm25_cache.pkl`).
 
----
+### 2. Voice Interaction (Runtime)
+1. **User Speaks**: The user clicks the microphone button. The browser begins recording using `MediaRecorder`.
+2. **Silence Detection**: The Web Audio API continually monitors volume. Once the user stops speaking for 1.5 seconds, it stops the recording automatically.
+3. **Transcription**: The recorded `.webm` audio chunk is sent to the backend `/api/transcribe` endpoint, which pushes it to Groq's Whisper API and returns exact text.
+4. **Processing**: The text is pushed to `/api/chat`.
 
-## 🏗️ System Architecture
-
-- **Frontend:** Pure HTML/CSS/JavaScript. Uses Web Speech API for STT (Speech-to-Text) and TTS (Text-to-Speech). `Three.js` is used for 3D animations.
-- **Backend:** `FastAPI` (Python). Serves static files and provides the `/api/chat` and `/api/upload` endpoints.
-- **AI Engine:** `LangChain` orchestration, utilizing `Google Generative AI` (Gemini Flash) for extremely fast inference.
-- **Vector Database:** `ChromaDB` (local, persistent storage) used to store and retrieve document embeddings (`all-MiniLM-L6-v2`).
-
----
-
-## 🚀 Prerequisites
-
-Before you begin, ensure you have the following installed:
-- **Python 3.9+**
-- **pip** (Python package installer)
-- A **Google Gemini API Key**
-- **Google Chrome** (Highly recommended for the best Web Speech API compatibility)
+### 3. Retrieval-Augmented Generation (RAG)
+1. **Hybrid Search**: The backend searches the query against ChromaDB (Semantic) and BM25 (Keyword). 
+2. **Reciprocal Rank Fusion (RRF)**: It merges the results, taking the Top 20 best hits.
+3. **Reranking**: The `TextCrossEncoder` aggressively reranks the top 20 hits against the user's exact query, keeping only the Top 5 most relevant documents.
+4. **Generation**: The Top 5 documents are formatted as structured context and sent to the `llama-3.1-8b-instant` model alongside the system prompt.
+5. **Streaming**: The LLM streams its answer back to the frontend, which is then spoken aloud by the browser's TTS engine.
 
 ---
 
 ## 🛠️ Installation & Setup
 
-1. **Navigate to the project directory:**
-   ```bash
-   cd speech-to-speech-main
-   ```
-
-2. **Install Python Dependencies:**
-   ```bash
-   pip install fastapi uvicorn langchain langchain-huggingface langchain-google-genai chromadb pypdf docx2txt sentence-transformers unstructured python-multipart
-   ```
-
-3. **Set your API Key:**
-   Open `run_local.bat` in a text editor and ensure your Gemini API key is correctly set:
-   ```bat
-   set GEMINI_API_KEY=your_api_key_here
-   ```
-
-4. **Add Initial Data (Optional):**
-   Place any initial PDFs, `.txt`, or `.docx` files in the `data/` folder before the first run so the RAG engine can build the vector database.
-
----
-
-## 🏃 Running the Application
-
-1. **Start the server:**
-   Simply double-click the `run_local.bat` script, or run it from the terminal:
-   ```bash
-   .\run_local.bat
-   ```
-2. **Access the Web App:**
-   Open Google Chrome and navigate to:
-   ```
-   http://localhost:8000
-   ```
-3. **Interact:**
-   Click the glowing orb to initiate Sam. Speak your queries (e.g., *"Where is the Python book?"*).
-
----
-
-## 📂 File Structure
-
-```text
-speech-to-speech-main/
-│
-├── index.html               # Main Frontend interface (UI, TTS, STT, 3D Orb, Routing)
-├── app.js                   # Client-side helper scripts
-├── run_local.bat            # Windows startup script (sets ENV vars and launches Uvicorn)
-│
-├── data/                    # Directory for initial PDF/Word/TXT documents
-│
-├── backend/
-│   ├── main.py              # FastAPI application and routing
-│   ├── rag_engine.py        # LangChain logic, ChromaDB management, and LLM Persona definitions
-│   └── chroma_db/           # Persistent local vector database (auto-generated)
+1. **Install Dependencies**:
+```bash
+pip install -r requirements.txt
 ```
 
----
+2. **Environment Variables**:
+Create a `.env` file in the root directory:
+```env
+GROQ_API_KEY=your_groq_api_key_here
+```
 
-## 🌐 API Endpoints
+3. **Ingest the Catalog (First Run Only)**:
+Run the indexer to process all 10,000+ books into the vector database.
+```bash
+python index_books.py
+```
 
-- `POST /api/chat`
-  - **Payload:** `{"message": "User query string"}`
-  - **Response:** `{"response": "AI's generated answer based on RAG context"}`
+4. **Start the Server**:
+Run the FastAPI backend.
+```bash
+uvicorn backend.api.main:app --host 127.0.0.1 --port 8000
+```
 
-- `POST /api/upload`
-  - **Payload:** `multipart/form-data` (File upload)
-  - **Response:** Stores file in `data/` and triggers real-time ChromaDB ingestion.
-
----
-
-## 🎛️ Customizing the AI Persona
-
-The AI's personality, tone, and behavior rules are centrally managed in the backend prompt.
-
-To modify the AI Persona:
-1. Open `backend/rag_engine.py`.
-2. Locate the `system_prompt` variable.
-3. Edit the instructions, restrictions, or examples to suit your specific use case.
-4. Restart the backend server.
-
-### Voice Customization
-The frontend dynamically searches for the best professional female voice available on the user's operating system. This logic is located in `index.html` inside the `speakText()` function. The default speaking rate is tuned to `1.2` for an optimal brisk conversational speed on Windows.
-
----
-
-## 🔐 Librarian Access (Hidden Feature)
-
-To upload documents to the AI's brain directly from the browser:
-1. Click **"User Login"** on the top navigation bar.
-2. Enter the default credentials:
-   - **Username:** `admin`
-   - **Password:** `admin`
-3. Upload a PDF or Word document. The AI will learn it instantly without requiring a server restart.
-
----
-
-## 🔧 Troubleshooting
-
-- **The AI isn't speaking or hearing me:** Ensure you are using Google Chrome and have granted Microphone permissions to `localhost`.
-- **The voice sounds slow or robotic:** Refresh the browser. Ensure your Windows OS has English language packs installed.
-- **500 Internal Server Error:** Check the terminal running the backend. This usually indicates an invalid or expired Gemini API key in `run_local.bat`.
-- **RAG Engine is not initialized:** Ensure the `data/` folder exists and contains at least one readable document, or use the Librarian upload panel to add one.
+5. **Access the Application**:
+Open your browser and navigate to `http://127.0.0.1:8000`.

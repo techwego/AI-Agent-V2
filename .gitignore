@@ -431,3 +431,6 @@ __pycache__/
 *.pyc
 run_local.bat
 cloudflared.exe
+
+chroma_db/
+

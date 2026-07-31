@@ -215,6 +215,34 @@ async def chat(request: ChatRequest):
 
     return StreamingResponse(generate(), media_type="text/plain")
 
+import tempfile
+from groq import Groq
+
+@app.post("/api/transcribe")
+async def transcribe_audio(audio: UploadFile = File(...)):
+    if not Config.GROQ_API_KEY:
+        raise HTTPException(status_code=500, detail="Groq API key not configured")
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
+        shutil.copyfileobj(audio.file, temp_audio)
+        temp_audio_path = temp_audio.name
+
+    try:
+        client = Groq(api_key=Config.GROQ_API_KEY)
+        with open(temp_audio_path, "rb") as file:
+            transcription = client.audio.transcriptions.create(
+                file=(audio.filename, file.read()),
+                model="whisper-large-v3-turbo",
+                response_format="json",
+            )
+        return {"text": transcription.text}
+    except Exception as e:
+        print(f"[ERROR] Transcription failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if os.path.exists(temp_audio_path):
+            os.remove(temp_audio_path)
+
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...)):
     if not file.filename:

@@ -19,8 +19,8 @@ class Config:
     RERANKER_MODEL: str = os.environ.get("RERANKER_MODEL", "Xenova/ms-marco-MiniLM-L-6-v2")
     
     # Retrieval Settings
-    TOP_K: int = int(os.environ.get("TOP_K", "3"))
-    RERANK_TOP_K: int = int(os.environ.get("RERANK_TOP_K", "1"))
+    TOP_K: int = int(os.environ.get("TOP_K", "15"))
+    RERANK_TOP_K: int = int(os.environ.get("RERANK_TOP_K", "6"))
     CHUNK_SIZE: int = int(os.environ.get("CHUNK_SIZE", "250"))
     CHUNK_OVERLAP: int = int(os.environ.get("CHUNK_OVERLAP", "50"))
     

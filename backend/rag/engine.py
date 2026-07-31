@@ -316,7 +316,9 @@ class LibraryRAG:
         # Force threads=1 to prevent ONNX deadlocks in background thread pool
         self.embed_model = TextEmbedding(Config.EMBEDDING_MODEL, threads=1)
         
-        # Reranker is completely disabled for memory constraints on 512MB RAM tier
+        # Load lightweight Cross-Encoder for reranking
+        self.reranker = TextCrossEncoder("Xenova/ms-marco-MiniLM-L-6-v2")
+        
         # State
         self.llm_engine = None
         self.collection = None
@@ -343,15 +345,12 @@ class LibraryRAG:
             )
 
             if self.collection.count() == 0:
-                print("ChromaDB is empty. Ingesting documents...")
-                self._ingest_all()
+                print("ChromaDB is empty. Please run index_books.py first.")
+                raise ValueError("ChromaDB is empty.")
 
             chunk_count = self.collection.count()
             self.diagnostics["total_chunks"] = chunk_count
             self.diagnostics["db_time"] = round(time.time() - t_db, 3)
-            
-            if chunk_count == 0:
-                raise ValueError("ChromaDB has 0 chunks after ingestion step.")
                 
             print(f"ChromaDB loaded: {chunk_count} chunks")
 
@@ -382,153 +381,42 @@ class LibraryRAG:
                 print(f"Status          : {self.state.value}")
                 print("=========================\n")
             else:
-                print("No valid API key — DB generation mode only.")
-                self.state = RAGState.ERROR
+                print("DB generation mode complete (offline).")
+                self.state = RAGState.READY
+                self.diagnostics["startup_time"] = round(time.time() - startup_t0, 3)
                 
         except Exception as e:
             self.state = RAGState.ERROR
             self.diagnostics["status_message"] = f"Initialization failed: {e}"
             print(f"[ERROR] RAG Initialization Failed: {e}")
 
-    def _ingest_all(self):
-        """Read all files, chunk with token awareness, embed, store."""
-        if not os.path.exists(self.data_dir):
-            print(f"Warning: Data directory {self.data_dir} does not exist.")
-            return
-
-        all_chunks = []
-        for filename in sorted(os.listdir(self.data_dir)):
-            filepath = os.path.join(self.data_dir, filename)
-            if not os.path.isfile(filepath):
-                continue
-
-            print(f"  Reading: {filename}")
-            doc_pages = DocumentReader.read(filepath)
-
-            for page_data in doc_pages:
-                text = page_data["text"]
-                metadata_base = page_data["metadata"]
-                chunks = self.chunker.chunk(text, metadata_base)
-                all_chunks.extend(chunks)
-
-        if not all_chunks:
-            print("Warning: No text content found.")
-            return
-
-        # Generate deterministic IDs based on content hash
-        ids = []
-        texts = []
-        metadatas = []
-
-        for i, chunk in enumerate(all_chunks):
-            content_hash = hashlib.md5(chunk["text"].encode()).hexdigest()[:12]
-            ids.append(f"doc_{i}_{content_hash}")
-            texts.append(chunk["text"])
-            
-            meta = {}
-            for k, v in chunk["metadata"].items():
-                if v is not None:
-                    meta[k] = str(v) if not isinstance(v, (int, float, bool)) else v
-            if "token_count" in chunk:
-                meta["token_count"] = chunk["token_count"]
-            metadatas.append(meta)
-
-        print(f"Chunked into {len(all_chunks)} pieces. Embedding...")
-
-        print("Starting batch embedding...")
-        embed_batch_size = 256
-        embeddings = []
-        total = len(texts)
-        
-        for i in range(0, total, embed_batch_size):
-            batch_texts = texts[i:i+embed_batch_size]
-            batch_embs = list(self.embed_model.embed(batch_texts, batch_size=64))
-            embeddings.extend([emb.tolist() for emb in batch_embs])
-            print(f"  Embedded {len(embeddings)}/{total} chunks...", flush=True)
-
-        print("Adding chunks to ChromaDB collection...", flush=True)
-        batch_size = 500
-        for i in range(0, total, batch_size):
-            end = min(i + batch_size, total)
-            self.collection.add(
-                ids=ids[i:end],
-                embeddings=embeddings[i:end],
-                documents=texts[i:end],
-                metadatas=metadatas[i:end],
-            )
-            print(f"  Stored batch {i//batch_size + 1}/{(total-1)//batch_size + 1}", flush=True)
-
-        print(f"Successfully stored {total} chunks in ChromaDB.")
+    # ------------------------------------------------------------------
 
     # ------------------------------------------------------------------
     # BM25 Index
     # ------------------------------------------------------------------
 
     def _build_or_load_bm25_index(self):
-        """Build an in-memory BM25 index from all ChromaDB documents or load from cache."""
+        """Load the pre-built BM25 index from cache."""
         t0 = time.time()
-        total = self.collection.count()
-        if total == 0:
-            print("BM25: No documents to index.")
-            return
-
         cache_path = os.path.join(self.persist_dir, "bm25_cache.pkl")
         
-        # Determine if we should rebuild
-        rebuild = True
-        if os.path.exists(cache_path):
-            try:
-                with open(cache_path, "rb") as f:
-                    cache_data = pickle.load(f)
-                if cache_data.get("count") == total:
-                    print(f"BM25: Loading index from cache ({total} docs)...")
-                    self.bm25_index = cache_data["index"]
-                    self.bm25_doc_map = cache_data["doc_map"]
-                    rebuild = False
-            except Exception as e:
-                print(f"BM25: Cache load failed ({e}), rebuilding...")
-
-        if not rebuild:
+        if not os.path.exists(cache_path):
+            print("BM25: Cache missing. Please run index_books.py")
             return
-
-        print("BM25: Rebuilding index...")
-        # Fetch all documents from ChromaDB
-        batch_size = 5000
-        all_docs = []
-        all_ids = []
-        all_metas = []
-        for offset in range(0, total, batch_size):
-            result = self.collection.get(
-                limit=batch_size,
-                offset=offset,
-                include=["documents", "metadatas"],
-            )
             
-            all_ids.extend(result["ids"])
-            all_docs.extend(result["documents"])
-            all_metas.extend(result["metadatas"])
-
-        # Tokenize for BM25
-        tokenized = [doc.lower().split() for doc in all_docs]
-        self.bm25_index = BM25Okapi(tokenized)
-        self.bm25_doc_map = [
-            {"id": id_, "text": doc, "metadata": meta}
-            for id_, doc, meta in zip(all_ids, all_docs, all_metas)
-        ]
-
         try:
-            with open(cache_path, "wb") as f:
-                pickle.dump({
-                    "count": total,
-                    "index": self.bm25_index,
-                    "doc_map": self.bm25_doc_map
-                }, f)
-            print("BM25: Index cached successfully.")
+            with open(cache_path, "rb") as f:
+                cache_data = pickle.load(f)
+            self.bm25_index = cache_data["index"]
+            self.bm25_doc_map = cache_data["doc_map"]
+            total = cache_data.get("count", len(self.bm25_doc_map))
+            print(f"BM25: Loading index from cache ({total} docs)...")
         except Exception as e:
-            print(f"BM25: Failed to cache index ({e})")
+            print(f"BM25: Cache load failed: {e}")
 
         elapsed = time.time() - t0
-        print(f"BM25 index built: {len(all_docs)} docs in {elapsed:.1f}s")
+        print(f"BM25 index loaded in {elapsed:.1f}s")
 
     def _warmup_pipeline(self):
         """Execute a dummy request to ensure models are loaded into RAM."""
@@ -672,31 +560,41 @@ class LibraryRAG:
             bm25_hits = self._bm25_search(user_input, top_k=Config.TOP_K)
             print(f"BM25 results count: {len(bm25_hits)}")
 
-            # 2. Merge with RRF (Skip CrossEncoder Rerank to save 250MB+ RAM)
+            # 2. Merge with RRF and Rerank
             merged = self._reciprocal_rank_fusion(vector_hits, bm25_hits)
             print(f"RRF results count: {len(merged)}")
             
-            top_chunks = merged[:Config.RERANK_TOP_K]
+            top_chunks = self._rerank(user_input, merged[:20], top_k=Config.RERANK_TOP_K)
             print(f"Final retrieved chunks: {len(top_chunks)}")
 
-            # 3. Build structured prompt with provenance
             context_blocks = []
             for i, chunk in enumerate(top_chunks):
                 meta = chunk.get("metadata", {})
-                source = meta.get("source", "unknown")
-                page = meta.get("page", "—")
-                section = meta.get("section", "—")
                 confidence = f"{chunk.get('rerank_score', 0):.2f}"
-                context_blocks.append(
-                    f"[Document {i+1}] source: {source} | page: {page} | "
-                    f"section: {section} | confidence: {confidence}\n"
-                    f"{chunk['text']}"
-                )
+                
+                # Check if it's a structural book record or a text chunk
+                if meta.get("section") == "book_record":
+                    # For books, the chunk text is already perfectly formatted with all metadata
+                    context_blocks.append(f"[Book Record {i+1}] confidence: {confidence}\n{chunk['text']}")
+                else:
+                    source = meta.get("source", "unknown")
+                    page = meta.get("page", "—")
+                    section = meta.get("section", "—")
+                    
+                    chunk_text = chunk["text"]
+                    if section and section not in ("full", "Catalog", "spreadsheet", "—"):
+                        chunk_text = f"Section/Heading: {section}\n{chunk_text}"
+                        
+                    context_blocks.append(
+                        f"[Document {i+1}] source: {source} | page: {page} | "
+                        f"section: {section} | confidence: {confidence}\n"
+                        f"{chunk_text}"
+                    )
             context = "\n\n".join(context_blocks)
             
-            # HARD LIMIT: Ensure context doesn't exceed ~2500 characters to stay well under Groq 6000 TPM limit
-            if len(context) > 2500:
-                context = context[:2500] + "\n...[CONTENT TRUNCATED DUE TO SIZE LIMITS]..."
+            # HARD LIMIT: Ensure context doesn't exceed ~16000 characters to stay within reasonable limits
+            if len(context) > 16000:
+                context = context[:16000] + "\n...[CONTENT TRUNCATED DUE TO SIZE LIMITS]..."
 
             system_prompt = (
                 "You are Sam, a virtual library assistant for the University Library. "

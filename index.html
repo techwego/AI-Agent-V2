@@ -718,70 +718,121 @@ function setState(newState) {
   }
 }
 
-function stopMicrophone() {
-  if (activeRecognition) {
-    try {
-      activeRecognition.abort();
-    } catch(e) {}
-    activeRecognition = null;
-    console.log("Microphone Disabled");
-    console.log("STT Stopped");
-  }
-  app.classList.remove('busy');
-}
+let mediaRecorder = null;
+let audioChunks = [];
+let silenceDetectionInterval = null;
 
-function startMicrophone() {
+async function startMicrophone() {
   if (currentState !== State.IDLE && currentState !== State.LISTENING) {
     console.log(`[STT Blocked] Cannot start STT in state: ${currentState}`);
     return;
   }
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert("Speech Recognition is not supported in this browser.");
+  if (currentState === State.LISTENING) {
+    stopMicrophone();
     return;
   }
 
-  stopMicrophone();
-
-  activeRecognition = new SpeechRecognition();
-  activeRecognition.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
-  activeRecognition.interimResults = false;
-  activeRecognition.maxAlternatives = 1;
-
-  setState(State.LISTENING);
-  app.classList.add('busy');
-
-  activeRecognition.onstart = () => {
-    console.log("Microphone Enabled");
-    console.log("STT Started");
-  };
-
-  activeRecognition.onresult = (event) => {
-    const speechResult = event.results[0][0].transcript;
-    stopMicrophone();
-    document.getElementById('chatInput').value = speechResult;
-    askCustom();
-  };
-
-  activeRecognition.onerror = (event) => {
-    console.error("Speech recognition error:", event.error);
-    stopMicrophone();
-    setState(State.IDLE);
-    document.getElementById('dockStatus').textContent = "Microphone error: " + event.error + ". Tap to try again.";
-  };
-
-  activeRecognition.onend = () => {
-    if (currentState === State.LISTENING) {
-      console.log("STT Stopped");
-    }
-  };
-
   try {
-    activeRecognition.start();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+
+    // Silence Detection Setup
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioContext.createAnalyser();
+    const microphone = audioContext.createMediaStreamSource(stream);
+    microphone.connect(analyser);
+    analyser.fftSize = 512;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    let silenceStart = Date.now();
+    let hasSpoken = false;
+
+    silenceDetectionInterval = setInterval(() => {
+      analyser.getByteFrequencyData(dataArray);
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sum += dataArray[i];
+      }
+      let average = sum / bufferLength;
+
+      if (average > 10) { 
+        hasSpoken = true;
+        silenceStart = Date.now();
+      } else {
+        if (hasSpoken && Date.now() - silenceStart > 1500) {
+          // User stopped speaking
+          stopMicrophone();
+        } else if (!hasSpoken && Date.now() - silenceStart > 5000) {
+          // User never spoke for 5 seconds
+          stopMicrophone();
+        }
+      }
+    }, 100);
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) audioChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      if (silenceDetectionInterval) clearInterval(silenceDetectionInterval);
+      if (audioContext.state !== 'closed') audioContext.close();
+      
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      
+      setState(State.PROCESSING);
+      document.getElementById('dockStatus').textContent = "Transcribing...";
+      
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+      
+      try {
+        const response = await fetch('/api/transcribe', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) throw new Error('Transcription failed');
+        const data = await response.json();
+        const speechResult = data.text;
+        
+        if (speechResult && speechResult.trim().length > 0) {
+            document.getElementById('chatInput').value = speechResult;
+            askCustom();
+        } else {
+            setState(State.IDLE);
+            document.getElementById('dockStatus').textContent = "Could not hear you. Tap to try again.";
+        }
+      } catch (e) {
+        console.error("Transcription error:", e);
+        setState(State.IDLE);
+        showToast("Voice transcription failed. Please check network or type your question.");
+      }
+    };
+
+    mediaRecorder.start();
+    setState(State.LISTENING);
+    app.classList.add('busy');
+    console.log("Microphone Recording Started (Listening for silence...)");
   } catch(e) {
-    console.error("STT start error:", e);
+    console.error("Microphone access error:", e);
+    showToast("Please allow microphone access to use voice chat.");
   }
+}
+
+function stopMicrophone() {
+  if (silenceDetectionInterval) {
+    clearInterval(silenceDetectionInterval);
+    silenceDetectionInterval = null;
+  }
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    console.log("Microphone Recording Stopped");
+  }
+  app.classList.remove('busy');
 }
 
 function askCustom() {
@@ -789,6 +840,12 @@ function askCustom() {
   const query = inputEl.value.trim();
   if (!query) return;
   inputEl.value = '';
+  
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  if (currentState !== State.IDLE) {
+    setState(State.IDLE);
+  }
+  
   askQuery(query);
 }
 
