@@ -209,97 +209,92 @@
     overflow: hidden;
     z-index: 2;
   }
-  
-  /* Inner energy waves */
-  .orb-waves {
-    position: absolute;
-    inset: -20%;
-    width: 140%;
-    height: 140%;
-    z-index: 1;
-    mix-blend-mode: screen;
-    opacity: 0.6;
-    transition: opacity 0.5s ease;
-  }
-  
-  .wave-layer {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at center, rgba(74,140,255,0.4) 0%, transparent 60%);
-    animation: rotateWave 12s linear infinite;
-  }
-  .wave-layer:nth-child(2) {
-    background: radial-gradient(ellipse at center, rgba(157,124,255,0.4) 0%, transparent 60%);
-    animation: rotateWave 18s linear infinite reverse;
-    transform-origin: 40% 60%;
-  }
-  .wave-layer:nth-child(3) {
-    background: radial-gradient(ellipse at center, rgba(102,255,204,0.3) 0%, transparent 50%);
-    animation: rotateWave 15s linear infinite;
-    transform-origin: 60% 40%;
-  }
-  
-  /* SVG Sine waves simulating the audio visualizer */
-  .orb-svg-waves {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 100%;
-    height: 100px;
-    transform: translateY(-50%);
-    z-index: 2;
-    opacity: 0.8;
-  }
-  .orb-svg-waves path {
-    fill: none;
-    stroke-width: 2px;
-    stroke-linecap: round;
-    animation: undulate 4s ease-in-out infinite alternate;
-  }
-  .path-cyan { stroke: rgba(102, 255, 204, 0.8); filter: drop-shadow(0 0 8px rgba(102, 255, 204, 0.8)); animation-delay: -1s; }
-  .path-purple { stroke: rgba(157, 124, 255, 0.8); filter: drop-shadow(0 0 12px rgba(157, 124, 255, 0.8)); animation-delay: -2s; }
-  .path-white { stroke: rgba(255, 255, 255, 0.9); stroke-width: 3px; filter: drop-shadow(0 0 10px rgba(255, 255, 255, 1)); }
+      /* Inner energy waves / Siri petals */
+    .petal {
+      position: absolute;
+      width: 70%;
+      height: 70%;
+      mix-blend-mode: screen;
+      filter: blur(4px);
+      opacity: 0.8;
+      border-radius: 50%;
+      top: 15%;
+      left: 15%;
+      transform-origin: center;
+      transition: all 0.5s ease;
+    }
+    
+    .petal.cyan { background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); }
+    .petal.purple { background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%); }
+    
+    .petal-1 { transform: rotate(0deg) translate(-20%, 20%) scale(0.9); }
+    .petal-2 { transform: rotate(90deg) translate(-20%, 20%) scale(0.9); }
+    .petal-3 { transform: rotate(180deg) translate(-20%, 20%) scale(0.9); }
+    .petal-4 { transform: rotate(270deg) translate(-20%, 20%) scale(0.9); }
+    
+    /* Siri Waveform background */
+    .siri-waveform {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 400px;
+      height: 40px;
+      z-index: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+    
+    .wf-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #7579ff;
+      box-shadow: 0 0 8px #7579ff;
+    }
+    
+    .wf-line {
+      width: 2px;
+      height: 20px;
+      border-radius: 2px;
+      background: #00f2fe;
+      box-shadow: 0 0 10px #00f2fe;
+      transition: height 0.2s;
+    }
+    
+    .app.busy .wf-line {
+      animation: pulseWaveform 0.5s infinite alternate ease-in-out;
+    }
+    
+    @keyframes pulseWaveform {
+      0% { transform: scaleY(0.8); }
+      100% { transform: scaleY(1.5); }
+    }
+    
+    .app.busy .glass-orb {
+      box-shadow: 
+        inset 0 0 60px rgba(157, 124, 255, 0.4),
+        0 0 40px rgba(74, 140, 255, 0.3);
+      animation: pulseOrb 2s infinite alternate ease-in-out;
+    }
+    
+    .app.busy .petal {
+      animation: siriSpin 3s linear infinite;
+    }
+    .app.busy .petal-1 { animation-delay: 0s; }
+    .app.busy .petal-2 { animation-delay: -0.75s; }
+    .app.busy .petal-3 { animation-delay: -1.5s; }
+    .app.busy .petal-4 { animation-delay: -2.25s; }
 
-  /* Surface reflections */
-  .orb-highlight {
-    position: absolute;
-    top: 5%;
-    left: 15%;
-    width: 70%;
-    height: 35%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 100%);
-    border-radius: 50% 50% 10% 10% / 40% 40% 10% 10%;
-    z-index: 3;
-    pointer-events: none;
-  }
-
-  /* Busy / Listening state animations */
-  .app.busy .glass-orb {
-    box-shadow: 
-      inset 0 0 60px rgba(157, 124, 255, 0.4),
-      inset 0 4px 12px rgba(255, 255, 255, 0.6),
-      inset 0 -10px 20px rgba(74, 140, 255, 0.5),
-      0 20px 50px -10px rgba(0, 0, 0, 0.8),
-      0 0 120px rgba(157, 124, 255, 0.4);
-    animation: pulseOrb 2s infinite alternate ease-in-out;
-  }
-  .app.busy .orb-waves {
-    opacity: 0.9;
-    transform: scale(1.1);
-  }
-  .app.busy .orb-svg-waves path {
-    animation-duration: 0.8s;
-  }
+    @keyframes siriSpin {
+      0% { transform: rotate(0deg) translate(-20%, 20%) scale(0.9); }
+      50% { transform: rotate(180deg) translate(-30%, 30%) scale(1.1); }
+      100% { transform: rotate(360deg) translate(-20%, 20%) scale(0.9); }
+    }
   
-  @keyframes rotateWave {
-    0% { transform: rotate(0deg) scale(1); }
-    50% { transform: rotate(180deg) scale(1.2); }
-    100% { transform: rotate(360deg) scale(1); }
-  }
-  @keyframes undulate {
-    0% { transform: scaleY(0.6) translateY(5px); }
-    100% { transform: scaleY(1.5) translateY(-5px); }
-  }
   @keyframes pulseOrb {
     0% { transform: scale(1); }
     100% { transform: scale(1.05); }
@@ -594,23 +589,21 @@
         <!-- Persistent Avatar and Mic -->
         <!-- Persistent Glass Orb Avatar -->
         <div class="avatar-view">
-          <div class="glass-orb-container" id="orb" onclick="startSpeechRecognition()">
+          <div class="glass-orb-container siri-orb" id="orb" onclick="startSpeechRecognition()">
+            <!-- Background waveform dots and lines -->
+            <div class="siri-waveform">
+              <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
+              <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
+              <div class="wf-line"></div><div class="wf-line" style="height:30px"></div><div class="wf-line"></div>
+              <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
+              <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
+            </div>
+            
             <div class="glass-orb">
-              <div class="orb-highlight"></div>
-              
-              <!-- Inner rotating wave layers -->
-              <div class="orb-waves">
-                <div class="wave-layer"></div>
-                <div class="wave-layer"></div>
-                <div class="wave-layer"></div>
-              </div>
-              
-              <!-- Center Sine Waves -->
-              <svg class="orb-svg-waves" viewBox="0 0 200 100" preserveAspectRatio="none">
-                <path class="path-cyan" d="M 0 50 Q 50 10 100 50 T 200 50"></path>
-                <path class="path-purple" d="M 0 50 Q 50 90 100 50 T 200 50"></path>
-                <path class="path-white" d="M 0 50 Q 50 30 100 50 T 200 50"></path>
-              </svg>
+              <div class="petal cyan petal-1"></div>
+              <div class="petal purple petal-2"></div>
+              <div class="petal cyan petal-3"></div>
+              <div class="petal purple petal-4"></div>
             </div>
             
             <span class="orb-mic">
