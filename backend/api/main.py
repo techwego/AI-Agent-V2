@@ -4,7 +4,7 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):
     os.environ["ONNXRUNTIME_NUM_THREADS"] = "1"
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 import shutil
@@ -243,20 +243,51 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         if os.path.exists(temp_audio_path):
             os.remove(temp_audio_path)
 
+
+def process_upload_task(upload_id: int):
+    import subprocess
+    try:
+        print(f'[UPLOAD] Processing task {upload_id}')
+        # We will replace index_books.py with the new ingestion logic later.
+        # For now, just run index_books.py
+        result = subprocess.run([sys.executable, "index_books.py"], cwd=BASE_DIR, capture_output=True, text=True)
+        if result.returncode == 0:
+            database.update_document_status(upload_id, "Success", "Indexed successfully")
+            rag_engine.reload_index()
+            print(f'[UPLOAD] Task {upload_id} Success')
+        else:
+            database.update_document_status(upload_id, "Failed", result.stderr[-200:] if result.stderr else "Failed without error trace")
+            print(f'[UPLOAD] Task {upload_id} Failed: {result.stderr}')
+    except Exception as e:
+        database.update_document_status(upload_id, "Failed", str(e))
+        print(f'[UPLOAD] Task {upload_id} Exception: {e}')
+
 @app.post("/api/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
     
-    # Save the file to the data directory
     file_path = os.path.join(DATA_DIR, file.filename)
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
+        
+    doc_ext = file.filename.split('.')[-1].lower() if '.' in file.filename else "unknown"
+    upload_id = database.upsert_document(file.filename, doc_ext, "Processing", "", "File saved, indexing...")
+    background_tasks.add_task(process_upload_task, upload_id)
     
-    return JSONResponse(content={"message": f"Successfully uploaded {file.filename}"})
+    return JSONResponse(content={"message": f"Successfully uploaded {file.filename}", "upload_id": upload_id})
+
+@app.get("/api/uploads")
+def get_uploads():
+    return database.get_all_documents()
+
+@app.get("/api/dashboard_stats")
+def get_dashboard_stats():
+    return database.get_dashboard_metrics()
+
 
 
 @app.get("/")

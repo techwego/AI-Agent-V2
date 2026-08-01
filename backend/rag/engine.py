@@ -418,6 +418,16 @@ class LibraryRAG:
         elapsed = time.time() - t0
         print(f"BM25 index loaded in {elapsed:.1f}s")
 
+    def reload_index(self):
+        """Reload the Chroma collection and BM25 index after live ingestion."""
+        print("Reloading RAG indices...", flush=True)
+        self.collection = self.chroma_client.get_or_create_collection(
+            "library_data_v2",
+            metadata={"hnsw:space": "cosine"},
+        )
+        self._build_or_load_bm25_index()
+        print("RAG reload complete.", flush=True)
+
     def _warmup_pipeline(self):
         """Execute a dummy request to ensure models are loaded into RAM."""
         try:
@@ -537,6 +547,17 @@ class LibraryRAG:
     # Query Pipeline
     # ------------------------------------------------------------------
 
+    def _expand_query(self, query: str) -> str:
+        """Simple internal query expansion to catch common synonyms."""
+        q = query.lower()
+        expanded = [q]
+        if "python" in q: expanded.extend(["python programming", "python language", "python guide"])
+        if "ai" in q or "artificial intelligence" in q: expanded.extend(["artificial intelligence", "machine learning", "ML"])
+        if "policy" in q or "rules" in q: expanded.extend(["guidelines", "regulations", "policies"])
+        # Fuzzy intent hints
+        if "where" in q: expanded.append("rack shelf location")
+        return " ".join(expanded)
+
     def query_stream(self, user_input: str):
         if not self.ready or not self.llm_engine:
             yield "I am still setting up. Please try again in a moment."
@@ -547,24 +568,23 @@ class LibraryRAG:
         
         try:
             t_embed = time.time()
-            print("Embedding query...")
-            # We just need to trigger embed_model, though vector_search does it internally. 
-            # I will trust vector_search to handle it, but I will log it.
+            expanded_query = self._expand_query(user_input)
+            print(f"Expanded Query: {expanded_query}")
             
             print("Vector search...")
-            vector_hits = self._vector_search(user_input, top_k=Config.TOP_K)
-            print("Query embedding generated successfully") # Logged after vector search succeeds
+            vector_hits = self._vector_search(expanded_query, top_k=50)
             print(f"Vector search executed successfully. Number of vector results: {len(vector_hits)}")
 
             print("BM25 search...")
-            bm25_hits = self._bm25_search(user_input, top_k=Config.TOP_K)
+            bm25_hits = self._bm25_search(expanded_query, top_k=50)
             print(f"BM25 results count: {len(bm25_hits)}")
 
             # 2. Merge with RRF and Rerank
             merged = self._reciprocal_rank_fusion(vector_hits, bm25_hits)
             print(f"RRF results count: {len(merged)}")
             
-            top_chunks = self._rerank(user_input, merged[:20], top_k=Config.RERANK_TOP_K)
+            # Pass top 100 to reranker, and keep top 5
+            top_chunks = self._rerank(user_input, merged[:100], top_k=5)
             print(f"Final retrieved chunks: {len(top_chunks)}")
 
             context_blocks = []

@@ -1,0 +1,19 @@
+Library Opening Hours
+=====================
+
+Monday: 8:00 AM - 10:00 PM
+Tuesday: 8:00 AM - 10:00 PM
+Wednesday: 8:00 AM - 10:00 PM
+Thursday: 8:00 AM - 10:00 PM
+Friday: 8:00 AM - 8:00 PM
+Saturday: 10:00 AM - 6:00 PM
+Sunday: 12:00 PM - 8:00 PM
+
+Holiday Hours:
+- Public Holidays: Closed
+- University Breaks: 9:00 AM - 5:00 PM (Monday to Friday only)
+
+Special Service Desks:
+- IT Help Desk: Available Mon-Fri, 9:00 AM to 5:00 PM
+- Reference Desk: Available Mon-Sat, 10:00 AM to 4:00 PM
+- Special Collections: By appointment only (Mon-Thu).

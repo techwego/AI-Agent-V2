@@ -1,0 +1,319 @@
+<h1 id="software-architecture-document-library-voice-agent">Software
+Architecture Document: Library Voice Agent</h1>
+<h2 id="executive-summary-system-overview">1. Executive Summary &amp;
+System Overview</h2>
+<ul>
+<li><strong>High-Level Purpose:</strong> The Library Voice Agent is an
+interactive, real-time conversational AI system designed to act as a
+virtual library assistant (“Sam”). It allows users to query library
+catalogs, access research guides, and inquire about library policies
+using natural language voice commands, receiving accurate spoken
+responses in real-time.</li>
+<li><strong>Agent Type &amp; Capabilities:</strong> The system operates
+as a <strong>Retrieval-Augmented Generation (RAG) conversational
+agent</strong> integrated into a low-latency <strong>Speech-to-Speech
+(S2S)</strong> pipeline. It autonomously ingests multi-format documents
+(PDFs, DOCX, XLSX, CSV, TXT), maintains a semantic vector space, and
+executes conversational workflows triggered by voice input.</li>
+</ul>
+<hr />
+<h2 id="technology-stack-architectural-justifications">2. Technology
+Stack &amp; Architectural Justifications</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Component / Tool</th>
+<th style="text-align: left;">Tech Used</th>
+<th style="text-align: left;">Purpose</th>
+<th style="text-align: left;">Architectural Justification (Why
+Chosen?)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Agent Framework</strong></td>
+<td style="text-align: left;">LangChain
+(<code>langchain-google-genai</code>)</td>
+<td style="text-align: left;">Orchestration of RAG pipelines and prompt
+management.</td>
+<td style="text-align: left;">Industry-standard modularity for document
+splitting, embedding integrations, and easy swap-out of LLMs.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Model Provider</strong></td>
+<td style="text-align: left;">Google Gemini
+(<code>gemini-flash-latest</code>)</td>
+<td style="text-align: left;">Core reasoning, synthesis, and response
+generation.</td>
+<td style="text-align: left;">Blazing fast inference speeds (vital for
+real-time speech interaction) and highly generous free-tier API
+limits.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Vector Store</strong></td>
+<td style="text-align: left;">ChromaDB</td>
+<td style="text-align: left;">Persistent local semantic search and
+embedding storage.</td>
+<td style="text-align: left;">Lightweight, serverless local database
+(SQLite-based) that avoids external cloud dependencies and network
+latency.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Embeddings</strong></td>
+<td style="text-align: left;">HuggingFace
+(<code>all-MiniLM-L6-v2</code>)</td>
+<td style="text-align: left;">Converting raw document text into dense
+semantic vectors.</td>
+<td style="text-align: left;">High-performance, low-latency open-source
+model that runs completely locally without API costs.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Backend Runtime</strong></td>
+<td style="text-align: left;">Python 3.12 / FastAPI / Uvicorn</td>
+<td style="text-align: left;">High-performance asynchronous API
+server.</td>
+<td style="text-align: left;">FastAPI provides native async support,
+vital for handling simultaneous WebSocket audio streams and non-blocking
+LLM calls.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Frontend Runtime</strong></td>
+<td style="text-align: left;">HTML5 / Vanilla JS</td>
+<td style="text-align: left;">Client-side interface for microphone
+capture and audio playback.</td>
+<td style="text-align: left;">Zero-dependency, lightweight footprint
+ensuring broad browser compatibility via standard Web Speech APIs.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="system-architecture-end-to-end-workflow-pipeline">3. System
+Architecture &amp; End-to-End Workflow Pipeline</h2>
+<h3 id="architectural-diagram">Architectural Diagram</h3>
+<pre class="mermaid"><code>flowchart TD
+    subgraph Client [Client-Side Frontend]
+        UI[Browser UI]
+        STT[Web Speech STT / Mic Capture]
+        TTS[Web Speech TTS / Audio Playback]
+    end
+
+    subgraph Backend [FastAPI Server]
+        API[main.py: API Endpoints]
+        RAG[rag_engine.py: RAG Engine]
+    end
+
+    subgraph Database [Local Storage]
+        Docs[(data/: Raw Files)]
+        Chroma[(ChromaDB)]
+    end
+
+    subgraph External [External APIs]
+        Gemini[Google Gemini API]
+    end
+
+    UI --&gt;|Voice Input| STT
+    STT --&gt;|Transcribed Text| API
+    API --&gt;|Query| RAG
+    Docs --&gt;|Ingestion| RAG
+    RAG &lt;--&gt;|Fetch/Store Embeddings| Chroma
+    RAG &lt;--&gt;|Augmented Prompt| Gemini
+    Gemini --&gt;|Text Response| RAG
+    RAG --&gt;|Text Response| API
+    API --&gt;|Response| TTS
+    TTS --&gt;|Spoken Audio| UI</code></pre>
+<h3 id="step-by-step-execution-lifecycle">Step-by-Step Execution
+Lifecycle</h3>
+<ol type="1">
+<li><strong>Input Ingestion &amp; Transcription:</strong> The user
+speaks into the client browser. The frontend utilizes standard Web
+Speech API (or custom WebRTC streaming) to capture and transcribe the
+audio into raw text.</li>
+<li><strong>State Initialization &amp; Routing:</strong> The frontend
+POSTs the text to the FastAPI backend (<code>/api/chat</code>). The
+request is routed to the <code>LibraryRAG</code> instance.</li>
+<li><strong>Retrieval (RAG):</strong> The <code>LibraryRAG</code> engine
+embeds the incoming query using the local HuggingFace
+<code>MiniLM</code> model, then performs a similarity search against the
+ChromaDB vector store to fetch relevant chunks of library data.</li>
+<li><strong>Agent Decision Loop (LLM Call):</strong> The retrieved
+context and the user’s question are injected into a strict system prompt
+(“You are Sam, a library assistant…”). This is sent to the Gemini API
+(<code>gemini-flash-latest</code>).</li>
+<li><strong>Output Formatting &amp; Response Delivery:</strong> The LLM
+returns a comprehensive text response. The backend forwards this
+response to the frontend, where the Web Speech Synthesis API converts
+the text back into female-voiced audio.</li>
+</ol>
+<hr />
+<h2 id="file-structure-dependency-mapping">4. File Structure &amp;
+Dependency Mapping</h2>
+<h3 id="directory-tree-breakdown-truncated-to-core-systems">Directory
+Tree Breakdown (Truncated to Core Systems)</h3>
+<pre class="text"><code>C:\
+|-- index.html                 # Main Frontend Entry Point
+|-- start.bat                  # Primary Windows initialization script
+|-- run_local.bat              # Local runner with secured environment variables
+|-- backend/
+|   |-- main.py                # FastAPI ASGI application &amp; routing
+|   |-- rag_engine.py          # Core RAG orchestration and database logic
+|   |-- requirements.txt       # Core backend dependencies
+|   \-- chroma_db/             # Local SQLite persistent vector storage
+|-- data/
+|   |-- books_catalog.csv      # Structured library inventory
+|   |-- library_policies.docx  # Unstructured library rules
+|   \-- research_guide.pdf     # Unstructured PDF guides
+\-- src/
+    \-- speech_to_speech/      # Advanced modular Python S2S pipeline tools
+        |-- LLM/               # LLM integration adapters
+        |-- STT/               # Speech-to-Text handlers (Whisper, etc.)
+        |-- TTS/               # Text-to-Speech handlers
+        \-- VAD/               # Voice Activity Detection (Silero)</code></pre>
+<h3 id="import-dependency-graph">Import &amp; Dependency Graph</h3>
+<ul>
+<li><code>backend/main.py</code> depends on <code>fastapi</code> and
+imports <code>backend/rag_engine.py</code> (specifically the
+<code>LibraryRAG</code> class).</li>
+<li><code>backend/rag_engine.py</code> depends on
+<code>langchain</code>, <code>langchain-google-genai</code>,
+<code>langchain-community</code> (for
+<code>HuggingFaceEmbeddings</code>), and <code>chromadb</code>. It
+interacts heavily with the local filesystem (<code>data/</code>
+directory).</li>
+<li><code>src/speech_to_speech/</code> serves as an extensible SDK for
+complex streaming (WebSockets, MLX, Whisper) that can be swapped in for
+local high-fidelity TTS/STT if browser APIs are insufficient.</li>
+</ul>
+<hr />
+<h2 id="detailed-component-specifications">5. Detailed Component
+Specifications</h2>
+<h3 id="backend"><code>backend/</code></h3>
+<ul>
+<li><strong>Purpose:</strong> Central brain of the RAG application and
+HTTP server.</li>
+<li><strong>Key Classes:</strong>
+<ul>
+<li><code>LibraryRAG</code>: Handles document loading via
+<code>DirectoryLoader</code>, text splitting via
+<code>RecursiveCharacterTextSplitter</code>, embeddings, and the
+LangChain QA Chain.</li>
+</ul></li>
+<li><strong>Inputs:</strong> Transcribed text queries from the
+user.</li>
+<li><strong>Outputs:</strong> Plain-text LLM responses augmented with
+semantic context.</li>
+</ul>
+<h3 id="data"><code>data/</code></h3>
+<ul>
+<li><strong>Purpose:</strong> The absolute source of truth for the RAG
+engine.</li>
+<li><strong>Dependencies:</strong> <code>unstructured</code>,
+<code>pandas</code>, <code>pypdf</code>, <code>openpyxl</code>, and
+<code>docx2txt</code> are required by LangChain to parse the wide
+variety of MIME types present in this directory.</li>
+</ul>
+<h3 id="srcspeech_to_speech"><code>src/speech_to_speech/</code></h3>
+<ul>
+<li><strong>Purpose:</strong> A modular, low-latency pipeline for
+handling raw audio byte streams.</li>
+<li><strong>Key Modules:</strong>
+<ul>
+<li><code>VAD/vad_handler.py</code>: Voice Activity Detection (silence
+detection).</li>
+<li><code>STT/faster_whisper_handler.py</code>: Local speech
+transcription.</li>
+<li><code>pipeline/s2s_pipeline.py</code>: Orchestrates threaded event
+loops.</li>
+</ul></li>
+</ul>
+<hr />
+<h2 id="configuration-environment-variables">6. Configuration &amp;
+Environment Variables</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Variable / Secret</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default Value</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>GEMINI_API_KEY</code></td>
+<td style="text-align: left;"><code>string</code></td>
+<td style="text-align: left;"><em>(Empty)</em></td>
+<td style="text-align: left;">Required Google API key to authenticate
+with <code>gemini-flash-latest</code>. Loaded via
+<code>os.environ</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>PORT</code></td>
+<td style="text-align: left;"><code>integer</code></td>
+<td style="text-align: left;"><code>8000</code></td>
+<td style="text-align: left;">Port for the Uvicorn ASGI server.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>HOST</code></td>
+<td style="text-align: left;"><code>string</code></td>
+<td style="text-align: left;"><code>0.0.0.0</code></td>
+<td style="text-align: left;">Host binding for Uvicorn.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>CHROMA_PERSIST_DIR</code></td>
+<td style="text-align: left;"><code>path</code></td>
+<td style="text-align: left;"><code>./backend/chroma_db</code></td>
+<td style="text-align: left;">Path where Chroma SQLite files are
+stored.</td>
+</tr>
+</tbody>
+</table>
+<p><em>Note: For security, <code>GEMINI_API_KEY</code> must never be
+hardcoded. It is currently injected at runtime via
+<code>run_local.bat</code> or <code>.env</code> files.</em></p>
+<hr />
+<h2 id="reliability-security-error-handling">7. Reliability, Security
+&amp; Error Handling</h2>
+<h3 id="security-guardrails">Security &amp; Guardrails</h3>
+<ul>
+<li><strong>Prompt Injection Defense:</strong> The
+<code>LibraryRAG</code> engine utilizes a strict system prompt
+instructing the agent to <em>only</em> answer based on retrieved
+context. Out-of-bounds queries gracefully fallback to a canned “I cannot
+help with that” response.</li>
+<li><strong>Secrets Management:</strong> The repository adheres strictly
+to GitHub Push Protection policies. No API keys are tracked in version
+control; they are strictly relegated to local <code>run_local.bat</code>
+injection.</li>
+<li><strong>Path Traversal Protection:</strong> The FastAPI backend
+endpoints do not accept raw file paths, preventing arbitrary local file
+reads.</li>
+</ul>
+<h3 id="reliability-error-handling">Reliability &amp; Error
+Handling</h3>
+<ul>
+<li><strong>Missing Credentials:</strong> If <code>GEMINI_API_KEY</code>
+is missing or invalid, the backend gracefully catches the
+<code>401 Unauthorized</code> or <code>404 Not Found</code> API core
+exceptions, preventing a hard server crash, and returns a 500 status to
+the client frontend with a standardized “Cannot reach backend” generic
+message to obfuscate backend errors from standard users.</li>
+<li><strong>LLM Rate Limits (HTTP 429):</strong> Integrations natively
+utilize LangChain’s retry semantics and Tenacity retry blocks to
+exponentially backoff when Google API rate limits are hit.</li>
+<li><strong>Database Idempotency:</strong> The RAG initialization skips
+expensive document embedding and generation if the
+<code>chroma_db</code> directory is detected, reducing startup time from
+minutes to milliseconds.</li>
+</ul>

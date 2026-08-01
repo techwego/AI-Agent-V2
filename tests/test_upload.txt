@@ -1,0 +1,1 @@
+This is a test file for the live RAG ingestion system. The secret keyword is BANANA_PANCAKE.
