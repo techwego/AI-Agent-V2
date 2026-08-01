@@ -17,7 +17,6 @@ import hashlib
 import chromadb
 import tiktoken
 from fastembed import TextEmbedding
-from fastembed.rerank.cross_encoder import TextCrossEncoder
 from rank_bm25 import BM25Okapi
 from google import genai
 from backend.config import Config
@@ -334,7 +333,6 @@ class LibraryRAG:
                 print(f"Loading embedding model: {Config.EMBEDDING_MODEL} (fastembed ONNX)")
             
             self.embed_model = TextEmbedding(Config.EMBEDDING_MODEL, threads=1)
-            self.reranker = TextCrossEncoder(Config.RERANKER_MODEL)
             self.diagnostics["models_time"] = round(time.time() - t_mod, 3)
             
             # ChromaDB
@@ -528,21 +526,8 @@ class LibraryRAG:
 
         return merged
 
-    def _rerank(self, query: str, candidates: list[dict], top_k: int = 3) -> list[dict]:
-        """Rerank candidates using cross-encoder and return top_k."""
-        if not candidates:
-            return []
-
-        documents = [c["text"] for c in candidates]
-        
-        # fastembed TextCrossEncoder returns a generator of floats
-        scores = list(self.reranker.rerank(query, documents))
-
-        for i, score in enumerate(scores):
-            candidates[i]["rerank_score"] = float(score)
-
-        # Sort by rerank score descending
-        candidates.sort(key=lambda x: x["rerank_score"], reverse=True)
+    def _rerank(self, query: str, candidates: list[dict], top_k: int = 5) -> list[dict]:
+        """Placeholder for reranker if re-enabled. Currently just returns top_k from RRF."""
         return candidates[:top_k]
 
     # ------------------------------------------------------------------
@@ -581,37 +566,27 @@ class LibraryRAG:
             bm25_hits = self._bm25_search(expanded_query, top_k=50)
             print(f"BM25 results count: {len(bm25_hits)}")
 
-            # 2. Merge with RRF and Rerank
+            # 2. Merge with RRF and return top chunks directly (OOM fix: bypassing heavy cross encoder)
             merged = self._reciprocal_rank_fusion(vector_hits, bm25_hits)
             print(f"RRF results count: {len(merged)}")
             
-            # Pass top 100 to reranker, and keep top 5
+            # Pass top chunks directly to LLM
             top_chunks = self._rerank(user_input, merged[:100], top_k=5)
             print(f"Final retrieved chunks: {len(top_chunks)}")
 
             context_blocks = []
             for i, chunk in enumerate(top_chunks):
                 meta = chunk.get("metadata", {})
-                confidence = f"{chunk.get('rerank_score', 0):.2f}"
                 
                 # Check if it's a structural book record or a text chunk
                 if meta.get("section") == "book_record":
                     # For books, the chunk text is already perfectly formatted with all metadata
-                    context_blocks.append(f"[Book Record {i+1}] confidence: {confidence}\n{chunk['text']}")
+                    context_blocks.append(f"[Book Record {i+1}]\n{chunk['text']}")
                 else:
-                    source = meta.get("source", "unknown")
-                    page = meta.get("page", "—")
-                    section = meta.get("section", "—")
-                    
-                    chunk_text = chunk["text"]
-                    if section and section not in ("full", "Catalog", "spreadsheet", "—"):
-                        chunk_text = f"Section/Heading: {section}\n{chunk_text}"
-                        
-                    context_blocks.append(
-                        f"[Document {i+1}] source: {source} | page: {page} | "
-                        f"section: {section} | confidence: {confidence}\n"
-                        f"{chunk_text}"
-                    )
+                    source = meta.get("source", "Library Database")
+                    section = meta.get("section", "")
+                    sec_str = f" - Section: {section}" if section else ""
+                    context_blocks.append(f"[Source: {source}{sec_str}]\n{chunk['text']}")
             context = "\n\n".join(context_blocks)
             
             # HARD LIMIT: Ensure context doesn't exceed ~16000 characters to stay within reasonable limits
