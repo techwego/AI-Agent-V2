@@ -1322,11 +1322,18 @@ plan.addEventListener('pointermove',e=>{
 });
 plan.addEventListener('pointerleave',()=>{plan.classList.remove('touch');cam.style.transform='';});
 
-// Removed voice orb canvas logic in favor of pure CSS/SVG glass orb
-
+// Provide a mock setLevel function to replace the old canvas logic
+// and map it to our CSS 'busy' state so the Glass Orb reacts to activity
+window.setLevel = function(v) {
+  const app = document.getElementById('app');
+  if (app) {
+    if (v > 0.5) app.classList.add('busy');
+    else app.classList.remove('busy');
+  }
+};
 // Original mock event removed to let app.js handle LiveKit connection
 // document.getElementById('orb').addEventListener('click',()=>ask('book'));
-window.addEventListener('load',()=>{ setLang('en'); renderPills(); renderKioskBar(); glide(); buildFloor(); orbLoop(); });
+window.addEventListener('load',()=>{ setLang('en'); renderPills(); renderKioskBar(); glide(); buildFloor(); });
 window.addEventListener('resize',glide);
 </script>
 
