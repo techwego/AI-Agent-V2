@@ -307,17 +307,9 @@ class LibraryRAG:
             "status_message": "Starting initialization..."
         }
 
-        # Models (loaded in __init__ so they're ready before initialize())
-        t0 = time.time()
-        self.state = RAGState.LOADING_MODELS
-        if Config.DEBUG_MODE:
-            print(f"Loading embedding model: {Config.EMBEDDING_MODEL} (fastembed ONNX)")
-        
-        # Force threads=1 to prevent ONNX deadlocks in background thread pool
-        self.embed_model = TextEmbedding(Config.EMBEDDING_MODEL, threads=1)
-        
-        # Load lightweight Cross-Encoder for reranking
-        self.reranker = TextCrossEncoder("Xenova/ms-marco-MiniLM-L-6-v2")
+        # Models are loaded in initialize() (background thread) to prevent blocking server boot
+        self.embed_model = None
+        self.reranker = None
         
         # State
         self.llm_engine = None
@@ -334,6 +326,16 @@ class LibraryRAG:
         try:
             startup_t0 = time.time()
             api_key = Config.GROQ_API_KEY
+            
+            # Load ML Models in background to prevent Uvicorn boot crash
+            self.state = RAGState.LOADING_MODELS
+            t_mod = time.time()
+            if Config.DEBUG_MODE:
+                print(f"Loading embedding model: {Config.EMBEDDING_MODEL} (fastembed ONNX)")
+            
+            self.embed_model = TextEmbedding(Config.EMBEDDING_MODEL, threads=1)
+            self.reranker = TextCrossEncoder(Config.RERANKER_MODEL)
+            self.diagnostics["models_time"] = round(time.time() - t_mod, 3)
             
             # ChromaDB
             self.state = RAGState.LOADING_DATABASE

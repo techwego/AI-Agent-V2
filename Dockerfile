@@ -23,8 +23,5 @@ COPY . .
 # Ensure the data directory exists
 RUN mkdir -p /app/data
 
-# Expose the port that FastAPI will run on
-EXPOSE 8000
-
 # Use PORT env variable if set by cloud platform, otherwise default to 8000
 CMD ["sh", "-c", "uvicorn backend.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
