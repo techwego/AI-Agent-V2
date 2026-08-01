@@ -12,3 +12,4 @@ openpyxl
 tiktoken
 rank-bm25
 psutil
+groq
