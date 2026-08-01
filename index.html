@@ -133,6 +133,7 @@
 
 
   .thread { display: none; flex-direction: column; gap: 24px; flex-shrink: 0; }
+  .thread.show { display: flex; }
 
   
   .q-row { display: flex; justify-content: flex-end; }
@@ -174,7 +175,7 @@
   .dock { display: flex; align-items: center; gap: 20px; padding: 20px 32px; border-top: 1px solid var(--line-2); background: rgba(0,0,0,0.3); flex-shrink: 0; }
   
   /* Glass Orb Avatar & Microphone */
-  .avatar-view { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; pointer-events: none; width: 100%; }
+  .avatar-view { position: relative; margin: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; pointer-events: none; width: 100%; flex-shrink: 0; margin-bottom: 30px; }
   
   .glass-orb-container {
     pointer-events: auto;
@@ -599,6 +600,13 @@
             </span>
           </div>
         </div>
+        
+        <div class="thread" id="thread" style="flex: 1; overflow-y: auto;"></div>
+        
+        <div class="chat-input-wrapper" style="margin-top: auto; padding-top: 20px;">
+          <input type="text" id="chatInput" class="chat-input-field" placeholder="Ask Athenaeum about the library..." onkeypress="if(event.key==='Enter') askCustom()">
+          <button class="chat-send-btn" onclick="askCustom()">Send</button>
+        </div>
       </section>
 
       <aside class="ctx">
@@ -630,14 +638,6 @@
             </div>
           </div>
           <div id="ctxCard"></div>
-          
-          <!-- Conversation Thread relocated to right panel -->
-          <div class="thread" id="thread" style="flex: 1; overflow-y: auto;"></div>
-          
-          <div class="chat-input-wrapper" style="margin-top: auto; padding: 20px;">
-            <input type="text" id="chatInput" class="chat-input-field" placeholder="Ask Athenaeum about the library..." onkeypress="if(event.key==='Enter') askCustom()">
-            <button class="chat-send-btn" onclick="askCustom()">Send</button>
-          </div>
         </div>
       </aside>
     </div>
