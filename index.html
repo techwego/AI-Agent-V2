@@ -483,6 +483,28 @@
       </div>
       
       <script>
+        let currentRightPanelMode = 'chat';
+        function toggleRightPanel(forceMode = null) {
+          if (forceMode) currentRightPanelMode = forceMode;
+          else currentRightPanelMode = currentRightPanelMode === 'chat' ? 'map' : 'chat';
+          
+          const chatView = document.getElementById('chatView');
+          const mapView = document.getElementById('mapView');
+          const toggleBtn = document.getElementById('floorToggleBtn');
+          const ctxTitleSpan = document.querySelector('#ctxTitle span[data-t="ctxnav"]');
+          
+          if (currentRightPanelMode === 'chat') {
+            chatView.style.display = 'flex';
+            mapView.style.display = 'none';
+            toggleBtn.textContent = 'Floor 2 · 3D Map';
+            if (ctxTitleSpan) ctxTitleSpan.textContent = 'Athenaeum Chat';
+          } else {
+            chatView.style.display = 'none';
+            mapView.style.display = 'flex';
+            toggleBtn.textContent = 'Back to Chat';
+            if (ctxTitleSpan) ctxTitleSpan.textContent = 'Navigate';
+          }
+        }
 
         function promptLogin() {
           document.getElementById('authModal').classList.add('show');
@@ -601,43 +623,48 @@
           </div>
         </div>
         
-        <div class="thread" id="thread" style="flex: 1; overflow-y: auto;"></div>
-        
-        <div class="chat-input-wrapper" style="margin-top: auto; padding-top: 20px;">
-          <input type="text" id="chatInput" class="chat-input-field" placeholder="Ask Athenaeum about the library..." onkeypress="if(event.key==='Enter') askCustom()">
-          <button class="chat-send-btn" onclick="askCustom()">Send</button>
-        </div>
       </section>
 
       <aside class="ctx">
         <div class="ctx-head">
-          <span class="ctx-title" id="ctxTitle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 6.5 9 4Z"/><path d="M9 4v13M15 6.5v13"/></svg><span data-t="ctxnav">Navigate</span></span>
-          <span class="ctx-floor mono">Floor 2 · 3D</span>
+          <span class="ctx-title" id="ctxTitle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 6.5 9 4Z"/><path d="M9 4v13M15 6.5v13"/></svg><span data-t="ctxnav">Athenaeum Chat</span></span>
+          <button class="ctx-floor mono" id="floorToggleBtn" onclick="toggleRightPanel()" style="cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 4px 12px; border-radius: 12px; font-weight: 500; font-size: 13px; transition: all 0.2s;">Floor 2 · 3D Map</button>
         </div>
         <div class="ctx-body" id="ctxBody" style="display: flex; flex-direction: column;">
-          <div class="plan" id="plan">
-            <div class="cam" id="cam">
-              <svg id="floor" viewBox="0 0 440 360" preserveAspectRatio="xMidYMid meet"></svg>
-            </div>
-            <div class="kiosk-bar" id="kioskBar"></div>
-            <div class="route-stat" id="routeStat"></div>
-            <div class="ctx-idle" id="ctxIdle">
-              <span class="ci-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
-              <p data-t="ctxidle">Pick a kiosk above to set the origin, then ask for a title — the route is computed live from that point.</p>
+          
+          <div id="chatView" style="display: flex; flex-direction: column; flex: 1; overflow: hidden; padding: 20px;">
+            <div class="thread show" id="thread" style="flex: 1; overflow-y: auto; padding-right: 8px;"></div>
+            <div class="chat-input-wrapper" style="margin-top: auto; padding-top: 20px;">
+              <input type="text" id="chatInput" class="chat-input-field" placeholder="Ask Athenaeum about the library..." onkeypress="if(event.key==='Enter') askCustom()">
+              <button class="chat-send-btn" onclick="askCustom()">Send</button>
             </div>
           </div>
-          <div id="navControls" style="display:none">
-            <div class="legend">
-              <span class="lg"><i class="b"></i><span data-t="lgyou">Kiosk</span></span>
-              <span class="lg"><i class="p"></i><span data-t="lgroute">Computed route</span></span>
-              <span class="lg"><i class="o"></i><span data-t="lgshelf">Target shelf</span></span>
+          
+          <div id="mapView" style="display: none; flex-direction: column; flex: 1;">
+            <div class="plan" id="plan">
+              <div class="cam" id="cam">
+                <svg id="floor" viewBox="0 0 440 360" preserveAspectRatio="xMidYMid meet"></svg>
+              </div>
+              <div class="kiosk-bar" id="kioskBar"></div>
+              <div class="route-stat" id="routeStat"></div>
+              <div class="ctx-idle" id="ctxIdle">
+                <span class="ci-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
+                <p data-t="ctxidle">Pick a kiosk above to set the origin, then ask for a title — the route is computed live from that point.</p>
+              </div>
             </div>
-            <div class="nav-actions">
-              <button class="btn btn-primary" id="lightBtn" onclick="lightShelf()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.2 1 2.5h6c0-1.3.3-1.8 1-2.5A6 6 0 0 0 12 3Z"/></svg><span data-t="light">Light the shelf</span></button>
-              <button class="btn btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2Z"/></svg><span data-t="guide">Guide me</span></button>
+            <div id="navControls" style="display:none">
+              <div class="legend">
+                <span class="lg"><i class="b"></i><span data-t="lgyou">Kiosk</span></span>
+                <span class="lg"><i class="p"></i><span data-t="lgroute">Computed route</span></span>
+                <span class="lg"><i class="o"></i><span data-t="lgshelf">Target shelf</span></span>
+              </div>
+              <div class="nav-actions">
+                <button class="btn btn-primary" id="lightBtn" onclick="lightShelf()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.2 1 2.5h6c0-1.3.3-1.8 1-2.5A6 6 0 0 0 12 3Z"/></svg><span data-t="light">Light the shelf</span></button>
+                <button class="btn btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2Z"/></svg><span data-t="guide">Guide me</span></button>
+              </div>
             </div>
+            <div id="ctxCard"></div>
           </div>
-          <div id="ctxCard"></div>
         </div>
       </aside>
     </div>
@@ -1123,8 +1150,8 @@ async function askQuery(queryText, isVoice=false) {
       return;
     }
 
-    renderCustomAnswer(queryText, '');
-    const answerTextEl = document.querySelector('.a-text');
+    const msgId = renderCustomAnswer(queryText, '');
+    const answerTextEl = document.getElementById(msgId);
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
@@ -1141,6 +1168,7 @@ async function askQuery(queryText, isVoice=false) {
 
       if (answerTextEl) {
         answerTextEl.innerHTML = fullText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br/>');
+        thread.scrollTo(0, thread.scrollHeight);
       }
     }
 
@@ -1187,44 +1215,48 @@ function ask(kind){
 }
 function backHome(){
   currentScenario=null; currentDest=null; litFlag=false;
-  thread.classList.remove('show'); thread.innerHTML=''; 
   document.getElementById('navControls').style.display='none';
   document.getElementById('ctxCard').innerHTML='';
   document.getElementById('ctxIdle').classList.remove('hide');
   document.getElementById('plan').style.display='';
   document.getElementById('routeStat').classList.remove('show');
-  setCtxTitle('ctxnav'); buildFloor(); hideToast();
+  toggleRightPanel('map');
+  buildFloor(); hideToast();
 }
 function setCtxTitle(key){document.getElementById('ctxTitle').querySelector('span').textContent=T[lang][key];}
 
 /* draw the COMPUTED route from current kiosk to current destination */
 function renderCustomAnswer(query, answerText, hideThread=false) {
   const t = T[lang];
-  const back = `<button class="back-btn" onclick="backHome()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>${t.back}</button>`;
-   
   thread.classList.add('show');
   
-  // Convert markdown-style newlines and bolding for simple rendering
   const formattedAnswer = answerText
     .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
     .replace(/\n/g, '<br/>');
 
-  const body = `<div class="a-text">${formattedAnswer}</div>`;
+  const msgId = 'msg-' + Date.now() + Math.floor(Math.random() * 1000);
+  const body = `<div class="a-text" id="${msgId}">${formattedAnswer}</div>`;
   
-  // Reset contexts
   document.getElementById('navControls').style.display = 'none';
-  document.getElementById('plan').style.display = 'none';
   document.getElementById('ctxCard').innerHTML = '';
   document.getElementById('ctxIdle').classList.remove('hide');
-  setCtxTitle('ctxnav');
-
-  if (!hideThread) {
-    thread.innerHTML = `${back}
+  
+  toggleRightPanel('chat');
+  
+  if (query) {
+    const html = `
       <div class="q-row"><div><div class="q-bubble">${query}</div><div class="q-tag">${I.mic}<span>${t.voice} · ${t.langname}</span></div></div></div>
       <div class="a-row"><div class="a-av">${I.spark}</div><div class="a-body reveal">${body}</div></div>`;
+    thread.insertAdjacentHTML('beforeend', html);
   } else {
-    thread.innerHTML = `${back}`;
+    const html = `
+      <div class="a-row"><div class="a-av">${I.spark}</div><div class="a-body reveal">${body}</div></div>`;
+    thread.insertAdjacentHTML('beforeend', html);
   }
+  
+  thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' });
+  
+  return msgId;
 }
 
 function refreshNav(){
