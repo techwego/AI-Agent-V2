@@ -173,30 +173,140 @@
   
   .dock { display: flex; align-items: center; gap: 20px; padding: 20px 32px; border-top: 1px solid var(--line-2); background: rgba(0,0,0,0.3); flex-shrink: 0; }
   
-  /* Glowing Orb Avatar */
-  .avatar-view { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; z-index: 10; pointer-events: none; width: 100%; }
-  .avatar-container, .center-mic-container { pointer-events: auto; }
-  .avatar-container { width: 220px; height: 220px; border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; }
-  .avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid var(--raised-2); position: relative; z-index: 2; box-shadow: 0 20px 50px rgba(0,0,0,0.6); transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
-  #three-avatar-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 3; }
+  /* Glass Orb Avatar & Microphone */
+  .avatar-view { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; pointer-events: none; width: 100%; }
   
-  .app.busy .avatar-img { animation: talk-bounce 0.5s infinite alternate ease-in-out; border-color: var(--purple); }
-  @keyframes talk-bounce { 0% { transform: scale(1) translateY(0); } 100% { transform: scale(1.06) translateY(-6px); } }
+  .glass-orb-container {
+    pointer-events: auto;
+    position: relative;
+    width: 280px;
+    height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.4s var(--ease-out);
+  }
+  .glass-orb-container:hover { transform: scale(1.05); }
+  .glass-orb-container:active { transform: scale(0.95); }
+
+  .glass-orb {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.6) 80%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 
+      inset 0 0 40px rgba(157, 124, 255, 0.2),
+      inset 0 4px 12px rgba(255, 255, 255, 0.4),
+      inset 0 -10px 20px rgba(74, 140, 255, 0.3),
+      0 20px 50px -10px rgba(0, 0, 0, 0.8),
+      0 0 80px rgba(157, 124, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    overflow: hidden;
+    z-index: 2;
+  }
   
-  .avatar-glow { position: absolute; inset: -20px; border-radius: 50%; background: radial-gradient(circle, var(--purple), transparent 70%); opacity: 0; filter: blur(20px); z-index: 1; transition: opacity 0.4s; }
-  .app.busy .avatar-glow { animation: pulse-glow 1s infinite alternate ease-in-out; }
-  @keyframes pulse-glow { 0% { opacity: 0.2; transform: scale(0.9); } 100% { opacity: 0.7; transform: scale(1.15); } }
+  /* Inner energy waves */
+  .orb-waves {
+    position: absolute;
+    inset: -20%;
+    width: 140%;
+    height: 140%;
+    z-index: 1;
+    mix-blend-mode: screen;
+    opacity: 0.6;
+    transition: opacity 0.5s ease;
+  }
   
-  /* Input & Mic Container */
-  .center-mic-container { display: flex; align-items: center; gap: 16px; justify-content: center; width: 100%; max-width: 680px; pointer-events: auto; }
-  .orb-btn { position: relative; width: 100px; height: 100px; flex-shrink: 0; cursor: pointer; border: none; background: none; padding: 0; transition: transform 0.2s; }
-  .orb-btn:active { transform: scale(0.95); }
-  .orb-btn::after { content: ""; position: absolute; inset: -8px; border-radius: 50%; box-shadow: 0 0 32px -4px rgba(139,108,255,0.6); animation: orbglow 4s ease-in-out infinite; pointer-events: none; }
-  @keyframes orbglow { 0%, 100% { box-shadow: 0 0 32px -4px rgba(139,108,255,0.4); } 50% { box-shadow: 0 0 48px 8px rgba(139,108,255,0.8); } }
-  .app.busy .orb-btn::after { animation-duration: 1s; box-shadow: 0 0 48px 4px rgba(255,133,71,0.8); }
-  .orb-btn canvas { width: 100%; height: 100%; display: block; position: relative; z-index: 2; border-radius: 50%; }
-  .orb-mic { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 3; color: #fff; pointer-events: none; display: flex; }
-  .orb-mic svg { width: 24px; height: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+  .wave-layer {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(74,140,255,0.4) 0%, transparent 60%);
+    animation: rotateWave 12s linear infinite;
+  }
+  .wave-layer:nth-child(2) {
+    background: radial-gradient(ellipse at center, rgba(157,124,255,0.4) 0%, transparent 60%);
+    animation: rotateWave 18s linear infinite reverse;
+    transform-origin: 40% 60%;
+  }
+  .wave-layer:nth-child(3) {
+    background: radial-gradient(ellipse at center, rgba(102,255,204,0.3) 0%, transparent 50%);
+    animation: rotateWave 15s linear infinite;
+    transform-origin: 60% 40%;
+  }
+  
+  /* SVG Sine waves simulating the audio visualizer */
+  .orb-svg-waves {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    transform: translateY(-50%);
+    z-index: 2;
+    opacity: 0.8;
+  }
+  .orb-svg-waves path {
+    fill: none;
+    stroke-width: 2px;
+    stroke-linecap: round;
+    animation: undulate 4s ease-in-out infinite alternate;
+  }
+  .path-cyan { stroke: rgba(102, 255, 204, 0.8); filter: drop-shadow(0 0 8px rgba(102, 255, 204, 0.8)); animation-delay: -1s; }
+  .path-purple { stroke: rgba(157, 124, 255, 0.8); filter: drop-shadow(0 0 12px rgba(157, 124, 255, 0.8)); animation-delay: -2s; }
+  .path-white { stroke: rgba(255, 255, 255, 0.9); stroke-width: 3px; filter: drop-shadow(0 0 10px rgba(255, 255, 255, 1)); }
+
+  /* Surface reflections */
+  .orb-highlight {
+    position: absolute;
+    top: 5%;
+    left: 15%;
+    width: 70%;
+    height: 35%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 100%);
+    border-radius: 50% 50% 10% 10% / 40% 40% 10% 10%;
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  /* Busy / Listening state animations */
+  .app.busy .glass-orb {
+    box-shadow: 
+      inset 0 0 60px rgba(157, 124, 255, 0.4),
+      inset 0 4px 12px rgba(255, 255, 255, 0.6),
+      inset 0 -10px 20px rgba(74, 140, 255, 0.5),
+      0 20px 50px -10px rgba(0, 0, 0, 0.8),
+      0 0 120px rgba(157, 124, 255, 0.4);
+    animation: pulseOrb 2s infinite alternate ease-in-out;
+  }
+  .app.busy .orb-waves {
+    opacity: 0.9;
+    transform: scale(1.1);
+  }
+  .app.busy .orb-svg-waves path {
+    animation-duration: 0.8s;
+  }
+  
+  @keyframes rotateWave {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.2); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+  @keyframes undulate {
+    0% { transform: scaleY(0.6) translateY(5px); }
+    100% { transform: scaleY(1.5) translateY(-5px); }
+  }
+  @keyframes pulseOrb {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.05); }
+  }
+  
+  .orb-mic { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 3; color: #fff; pointer-events: none; display: flex; opacity: 0.7; mix-blend-mode: overlay; transition: opacity 0.3s ease; }
+  .app.busy .orb-mic { opacity: 1; mix-blend-mode: normal; }
+  .orb-mic svg { width: 32px; height: 32px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
   
   /* Chat Input Modernized */
   .chat-input-wrapper { display: flex; width: 100%; max-width: 680px; gap: 12px; pointer-events: auto; position: relative; z-index: 10; padding-top: 24px; flex-shrink: 0; align-self: center; }
@@ -459,19 +569,34 @@
     <div class="work">
       <section class="conv" id="conv" style="display: flex; flex-direction: column; position: relative;">
         <!-- Persistent Avatar and Mic -->
+        <!-- Persistent Glass Orb Avatar -->
         <div class="avatar-view">
-          <div class="avatar-container">
-            <div class="avatar-glow"></div>
-            <div id="three-avatar-container"></div>
-          </div>
-          <div class="center-mic-container" style="display: flex; align-items: center; gap: 12px; justify-content: center;">
-            <button class="orb-btn" id="orb" aria-label="Tap and speak" onclick="startSpeechRecognition()">
-              <canvas id="orbCanvas" width="180" height="180"></canvas>
-              <span class="orb-mic"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><rect x="12" y="3" width="8" height="16" rx="4"/><path d="M7 14.5a9 9 0 0 0 18 0"/><path d="M16 23.5V28M11 28h10"/></svg></span>
-            </button>
-            <button class="mute-btn" id="muteBtn" aria-label="Mute mic" style="display: none;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-            </button>
+          <div class="glass-orb-container" id="orb" onclick="startSpeechRecognition()">
+            <div class="glass-orb">
+              <div class="orb-highlight"></div>
+              
+              <!-- Inner rotating wave layers -->
+              <div class="orb-waves">
+                <div class="wave-layer"></div>
+                <div class="wave-layer"></div>
+                <div class="wave-layer"></div>
+              </div>
+              
+              <!-- Center Sine Waves -->
+              <svg class="orb-svg-waves" viewBox="0 0 200 100" preserveAspectRatio="none">
+                <path class="path-cyan" d="M 0 50 Q 50 10 100 50 T 200 50"></path>
+                <path class="path-purple" d="M 0 50 Q 50 90 100 50 T 200 50"></path>
+                <path class="path-white" d="M 0 50 Q 50 30 100 50 T 200 50"></path>
+              </svg>
+            </div>
+            
+            <span class="orb-mic">
+              <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="12" y="3" width="8" height="16" rx="4"/>
+                <path d="M7 14.5a9 9 0 0 0 18 0"/>
+                <path d="M16 23.5V28M11 28h10"/>
+              </svg>
+            </span>
           </div>
         </div>
 
@@ -1197,25 +1322,7 @@ plan.addEventListener('pointermove',e=>{
 });
 plan.addEventListener('pointerleave',()=>{plan.classList.remove('touch');cam.style.transform='';});
 
-/* ===== voice orb ===== */
-const cv=document.getElementById('orbCanvas'), cx2=cv.getContext('2d');
-const DPR=Math.min(window.devicePixelRatio||1,2);
-cv.width=60*DPR; cv.height=60*DPR; cx2.scale(DPR,DPR);
-let level=.32, target=.32, tphase=0;
-function setLevel(v){target=v;}
-const COLS=[{c:'139,108,255',amp:5,freq:3,sp:1.1,w:2},{c:'61,123,255',amp:6.5,freq:2,sp:-.8,w:1.6},{c:'255,122,61',amp:4,freq:4,sp:1.6,w:1.2}];
-function orbLoop(){
-  level+=(target-level)*.08; tphase+=.03;
-  const W=60,H=60,cx=W/2,cy=H/2,base=14;
-  cx2.clearRect(0,0,W,H);
-  cx2.beginPath();cx2.arc(cx,cy,base+6,0,Math.PI*2);cx2.fillStyle='rgba(139,108,255,'+(0.10+level*0.10)+')';cx2.fill();
-  COLS.forEach((L,idx)=>{
-    cx2.beginPath();
-    for(let a=0;a<=Math.PI*2+0.05;a+=0.05){const r=base+L.amp*level*Math.sin(L.freq*a+tphase*L.sp)+(idx*1.5);const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);a===0?cx2.moveTo(x,y):cx2.lineTo(x,y);}
-    cx2.closePath();cx2.strokeStyle='rgba('+L.c+','+(0.5+level*0.4)+')';cx2.lineWidth=L.w;cx2.shadowColor='rgba('+L.c+',0.8)';cx2.shadowBlur=8*level+3;cx2.stroke();
-  });
-  cx2.shadowBlur=0; requestAnimationFrame(orbLoop);
-}
+// Removed voice orb canvas logic in favor of pure CSS/SVG glass orb
 
 // Original mock event removed to let app.js handle LiveKit connection
 // document.getElementById('orb').addEventListener('click',()=>ask('book'));
@@ -1228,38 +1335,6 @@ window.addEventListener('resize',glide);
 <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <script src="app.js?v=3"></script>
 
-<script>
-const container = document.getElementById('three-avatar-container');
-if(container && typeof THREE !== 'undefined') {
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  container.appendChild(renderer.domElement);
-  
-  const geometry = new THREE.IcosahedronGeometry(1.2, 3);
-  const material = new THREE.MeshBasicMaterial({ color: 0x8B6CFF, wireframe: true, transparent: true, opacity: 0.8 });
-  const orb = new THREE.Mesh(geometry, material);
-  scene.add(orb);
-  camera.position.z = 2.5;
-  
-  function animateOrb() {
-    requestAnimationFrame(animateOrb);
-    orb.rotation.x += 0.005;
-    orb.rotation.y += 0.005;
-    if(document.getElementById('app').classList.contains('busy')) {
-      const scale = 1 + Math.sin(Date.now() * 0.01) * 0.1;
-      orb.scale.set(scale, scale, scale);
-      material.color.setHex(0xFF7A3D);
-    } else {
-      orb.scale.set(1, 1, 1);
-      material.color.setHex(0x8B6CFF);
-    }
-    renderer.render(scene, camera);
-  }
-  animateOrb();
-}
-</script>
 
 
 <div class="modal-overlay" id="authModal">
