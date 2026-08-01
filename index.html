@@ -599,12 +599,6 @@
             </span>
           </div>
         </div>
-
-        <div class="thread" id="thread"></div>
-        
-        <div class="chat-input-wrapper">
-          <input type="text" id="chatInput" class="chat-input-field" placeholder="Ask Athenaeum about the library..." onkeypress="if(event.key==='Enter') askCustom()">
-          <button class="chat-send-btn" onclick="askCustom()">Send</button>
         </div>
       </section>
 
@@ -613,7 +607,7 @@
           <span class="ctx-title" id="ctxTitle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 6.5 9 4Z"/><path d="M9 4v13M15 6.5v13"/></svg><span data-t="ctxnav">Navigate</span></span>
           <span class="ctx-floor mono">Floor 2 · 3D</span>
         </div>
-        <div class="ctx-body" id="ctxBody">
+        <div class="ctx-body" id="ctxBody" style="display: flex; flex-direction: column;">
           <div class="plan" id="plan">
             <div class="cam" id="cam">
               <svg id="floor" viewBox="0 0 440 360" preserveAspectRatio="xMidYMid meet"></svg>
@@ -637,6 +631,14 @@
             </div>
           </div>
           <div id="ctxCard"></div>
+          
+          <!-- Conversation Thread relocated to right panel -->
+          <div class="thread" id="thread" style="flex: 1; overflow-y: auto;"></div>
+          
+          <div class="chat-input-wrapper" style="margin-top: auto; padding: 20px;">
+            <input type="text" id="chatInput" class="chat-input-field" placeholder="Ask Athenaeum about the library..." onkeypress="if(event.key==='Enter') askCustom()">
+            <button class="chat-send-btn" onclick="askCustom()">Send</button>
+          </div>
         </div>
       </aside>
     </div>
@@ -910,13 +912,12 @@ async function startMicrophone() {
 
     silenceDetectionInterval = setInterval(() => {
       analyser.getByteFrequencyData(dataArray);
-      let sum = 0;
+      let maxVolume = 0;
       for (let i = 0; i < bufferLength; i++) {
-        sum += dataArray[i];
+        if (dataArray[i] > maxVolume) maxVolume = dataArray[i];
       }
-      let average = sum / bufferLength;
 
-      if (average > 10) { 
+      if (maxVolume > 15) { 
         hasSpoken = true;
         silenceStart = Date.now();
       } else {
