@@ -847,6 +847,7 @@ function setKiosk(k){
 }
 
 let tt=null;
+let skipNextTranscription = false;
 function showToast(m){const e=document.getElementById('toast');document.getElementById('toastText').textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(hideToast,4200);}
 function hideToast(){document.getElementById('toast').classList.remove('show');}
 
@@ -938,6 +939,11 @@ async function startMicrophone() {
       if (silenceDetectionInterval) clearInterval(silenceDetectionInterval);
       if (audioContext.state !== 'closed') audioContext.close();
       
+      if (skipNextTranscription) {
+        skipNextTranscription = false;
+        return;
+      }
+      
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       
       setState(State.PROCESSING);
@@ -957,8 +963,7 @@ async function startMicrophone() {
         const speechResult = data.text;
         
         if (speechResult && speechResult.trim().length > 0) {
-            document.getElementById('chatInput').value = speechResult;
-            askCustom();
+            askQuery(speechResult, true);
         } else {
             setState(State.IDLE);
             document.getElementById('dockStatus').textContent = "Could not hear you. Tap to try again.";
@@ -1004,7 +1009,8 @@ function askCustom() {
     setState(State.IDLE);
   }
   
-  askQuery(query);
+  skipNextTranscription = true;
+  askQuery(query, false);
 }
 
 function speakText(text, callback) {
@@ -1088,7 +1094,7 @@ function startSpeechRecognition() {
   }
 }
 
-async function askQuery(queryText) {
+async function askQuery(queryText, isVoice=false) {
   if (currentState === State.PROCESSING || currentState === State.SPEAKING) return;
 
   stopMicrophone();
@@ -1138,16 +1144,23 @@ async function askQuery(queryText) {
       }
     }
 
-    setLevel(.32);
-    setState(State.SPEAKING);
-    console.log("TTS Started");
-    speakText(fullText, () => {
-      console.log("TTS Finished");
+    if (isVoice) {
+      setLevel(.32);
+      setState(State.SPEAKING);
+      console.log("TTS Started");
+      speakText(fullText, () => {
+        console.log("TTS Finished");
+        setTimeout(() => {
+          setState(State.IDLE);
+          startMicrophone();
+        }, 400);
+      });
+    } else {
       setTimeout(() => {
         setState(State.IDLE);
         startMicrophone();
       }, 400);
-    });
+    }
 
   } catch (error) {
     console.error('Error fetching chat response:', error);
