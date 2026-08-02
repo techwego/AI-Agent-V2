@@ -209,90 +209,25 @@
     overflow: hidden;
     z-index: 2;
   }
-      /* Inner energy waves / Siri petals */
-    .petal {
-      position: absolute;
-      width: 70%;
-      height: 70%;
-      mix-blend-mode: screen;
-      filter: blur(4px);
-      opacity: 0.8;
-      border-radius: 50%;
-      top: 15%;
-      left: 15%;
-      transform-origin: center;
-      transition: all 0.5s ease;
-    }
-    
-    .petal.cyan { background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); }
-    .petal.purple { background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%); }
-    
-    .petal-1 { transform: rotate(0deg) translate(-20%, 20%) scale(0.9); }
-    .petal-2 { transform: rotate(90deg) translate(-20%, 20%) scale(0.9); }
-    .petal-3 { transform: rotate(180deg) translate(-20%, 20%) scale(0.9); }
-    .petal-4 { transform: rotate(270deg) translate(-20%, 20%) scale(0.9); }
-    
-    /* Siri Waveform background */
-    .siri-waveform {
+      /* Exact Animated Orb GIF */
+    .exact-orb-img {
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%);
-      width: 400px;
-      height: 40px;
-      z-index: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      transform: translate(-50%, -50%) scale(1);
+      width: 140%; 
+      max-width: 600px;
       pointer-events: none;
-      opacity: 0.4;
-    }
-    
-    .wf-dot {
-      width: 4px;
-      height: 4px;
+      z-index: 1;
+      mix-blend-mode: screen;
+      transition: transform 0.15s ease-out, filter 0.4s ease, opacity 0.4s ease;
+      opacity: 0.8;
       border-radius: 50%;
-      background: #7579ff;
-      box-shadow: 0 0 8px #7579ff;
     }
     
-    .wf-line {
-      width: 2px;
-      height: 20px;
-      border-radius: 2px;
-      background: #00f2fe;
-      box-shadow: 0 0 10px #00f2fe;
-      transition: height 0.2s;
-    }
-    
-    .app.busy .wf-line {
-      animation: pulseWaveform 0.5s infinite alternate ease-in-out;
-    }
-    
-    @keyframes pulseWaveform {
-      0% { transform: scaleY(0.8); }
-      100% { transform: scaleY(1.5); }
-    }
-    
-    .app.busy .glass-orb {
-      box-shadow: 
-        inset 0 0 60px rgba(157, 124, 255, 0.4),
-        0 0 40px rgba(74, 140, 255, 0.3);
-      animation: pulseOrb 2s infinite alternate ease-in-out;
-    }
-    
-    .app.busy .petal {
-      animation: siriSpin 3s linear infinite;
-    }
-    .app.busy .petal-1 { animation-delay: 0s; }
-    .app.busy .petal-2 { animation-delay: -0.75s; }
-    .app.busy .petal-3 { animation-delay: -1.5s; }
-    .app.busy .petal-4 { animation-delay: -2.25s; }
-
-    @keyframes siriSpin {
-      0% { transform: rotate(0deg) translate(-20%, 20%) scale(0.9); }
-      50% { transform: rotate(180deg) translate(-30%, 30%) scale(1.1); }
-      100% { transform: rotate(360deg) translate(-20%, 20%) scale(0.9); }
+    .app.busy .exact-orb-img {
+      opacity: 1;
+      filter: brightness(1.2) drop-shadow(0 0 20px rgba(157, 124, 255, 0.4));
     }
   
   @keyframes pulseOrb {
@@ -590,21 +525,8 @@
         <!-- Persistent Glass Orb Avatar -->
         <div class="avatar-view">
           <div class="glass-orb-container siri-orb" id="orb" onclick="startSpeechRecognition()">
-            <!-- Background waveform dots and lines -->
-            <div class="siri-waveform">
-              <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
-              <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
-              <div class="wf-line"></div><div class="wf-line" style="height:30px"></div><div class="wf-line"></div>
-              <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
-              <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
-            </div>
-            
-            <div class="glass-orb">
-              <div class="petal cyan petal-1"></div>
-              <div class="petal purple petal-2"></div>
-              <div class="petal cyan petal-3"></div>
-              <div class="petal purple petal-4"></div>
-            </div>
+            <!-- Exact Animated GIF Implementation -->
+            <img id="orbVideo" src="https://cdn.dribbble.com/userupload/23131588/file/original-7170a735f9fbc50004dc5ece58421c06.gif" alt="Siri Voice Orb" class="exact-orb-img">
             
             <span class="orb-mic">
               <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -886,9 +808,32 @@ let currentState = State.IDLE;
 let activeRecognition = null;
 let hasIntroduced = false;
 
+let orbAnimationInterval = null;
+
 function setState(newState) {
   currentState = newState;
   console.log(`STATE -> ${newState}`);
+  
+  // Sync the animation scale when speaking or listening
+  if (newState === State.SPEAKING || newState === State.LISTENING || newState === State.INTRODUCING) {
+    if (!orbAnimationInterval) {
+      orbAnimationInterval = setInterval(() => {
+        const vid = document.getElementById('orbVideo');
+        if (vid) {
+          const scale = 1.0 + Math.random() * 0.15; // Pulse between 1x and 1.15x
+          vid.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+      }, 100);
+    }
+  } else {
+    if (orbAnimationInterval) {
+      clearInterval(orbAnimationInterval);
+      orbAnimationInterval = null;
+      const vid = document.getElementById('orbVideo');
+      if (vid) vid.style.transform = `translate(-50%, -50%) scale(1)`;
+    }
+  }
+
   const statusEl = document.getElementById('dockStatus');
   if (statusEl) {
     if (newState === State.IDLE) statusEl.textContent = T[lang].dockIdle || "Tap to speak";
