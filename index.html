@@ -501,6 +501,7 @@
           }
         }
 
+
         function promptLogin() {
           document.getElementById('authModal').classList.add('show');
         }
@@ -590,12 +591,6 @@
         <!-- Persistent Glass Orb Avatar -->
         <div class="avatar-view">
           <div class="glass-orb-container siri-orb" id="orb" onclick="startSpeechRecognition()">
-            <!-- Background waveform dots and lines -->
-            <div class="siri-waveform">
-              <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
-              <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
-              <div class="wf-line"></div><div class="wf-line" style="height:30px"></div><div class="wf-line"></div>
-              <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
               <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
             </div>
             
@@ -886,9 +881,32 @@ let currentState = State.IDLE;
 let activeRecognition = null;
 let hasIntroduced = false;
 
+let orbAnimationInterval = null;
+
 function setState(newState) {
   currentState = newState;
   console.log(`STATE -> ${newState}`);
+  
+  // Sync the animation scale when speaking or listening
+  if (newState === State.SPEAKING || newState === State.LISTENING || newState === State.INTRODUCING) {
+    if (!orbAnimationInterval) {
+      orbAnimationInterval = setInterval(() => {
+        const vid = document.getElementById('orbVideo');
+        if (vid) {
+          const scale = 1.0 + Math.random() * 0.15; // Pulse between 1x and 1.15x
+          vid.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+      }, 100);
+    }
+  } else {
+    if (orbAnimationInterval) {
+      clearInterval(orbAnimationInterval);
+      orbAnimationInterval = null;
+      const vid = document.getElementById('orbVideo');
+      if (vid) vid.style.transform = `translate(-50%, -50%) scale(1)`;
+    }
+  }
+
   const statusEl = document.getElementById('dockStatus');
   if (statusEl) {
     if (newState === State.IDLE) statusEl.textContent = T[lang].dockIdle || "Tap to speak";
