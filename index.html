@@ -436,22 +436,60 @@
           }
         }
 
+        let dashPolling = null;
+        let isAdminLogged = false;
+
         function promptLogin() {
-          document.getElementById('authModal').classList.add('show');
+          document.getElementById('fullScreenDashboard').classList.add('show');
+          showDashTab(isAdminLogged ? 'admin' : 'login');
         }
-        function closeModals() {
-          document.getElementById('authModal').classList.remove('show');
+        
+        function closeDashboard() {
+          document.getElementById('fullScreenDashboard').classList.remove('show');
+          if (dashPolling) clearInterval(dashPolling);
         }
+        
+        function showDashTab(tab) {
+          document.getElementById('tabBtnLogin').classList.remove('active');
+          document.getElementById('tabBtnSearch').classList.remove('active');
+          
+          document.getElementById('panelLogin').classList.remove('active');
+          document.getElementById('panelAdmin').classList.remove('active');
+          document.getElementById('panelSearch').classList.remove('active');
+          
+          if (tab === 'login' || tab === 'admin') {
+            document.getElementById('tabBtnLogin').classList.add('active');
+            if (isAdminLogged) {
+              document.getElementById('panelAdmin').classList.add('active');
+              document.getElementById('tabBtnLogin').innerText = "Admin Dashboard";
+              startPolling();
+            } else {
+              document.getElementById('panelLogin').classList.add('active');
+              document.getElementById('tabBtnLogin').innerText = "Admin Login";
+              if(dashPolling) clearInterval(dashPolling);
+            }
+          } else if (tab === 'search') {
+            document.getElementById('tabBtnSearch').classList.add('active');
+            document.getElementById('panelSearch').classList.add('active');
+            if(dashPolling) clearInterval(dashPolling);
+          }
+        }
+
         function doLogin() {
           const u = document.getElementById('username').value;
           const p = document.getElementById('password').value;
           if(u === 'admin' && p === 'admin') {
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('uploadSection').style.display = 'flex';
-            fetchDashboard();
+            isAdminLogged = true;
+            showDashTab('admin');
           } else {
-            alert('Invalid credentials');
+            showToast('Invalid credentials');
           }
+        }
+
+        function startPolling() {
+          fetchDashboard();
+          if(dashPolling) clearInterval(dashPolling);
+          dashPolling = setInterval(fetchDashboard, 3000);
         }
 
         async function fetchDashboard() {
@@ -463,57 +501,88 @@
             const stats = await statRes.json();
             
             document.getElementById('statTotal').innerText = stats.total_documents;
-            document.getElementById('statVectors').innerText = stats.total_chunks;
             document.getElementById('statFailed').innerText = data.filter(d => d.status === 'Failed').length;
             
-            const history = document.getElementById('uploadHistory');
-            history.innerHTML = data.map(d => {
-              let color = d.status === 'Success' ? 'var(--orange)' : (d.status === 'Failed' ? '#ff4a4a' : 'var(--blue)');
-              let msg = d.message ? `<div style="font-size: 11px; color: var(--faint); margin-top: 6px; line-height: 1.4;">${d.message}</div>` : '';
-              return `<div style="padding: 12px; background: rgba(255,255,255,0.02); border-radius: 8px; border-left: 3px solid ${color};">
-                <div style="display: flex; justify-content: space-between; font-size: 13px; align-items: center;">
-                  <span style="color: var(--ink); font-weight: 500;">${d.filename}</span>
-                  <span style="color: ${color}; font-weight: 700; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;">${d.status}</span>
-                </div>
-                ${msg}
-              </div>`;
+            const tbody = document.getElementById('uploadHistory');
+            tbody.innerHTML = data.map(d => {
+              let col = '#fff';
+              if (d.status === 'Success') col = 'var(--blue)';
+              if (d.status === 'Processing') col = 'var(--orange)';
+              if (d.status === 'Failed') col = '#ff4a4a';
+              
+              return `<tr>
+                <td><b style="color: var(--ink)">${d.filename}</b></td>
+                <td style="color: ${col}; font-weight: 600;">${d.status}</td>
+                <td style="color: var(--muted);">${d.message}</td>
+                <td style="color: var(--faint); font-size: 12px;">${d.created_at || ''}</td>
+              </tr>`;
             }).join('');
-          } catch(e) {
-            console.error("Dashboard fetch error", e);
-          }
+          } catch(e) { console.error("Dashboard fetch error", e); }
         }
 
         async function uploadFile() {
           const file = document.getElementById('fileInput').files[0];
           if(!file) return;
-          const stat = document.getElementById('uploadStatus');
-          stat.innerText = "File queued for background indexing...";
-          stat.style.color = "var(--blue)";
           
           const formData = new FormData();
           formData.append('file', file);
           
+          showToast("File queued for processing");
+          
           try {
-            const res = await fetch('/api/upload', {
-              method: 'POST',
-              body: formData
-            });
-            if(res.ok) {
-              fetchDashboard(); // Refresh immediately
-              // Poll to catch the status transition from Processing -> Success/Failed
-              let polls = 0;
-              let intv = setInterval(() => {
-                fetchDashboard();
-                polls++;
-                if(polls > 10) clearInterval(intv); // Stop polling after ~30s
-              }, 3000);
-            } else {
-              stat.innerText = "Server rejected the file.";
-              stat.style.color = "#ff4a4a";
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            if (!res.ok) {
+               if (res.status === 409) {
+                 const data = await res.json();
+                 showToast("Upload skipped: " + data.reason);
+               } else {
+                 showToast("Upload failed.");
+               }
             }
+            fetchDashboard();
           } catch(e) {
-            stat.innerText = "Upload network error.";
-            stat.style.color = "#ff4a4a";
+            showToast("Upload network error.");
+          }
+        }
+
+        async function executeBookSearch() {
+          const q = document.getElementById('bookSearchInput').value.trim();
+          if (!q) return;
+          
+          const resBox = document.getElementById('searchResults');
+          resBox.innerHTML = '<p style="color: var(--blue); text-align: center;">Searching database...</p>';
+          
+          try {
+            const res = await fetch('/api/search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query: q })
+            });
+            const data = await res.json();
+            
+            if (!data.chunks || data.chunks.length === 0) {
+              resBox.innerHTML = '<p style="color: var(--muted); text-align: center;">No results found.</p>';
+              return;
+            }
+            
+            resBox.innerHTML = data.chunks.map(c => {
+              const meta = c.metadata || {};
+              const author = meta.author || meta.Author || 'Unknown Author';
+              const title = meta.title || meta.Title || 'Untitled Document';
+              const loc = meta.location || meta.Location || 'General Stacks';
+              
+              return `<div class="book-card">
+                <div class="book-card-title">${title} <span style="font-size: 12px; color: var(--blue); margin-left: 8px;">Rank Score: ${(c.score||0).toFixed(3)}</span></div>
+                <div class="book-card-meta">
+                   <span>${author}</span>
+                   <span>${loc}</span>
+                </div>
+                <div class="book-card-text">${c.text}</div>
+              </div>`;
+            }).join('');
+            
+          } catch (e) {
+            resBox.innerHTML = '<p style="color: #ff4a4a; text-align: center;">Failed to connect to search API.</p>';
           }
         }
       </script>
@@ -1330,42 +1399,64 @@ window.addEventListener('resize',glide);
 
 
 
-<div class="modal-overlay" id="authModal">
-  <div class="modal" style="max-width: 600px;">
-    <button class="close-modal" onclick="closeModals()">×</button>
-    <div id="loginSection">
-      <h2>Librarian Login</h2>
-      <input type="text" id="username" placeholder="Username">
-      <input type="password" id="password" placeholder="Password">
-      <button onclick="doLogin()">Login</button>
+<div class="dash-overlay" id="fullScreenDashboard">
+  <div class="dash-nav">
+    <h2 style="font-size: 18px; margin: 0; margin-right: 16px; color: #fff; letter-spacing: -0.02em;">Library System</h2>
+    <button class="dash-nav-btn active" id="tabBtnLogin" onclick="showDashTab('login')">Admin Login</button>
+    <button class="dash-nav-btn" id="tabBtnSearch" onclick="showDashTab('search')">Book Search</button>
+    <button class="dash-nav-btn dash-close" onclick="closeDashboard()">Close Dashboard</button>
+  </div>
+  
+  <div class="dash-content">
+    <div class="dash-panel active" id="panelLogin">
+      <div class="login-card">
+        <h2 style="margin: 0; color: #fff; text-align: center; font-size: 24px;">Welcome Back</h2>
+        <p style="text-align: center; color: var(--muted); margin-bottom: 8px; font-size: 14px;">Enter your librarian credentials.</p>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="doLogin()">Log In</button>
+      </div>
     </div>
-    <div id="uploadSection" style="display: none; flex-direction: column;">
-      <h2>Admin Dashboard</h2>
+    
+    <div class="dash-panel" id="panelAdmin" style="max-width: 900px;">
+      <h2 style="margin: 0 0 24px 0; color: #fff; font-size: 28px;">Dashboard & File Tracking</h2>
       
-      <div style="display: flex; gap: 16px; margin-bottom: 20px;">
-        <div class="stat-card" style="flex: 1; padding: 16px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid var(--line); text-align: center;">
-          <h3 id="statTotal" style="font-size: 24px; color: var(--blue); margin: 0;">0</h3>
-          <p style="font-size: 11.5px; color: var(--faint); margin: 4px 0 0; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Files</p>
+      <div style="display: flex; gap: 16px; margin-bottom: 24px; width: 100%;">
+        <div style="flex: 1; padding: 24px; background: var(--raised); border-radius: 16px; border: 1px solid var(--line); text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+          <h3 id="statTotal" style="font-size: 36px; color: var(--blue); margin: 0;">0</h3>
+          <p style="color: var(--muted); margin: 8px 0 0; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; font-weight: 600;">Indexed Files</p>
         </div>
-        <div class="stat-card" style="flex: 1; padding: 16px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid var(--line); text-align: center;">
-          <h3 id="statVectors" style="font-size: 24px; color: var(--orange); margin: 0;">0</h3>
-          <p style="font-size: 11.5px; color: var(--faint); margin: 4px 0 0; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Vectors</p>
-        </div>
-        <div class="stat-card" style="flex: 1; padding: 16px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid var(--line); text-align: center;">
-          <h3 id="statFailed" style="font-size: 24px; color: #ff4a4a; margin: 0;">0</h3>
-          <p style="font-size: 11.5px; color: var(--faint); margin: 4px 0 0; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Failed</p>
+        <div style="flex: 1; padding: 24px; background: var(--raised); border-radius: 16px; border: 1px solid var(--line); text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+          <h3 id="statFailed" style="font-size: 36px; color: #ff4a4a; margin: 0;">0</h3>
+          <p style="color: var(--muted); margin: 8px 0 0; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; font-weight: 600;">Failed / Duplicates</p>
         </div>
       </div>
-
-      <div class="file-drop" onclick="document.getElementById('fileInput').click()" style="margin-bottom: 12px; padding: 20px; font-size: 13px;">
-        Click to select or drag and drop a PDF/Word/TXT file to inject into the AI brain.
+      
+      <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+        <h3 style="margin: 0 0 8px 0; color: #fff; font-size: 18px;">Upload Data File</h3>
+        <p style="margin: 0; color: var(--muted); font-size: 14px;">Click to upload a PDF, Word, or JSON file.</p>
       </div>
       <input type="file" id="fileInput" style="display: none;" onchange="uploadFile()">
-      <p id="uploadStatus" style="font-size: 13px; color: var(--blue); margin-top: 0; margin-bottom: 16px; text-align: center; height: 15px;"></p>
-
-      <h3 style="font-size: 14px; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 10px;">Upload History</h3>
-      <div id="uploadHistory" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
-        <!-- History items -->
+      
+      <h3 style="margin: 32px 0 16px 0; color: #fff; font-size: 20px;">Live Tracking System</h3>
+      <div style="background: var(--raised); border-radius: 16px; border: 1px solid var(--line); overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+        <table class="data-table">
+          <thead>
+            <tr><th>Filename</th><th>Status</th><th>Message</th><th>Timestamp</th></tr>
+          </thead>
+          <tbody id="uploadHistory"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="dash-panel" id="panelSearch" style="max-width: 900px;">
+      <h2 style="margin: 0 0 24px 0; color: #fff; font-size: 28px;">Book Search System</h2>
+      <div class="search-input-container">
+        <input type="text" id="bookSearchInput" placeholder="Search by title, author, topic, or keyword..." onkeydown="if(event.key === 'Enter') executeBookSearch()">
+        <button onclick="executeBookSearch()">Search</button>
+      </div>
+      <div id="searchResults" style="display: flex; flex-direction: column; gap: 16px; margin-top: 32px;">
+        <p style="color: var(--muted); text-align: center; font-size: 15px;">Enter a query to search the library database.</p>
       </div>
     </div>
   </div>
