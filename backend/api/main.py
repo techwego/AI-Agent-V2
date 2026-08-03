@@ -125,20 +125,20 @@ def diagnostics():
 
 from typing import Optional
 
-class DebugRetrieveRequest(BaseModel):
+class SearchRequest(BaseModel):
     query: str
 
-@app.post("/api/debug/retrieve")
-async def debug_retrieve(request: DebugRetrieveRequest):
+@app.post("/api/search")
+async def search_books(request: SearchRequest):
     if not rag.ready:
         raise HTTPException(status_code=503, detail="RAG not ready")
     
-    # Do hybrid search directly and limit to 5
-    vector_results = rag._vector_search(request.query, top_k=10)
-    bm25_results = rag._bm25_search(request.query, top_k=10)
+    # Do hybrid search directly and limit to 10
+    vector_results = rag._vector_search(request.query, top_k=20)
+    bm25_results = rag._bm25_search(request.query, top_k=20)
     combined = rag._reciprocal_rank_fusion(vector_results, bm25_results)
     
-    top_chunks = combined[:5]
+    top_chunks = combined[:10]
     
     # Format output
     output = []
@@ -266,6 +266,14 @@ def process_upload_task(upload_id: int):
 async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
+    
+    existing_doc = database.get_document_by_filename(file.filename)
+    if existing_doc and existing_doc.get("status") in ["Success", "Processing"]:
+        return JSONResponse(status_code=409, content={
+            "message": f"File {file.filename} already exists or is being processed.",
+            "status": "Failed",
+            "reason": "File already exists"
+        })
     
     file_path = os.path.join(DATA_DIR, file.filename)
     try:
