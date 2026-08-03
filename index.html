@@ -1699,18 +1699,39 @@ async function askQuery(queryText, isVoice=false) {
 
     setState(State.GENERATING);
 
-    while (true) {
+        while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
       const chunk = decoder.decode(value, { stream: true });
       fullText += chunk;
+      
+      let uiText = fullText;
+      const match = uiText.match(/<ROUTE_TO:([A-Z0-9]+)>/i);
+      if (match) {
+          uiText = uiText.replace(/<ROUTE_TO:[A-Z0-9]+>/ig, '');
+          if (currentScenario !== 'book') {
+              currentScenario = 'book';
+              currentDest = match[1].toUpperCase();
+              if(window.runRoute3D) {
+                  window.runRoute3D('entrance', currentDest);
+                  toggleRightPanel('map');
+                  const ctxIdle = document.getElementById('ctxIdle');
+                  if (ctxIdle) ctxIdle.classList.add('hide');
+                  const navControls = document.getElementById('navControls');
+                  if (navControls) navControls.style.display = 'block';
+                  setCtxTitle('ctxnav');
+              }
+          }
+      }
 
       if (answerTextEl) {
-        answerTextEl.innerHTML = fullText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br/>');
+        answerTextEl.innerHTML = uiText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br/>');
         thread.scrollTo(0, thread.scrollHeight);
       }
     }
+    
+    fullText = fullText.replace(/<ROUTE_TO:[A-Z0-9]+>/ig, '');
 
     if (isVoice) {
       setState(State.SPEAKING);
