@@ -814,8 +814,11 @@ function setState(newState) {
   currentState = newState;
   console.log(`STATE -> ${newState}`);
   
+  const app = document.getElementById('app');
+  
   // Sync the animation scale when speaking or listening
   if (newState === State.SPEAKING || newState === State.LISTENING || newState === State.INTRODUCING) {
+    if (app) app.classList.add('busy');
     if (!orbAnimationInterval) {
       orbAnimationInterval = setInterval(() => {
         const vid = document.getElementById('orbVideo');
@@ -826,6 +829,7 @@ function setState(newState) {
       }, 100);
     }
   } else {
+    if (app) app.classList.remove('busy');
     if (orbAnimationInterval) {
       clearInterval(orbAnimationInterval);
       orbAnimationInterval = null;
@@ -1065,7 +1069,6 @@ async function askQuery(queryText, isVoice=false) {
   stopMicrophone();
   setState(State.PROCESSING);
   currentScenario = 'custom'; 
-  setLevel(1);
 
   try {
     setState(State.RETRIEVING);
@@ -1111,7 +1114,6 @@ async function askQuery(queryText, isVoice=false) {
     }
 
     if (isVoice) {
-      setLevel(.32);
       setState(State.SPEAKING);
       console.log("TTS Started");
       speakText(fullText, () => {
