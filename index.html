@@ -932,6 +932,7 @@ async function startMicrophone() {
         const speechResult = data.text;
         
         if (speechResult && speechResult.trim().length > 0) {
+            setState(State.IDLE);
             askQuery(speechResult, true);
         } else {
             setState(State.IDLE);
