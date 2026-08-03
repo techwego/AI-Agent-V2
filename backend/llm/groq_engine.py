@@ -11,7 +11,7 @@ class GroqEngine(LLMEngine):
             self.client = None
             print("Warning: GROQ_API_KEY is not set.")
         else:
-            self.client = groq.Groq(api_key=Config.GROQ_API_KEY, max_retries=0)
+            self.client = groq.Groq(api_key=Config.GROQ_API_KEY, max_retries=2)
             
     def generate_stream(self, prompt: str) -> Generator[str, None, None]:
         t0 = time.time()
@@ -53,6 +53,8 @@ class GroqEngine(LLMEngine):
             error_str = str(e)
             if "429" in error_str or "rate_limit" in error_str.lower() or "quota" in error_str.lower():
                 yield "I am currently receiving too many requests. Please wait about a minute and try again."
+            elif "timeout" in error_str.lower():
+                yield "I'm having trouble connecting to the network right now. Please check your connection and try again."
             else:
                 yield "I'm sorry, my language module encountered an error connecting to Groq."
             Config.record_llm_error()
