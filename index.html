@@ -296,41 +296,6 @@
   }
 
   /* Modals */
-
-    .dash-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 200; display: none; flex-direction: column; }
-    .dash-overlay.show { display: flex; animation: fadeIn 0.2s ease-out; }
-    .dash-nav { height: 64px; border-bottom: 1px solid var(--line); display: flex; align-items: center; padding: 0 24px; gap: 24px; background: rgba(0,0,0,0.4); }
-    .dash-nav-btn { background: none; border: none; color: var(--muted); font-size: 15px; font-weight: 500; cursor: pointer; transition: 0.2s; padding: 8px 12px; border-radius: 8px; }
-    .dash-nav-btn:hover { color: var(--ink); background: var(--raised); }
-    .dash-nav-btn.active { color: var(--blue); background: rgba(74,140,255,0.1); }
-    .dash-close { margin-left: auto; color: #ff4a4a; }
-    .dash-close:hover { background: rgba(255, 74, 74, 0.1); color: #ff4a4a; }
-    .dash-content { flex: 1; overflow-y: auto; padding: 40px; display: flex; flex-direction: column; align-items: center; }
-    .dash-panel { width: 100%; max-width: 800px; display: none; flex-direction: column; gap: 24px; animation: slideUp 0.3s ease-out forwards; opacity: 0; }
-    .dash-panel.active { display: flex; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    
-    .login-card { background: var(--raised); border: 1px solid var(--line); border-radius: 24px; padding: 40px; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 16px; margin: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
-    
-    .upload-area { border: 2px dashed var(--line); border-radius: 24px; padding: 60px 20px; text-align: center; cursor: pointer; transition: 0.2s; background: rgba(0,0,0,0.2); }
-    .upload-area:hover { border-color: var(--blue); background: rgba(74,140,255,0.05); }
-    
-    .data-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    .data-table th, .data-table td { padding: 16px; text-align: left; border-bottom: 1px solid var(--line); font-size: 14px; }
-    .data-table th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-    
-    .search-input-container { display: flex; gap: 12px; }
-    .search-input-container input { flex: 1; padding: 18px 24px; border-radius: 16px; border: 1px solid var(--line); background: var(--raised); color: var(--ink); font-size: 16px; outline: none; transition: 0.2s; }
-    .search-input-container input:focus { border-color: var(--blue); }
-    .search-input-container button { padding: 0 32px; border-radius: 16px; background: linear-gradient(135deg, var(--blue), var(--purple)); color: #fff; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 15px;}
-    .search-input-container button:hover { filter: brightness(1.1); transform: translateY(-1px); }
-    
-    .book-card { background: var(--raised); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px; transition: 0.2s; }
-    .book-card:hover { border-color: var(--blue); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-    .book-card-title { font-size: 18px; font-weight: 600; color: #fff; }
-    .book-card-meta { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
-    .book-card-text { font-size: 14px; color: var(--ink); line-height: 1.5; margin-top: 8px; }
-
   .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: none; align-items: center; justify-content: center; z-index: 100; }
   .modal-overlay.show { display: flex; animation: fadeIn 0.3s ease-out; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -471,158 +436,879 @@
           }
         }
 
-        
-  let dashPolling = null;
-  let isAdminLogged = false;
+        function promptLogin() {
+          document.getElementById('authModal').classList.add('show');
+        }
+        function closeModals() {
+          document.getElementById('authModal').classList.remove('show');
+        }
+        function doLogin() {
+          const u = document.getElementById('username').value;
+          const p = document.getElementById('password').value;
+          if(u === 'admin' && p === 'admin') {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('uploadSection').style.display = 'flex';
+            fetchDashboard();
+          } else {
+            alert('Invalid credentials');
+          }
+        }
 
-  function promptLogin() {
-    document.getElementById('fullScreenDashboard').classList.add('show');
-    showDashTab(isAdminLogged ? 'admin' : 'login');
+        async function fetchDashboard() {
+          try {
+            const res = await fetch('/api/uploads');
+            const data = await res.json();
+            
+            const statRes = await fetch('/api/dashboard_stats');
+            const stats = await statRes.json();
+            
+            document.getElementById('statTotal').innerText = stats.total_documents;
+            document.getElementById('statVectors').innerText = stats.total_chunks;
+            document.getElementById('statFailed').innerText = data.filter(d => d.status === 'Failed').length;
+            
+            const history = document.getElementById('uploadHistory');
+            history.innerHTML = data.map(d => {
+              let color = d.status === 'Success' ? 'var(--orange)' : (d.status === 'Failed' ? '#ff4a4a' : 'var(--blue)');
+              let msg = d.message ? `<div style="font-size: 11px; color: var(--faint); margin-top: 6px; line-height: 1.4;">${d.message}</div>` : '';
+              return `<div style="padding: 12px; background: rgba(255,255,255,0.02); border-radius: 8px; border-left: 3px solid ${color};">
+                <div style="display: flex; justify-content: space-between; font-size: 13px; align-items: center;">
+                  <span style="color: var(--ink); font-weight: 500;">${d.filename}</span>
+                  <span style="color: ${color}; font-weight: 700; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;">${d.status}</span>
+                </div>
+                ${msg}
+              </div>`;
+            }).join('');
+          } catch(e) {
+            console.error("Dashboard fetch error", e);
+          }
+        }
+
+        async function uploadFile() {
+          const file = document.getElementById('fileInput').files[0];
+          if(!file) return;
+          const stat = document.getElementById('uploadStatus');
+          stat.innerText = "File queued for background indexing...";
+          stat.style.color = "var(--blue)";
+          
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          try {
+            const res = await fetch('/api/upload', {
+              method: 'POST',
+              body: formData
+            });
+            if(res.ok) {
+              fetchDashboard(); // Refresh immediately
+              // Poll to catch the status transition from Processing -> Success/Failed
+              let polls = 0;
+              let intv = setInterval(() => {
+                fetchDashboard();
+                polls++;
+                if(polls > 10) clearInterval(intv); // Stop polling after ~30s
+              }, 3000);
+            } else {
+              stat.innerText = "Server rejected the file.";
+              stat.style.color = "#ff4a4a";
+            }
+          } catch(e) {
+            stat.innerText = "Upload network error.";
+            stat.style.color = "#ff4a4a";
+          }
+        }
+      </script>
+    </header>
+
+    <div class="work">
+      <section class="conv" id="conv" style="display: flex; flex-direction: column; position: relative;">
+        <!-- Persistent Avatar and Mic -->
+        <!-- Persistent Glass Orb Avatar -->
+        <div class="avatar-view">
+          <div class="glass-orb-container siri-orb" id="orb" onclick="startSpeechRecognition()">
+            <!-- Exact Animated GIF Implementation -->
+            <img id="orbVideo" src="https://cdn.dribbble.com/userupload/23131588/file/original-7170a735f9fbc50004dc5ece58421c06.gif" alt="Siri Voice Orb" class="exact-orb-img">
+            
+            <span class="orb-mic">
+              <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="12" y="3" width="8" height="16" rx="4"/>
+                <path d="M7 14.5a9 9 0 0 0 18 0"/>
+                <path d="M16 23.5V28M11 28h10"/>
+              </svg>
+            </span>
+          </div>
+        </div>
+        
+      </section>
+
+      <aside class="ctx">
+        <div class="ctx-head">
+          <span class="ctx-title" id="ctxTitle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 6.5 9 4Z"/><path d="M9 4v13M15 6.5v13"/></svg><span data-t="ctxnav">Athenaeum Chat</span></span>
+          <button class="ctx-floor mono" id="floorToggleBtn" onclick="toggleRightPanel()" style="cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 4px 12px; border-radius: 12px; font-weight: 500; font-size: 13px; transition: all 0.2s;">Floor 2 · 3D Map</button>
+        </div>
+        <div class="ctx-body" id="ctxBody" style="display: flex; flex-direction: column;">
+          
+          <div id="chatView" style="display: flex; flex-direction: column; flex: 1; overflow: hidden; padding: 20px;">
+            <div class="thread show" id="thread" style="flex: 1; overflow-y: auto; padding-right: 8px;"></div>
+            <div class="chat-input-wrapper" style="margin-top: auto; padding-top: 20px;">
+              <input type="text" id="chatInput" class="chat-input-field" placeholder="Ask Athenaeum about the library..." onkeypress="if(event.key==='Enter') askCustom()">
+              <button class="chat-send-btn" onclick="askCustom()">Send</button>
+            </div>
+          </div>
+          
+          <div id="mapView" style="display: none; flex-direction: column; flex: 1;">
+            <div class="plan" id="plan">
+              <div class="cam" id="cam">
+                <svg id="floor" viewBox="0 0 440 360" preserveAspectRatio="xMidYMid meet"></svg>
+              </div>
+              <div class="kiosk-bar" id="kioskBar"></div>
+              <div class="route-stat" id="routeStat"></div>
+              <div class="ctx-idle" id="ctxIdle">
+                <span class="ci-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
+                <p data-t="ctxidle">Pick a kiosk above to set the origin, then ask for a title — the route is computed live from that point.</p>
+              </div>
+            </div>
+            <div id="navControls" style="display:none">
+              <div class="legend">
+                <span class="lg"><i class="b"></i><span data-t="lgyou">Kiosk</span></span>
+                <span class="lg"><i class="p"></i><span data-t="lgroute">Computed route</span></span>
+                <span class="lg"><i class="o"></i><span data-t="lgshelf">Target shelf</span></span>
+              </div>
+              <div class="nav-actions">
+                <button class="btn btn-primary" id="lightBtn" onclick="lightShelf()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.2 1 2.5h6c0-1.3.3-1.8 1-2.5A6 6 0 0 0 12 3Z"/></svg><span data-t="light">Light the shelf</span></button>
+                <button class="btn btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2Z"/></svg><span data-t="guide">Guide me</span></button>
+              </div>
+            </div>
+            <div id="ctxCard"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden elements to preserve JS compatibility for map navigation -->
+<div style="display:none;">
+  <span id="dockStatus"></span>
+  <div id="pills"></div>
+</div>
+
+<div class="toast" id="toast"><span class="td"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.2 1 2.5h6c0-1.3.3-1.8 1-2.5A6 6 0 0 0 12 3Z"/></svg></span><span id="toastText"></span></div>
+
+<script>
+const I={
+  mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21M8.5 21h7"/></svg>',
+  spark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14H7V3Z"/><path d="M14 3v4h4M9 13h6M9 16h4"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
+  ext:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.4"/></svg>'
+};
+
+const T={
+  en:{
+    branch:"Central Library · Athenaeum voice concierge", ready:"Listening ready",
+    eyebrow:"AI library concierge", h1a:"Ask the library.", h1b:"Out loud.",
+    sub:"Find any book and get walked to the exact shelf, get grounded answers about the campus, and search your e-resources — by voice, in English or Tamil.",
+    trylabel:"Try asking",
+    ex1t:"Find a book and guide me there", ex1s:"“Where can I find Introduction to Algorithms?”",
+    ex2t:"Ask about campus &amp; services", ex2s:"“Can I borrow a laptop for the weekend?”",
+    ex3t:"Search e-resources for research", ex3s:"“Recent papers on solid-state batteries.”",
+    ex4t:"Find a new building", ex4s:"“Take me to the new Science Annex.”",
+    ctxnav:"Navigate", ctxsrc:"Source", ctxres:"e-Resources",
+    herelbl:"You are here", ctxidle:"Pick a kiosk above to set the origin, then ask for a title — the route is computed live from that point.",
+    lgyou:"Kiosk", lgroute:"Computed route", lgshelf:"Target shelf",
+    light:"Light the shelf", lit:"Shelf is lit", guide:"Guide me",
+    dockhint:"Tap the orb or a prompt to speak…", listening:"Listening", thinking:"Finding it",
+    pills:["Find a book","Opening hours","Reference section"], pillMap:["book","hours","where"],
+    toast:"Bay B-14 is lit — look for the glowing label on the shelf.",
+    available:"available", of:"of", callNo:"Call number", location:"Location", edition:"Edition",
+    newq:"New question", voice:"Voice", langname:"English", kioskLabel:"Kiosk",
+    routefrom:"Route from", stops:"waypoints", back:"Back to conversation",
+    knames:{KE:"Entrance",KR:"Reference",KU:"Stacks"},
+    grounded:"Answers are grounded in your library's own documents and shown with their source, so staff can verify every reply.",
+    wish:{q:"Take me to the new Science Annex", intro:"The Science Annex is located in the east wing. I've computed the route from your current kiosk.", loc:"East Wing · Science Annex"}, 
+    book:{q:"Where can I find Introduction to Algorithms?", intro:"It's on the shelf and available now. I've computed the route from this kiosk.", title:"Introduction to Algorithms", auth:"Cormen, Leiserson, Rivest & Stein", call:"QA76.6 .C66", loc:"Floor 2 · Aisle B · Bay 14", ed:"4th, 2022", avail:2, total:3},
+    hours:{q:"Can I borrow a laptop for the weekend?", text:"Yes. Postgraduate and final-year students can borrow a loaner laptop for up to <b>3 days</b>, including weekends. Pick it up at the Help desk with your student ID; late returns are ₹50 per day.", srcT:"Library Services Handbook", srcS:"Section 4 · Equipment loans · p.12"},
+    where:{q:"Where is the reference section?", intro:"The reference collection runs along the west wall of Floor 2 — Bays B-12 to B-16. Route computed from this kiosk.", loc:"Floor 2 · Bays B-12–16", refname:"Reference collection"},
+    research:{q:"Find recent papers on solid-state batteries.", intro:"Here are 3 recent peer-reviewed results available through your campus subscriptions.", access:"Full text via campus",
+      items:[{t:"Interfacial engineering of sulfide solid electrolytes", m:"Nature Energy · 2025 · via ScienceDirect"},{t:"Dendrite suppression in Li-metal solid-state cells", m:"Journal of Power Sources · 2025 · IEEE/e-SS"},{t:"Scalable processing of garnet electrolyte films", m:"ACS Energy Letters · 2024 · via ACS"}]}
+  },
+  ta:{
+    branch:"மைய நூலகம் · அதீனியம் குரல் உதவியாளர்", ready:"கேட்க தயார்",
+    eyebrow:"AI நூலக உதவியாளர்", h1a:"நூலகத்திடம் கேளுங்கள்.", h1b:"வாய்மொழியாக.",
+    sub:"எந்தப் புத்தகத்தையும் கண்டுபிடித்து சரியான அலமாரிக்கு வழிகாட்டுகிறேன், வளாகம் பற்றிய பதில்கள் தருகிறேன், மின்-வளங்களைத் தேடுகிறேன் — தமிழ் அல்லது ஆங்கிலத்தில், குரலால்.",
+    trylabel:"இவ்வாறு கேளுங்கள்",
+    ex1t:"புத்தகம் தேடி வழிகாட்டு", ex1s:"“Introduction to Algorithms எங்கே?”",
+    ex2t:"வளாகம் & சேவைகள் பற்றி கேளுங்கள்", ex2s:"“வார இறுதிக்கு லேப்டாப் கடன் கிடைக்குமா?”",
+    ex3t:"ஆராய்ச்சிக்கு மின்-வளங்களைத் தேடு", ex3s:"“solid-state batteries சமீபத்திய ஆய்வுகள்.”",
+    ctxnav:"வழிகாட்டல்", ctxsrc:"ஆதாரம்", ctxres:"மின்-வளங்கள்",
+    herelbl:"நீங்கள் இங்கே", ctxidle:"மேலே ஒரு கியோஸ்கைத் தேர்ந்தெடுத்து, பின் புத்தகத்தைக் கேளுங்கள் — அந்த இடத்திலிருந்து வழி உடனடியாகக் கணக்கிடப்படும்.",
+    lgyou:"கியோஸ்க்", lgroute:"கணித்த வழி", lgshelf:"இலக்கு அலமாரி",
+    light:"அலமாரியை ஒளிரச் செய்", lit:"அலமாரி ஒளிர்கிறது", guide:"வழிகாட்டு",
+    dockhint:"பேச ஆர்பை அல்லது குறிப்பைத் தட்டவும்…", listening:"கேட்கிறேன்", thinking:"தேடுகிறேன்",
+    pills:["புத்தகம் தேடு","திறக்கும் நேரம்","குறிப்பு பிரிவு"], pillMap:["book","hours","where"],
+    toast:"அலமாரி B-14 ஒளிர்கிறது — அலமாரியில் ஒளிரும் சிட்டையைப் பாருங்கள்.",
+    available:"கிடைக்கிறது", of:"இல்", callNo:"அழைப்பு எண்", location:"இடம்", edition:"பதிப்பு",
+    newq:"புதிய கேள்வி", voice:"குரல்", langname:"தமிழ்", kioskLabel:"கியோஸ்க்",
+    routefrom:"வழி", stops:"புள்ளிகள்", back:"உரையாடலுக்கு திரும்பு",
+    knames:{KE:"நுழைவு",KR:"குறிப்பு",KU:"அடுக்குகள்"},
+    grounded:"பதில்கள் உங்கள் நூலகத்தின் ஆவணங்களில் இருந்து; ஆதாரத்துடன் காட்டப்படுகின்றன, ஊழியர்கள் சரிபார்க்கலாம்.",
+    wish:{q:"புதிய அறிவியல் வளாகத்திற்கு வழி காட்டு", intro:"அறிவியல் வளாகம் கிழக்கு திசையில் உள்ளது. இங்கிருந்து வழியை கணக்கிட்டுள்ளேன்.", loc:"கிழக்கு திசை · அறிவியல் வளாகம்"}, 
+    book:{q:"Introduction to Algorithms எங்கே கிடைக்கும்?", intro:"இது அலமாரியில் இப்போது கிடைக்கிறது. இந்தக் கியோஸ்கிலிருந்து வழி கணக்கிட்டுள்ளேன்.", title:"Introduction to Algorithms", auth:"Cormen, Leiserson, Rivest & Stein", call:"QA76.6 .C66", loc:"தளம் 2 · அடுக்கு B · அலமாரி 14", ed:"4வது, 2022", avail:2, total:3},
+    hours:{q:"வார இறுதிக்கு லேப்டாப் கடன் கிடைக்குமா?", text:"ஆம். முதுகலை மற்றும் இறுதியாண்டு மாணவர்கள் வார இறுதி உட்பட <b>3 நாட்கள்</b> வரை லேப்டாப் கடன் பெறலாம். மாணவர் அடையாள அட்டையுடன் உதவி மேசையில் பெறுங்கள்; தாமதத்திற்கு நாளொன்றுக்கு ₹50.", srcT:"நூலக சேவைகள் கையேடு", srcS:"பிரிவு 4 · கருவி கடன் · ப.12"},
+    where:{q:"குறிப்பு பிரிவு எங்கே?", intro:"குறிப்பு தொகுப்பு தளம் 2-ன் மேற்கு சுவர் வழியே — அலமாரிகள் B-12 முதல் B-16. இந்தக் கியோஸ்கிலிருந்து வழி கணக்கிடப்பட்டது.", loc:"தளம் 2 · அலமாரிகள் B-12–16", refname:"குறிப்பு தொகுப்பு"},
+    research:{q:"solid-state batteries சமீபத்திய ஆய்வுகளைத் தேடு.", intro:"உங்கள் வளாக சந்தாக்கள் வழியாகக் கிடைக்கும் 3 சமீபத்திய ஆய்வுக் கட்டுரைகள்.", access:"வளாகம் வழி முழு உரை",
+      items:[{t:"Interfacial engineering of sulfide solid electrolytes", m:"Nature Energy · 2025 · ScienceDirect வழி"},{t:"Dendrite suppression in Li-metal solid-state cells", m:"Journal of Power Sources · 2025 · IEEE/e-SS"},{t:"Scalable processing of garnet electrolyte films", m:"ACS Energy Letters · 2024 · ACS வழி"}]}
   }
-  
-  function closeDashboard() {
-    document.getElementById('fullScreenDashboard').classList.remove('show');
-    if (dashPolling) clearInterval(dashPolling);
+};
+
+/* ====================================================================
+   FLOOR GRAPH  (this is the only thing that changes per real floor —
+   swap these coordinates/edges for a digitized plan and routing works)
+   ==================================================================== */
+const NODES={
+  // lane 0 (left of REF run)            lane 1 (REF|run2)         lane 2 (run2|Aisle B)      lane 3 (right wall)
+  L0:{x:0.5,y:5.4}, L1:{x:0.5,y:4}, L2:{x:0.5,y:3}, L3:{x:0.5,y:2}, L4:{x:0.5,y:0.6},
+  A0:{x:2.1,y:5.4}, A1:{x:2.1,y:4}, A2:{x:2.1,y:3}, A3:{x:2.1,y:2}, A4:{x:2.1,y:0.6},
+  B0:{x:3.9,y:5.4}, B1:{x:3.9,y:4}, B2:{x:3.9,y:3}, B3:{x:3.9,y:2}, B4:{x:3.9,y:0.6},
+  R0:{x:5.4,y:5.4}, R1:{x:5.4,y:4}, R2:{x:5.4,y:3}, R3:{x:5.4,y:2}, R4:{x:5.4,y:0.6},
+  // kiosks (origins) — each is a surveyed node; "login" picks one
+  KE:{x:3.0,y:5.8,kiosk:true}, KR:{x:0.15,y:3.0,kiosk:true}, KU:{x:5.75,y:1.0,kiosk:true}, 
+  // New Science Annex building
+  S0:{x:7.5,y:5.4}, S1:{x:7.5,y:4}, S2:{x:7.5,y:2.5}, KX:{x:8.5,y:1.5,kiosk:true}
+};
+const EDGES=[
+  ['L0','L1'],['L1','L2'],['L2','L3'],['L3','L4'],
+  ['A0','A1'],['A1','A2'],['A2','A3'],['A3','A4'],
+  ['B0','B1'],['B1','B2'],['B2','B3'],['B3','B4'],
+  ['R0','R1'],['R1','R2'],['R2','R3'],['R3','R4'],
+  ['L0','A0'],['A0','B0'],['B0','R0'],   // front cross-aisle
+  ['L4','A4'],['A4','B4'],['B4','R4'],   // back cross-aisle
+  ['KE','A0'],['KE','B0'],['KR','L2'],['KU','R4'],
+  ['R0','S0'],['R1','S1'],['R2','S2'],['S0','S1'],['S1','S2'],['KX','S2']
+];
+const ADJ={};
+EDGES.forEach(([a,b])=>{(ADJ[a]=ADJ[a]||[]).push(b);(ADJ[b]=ADJ[b]||[]).push(a);});
+// catalogue → shelf access node (resolved from call number in a real ILS)
+const DEST={book:'B2', where:'A2', entrance:'KE', stacks:'KU'};
+
+function dist(a,b){const A=NODES[a],B=NODES[b];return Math.hypot(A.x-B.x,A.y-B.y);}
+function astar(start,goal){
+  const g={},f={},came={},open=new Set([start]);
+  Object.keys(NODES).forEach(n=>{g[n]=Infinity;f[n]=Infinity;});
+  g[start]=0; f[start]=dist(start,goal);
+  while(open.size){
+    let cur=null,best=Infinity;
+    open.forEach(n=>{if(f[n]<best){best=f[n];cur=n;}});
+    if(cur===goal){const p=[cur];while(came[cur]){cur=came[cur];p.unshift(cur);}return p;}
+    open.delete(cur);
+    (ADJ[cur]||[]).forEach(nb=>{const t=g[cur]+dist(cur,nb); if(t<g[nb]){came[nb]=cur;g[nb]=t;f[nb]=t+dist(nb,goal);open.add(nb);}});
   }
+  return [start];
+}
+
+/* ===== isometric engine ===== */
+const TW=30, TH=16, OX=222, OY=58;
+function iso(gx,gy,gz){return [OX+(gx-gy)*TW, OY+(gx+gy)*TH-gz];}
+function P(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}
+function box(gx,gy,w,d,h,cT,cL,cR,opts){
+  opts=opts||{};
+  const A=iso(gx,gy,h),B=iso(gx+w,gy,h),C=iso(gx+w,gy+d,h),D=iso(gx,gy+d,h);
+  const Bb=iso(gx+w,gy,0),Cb=iso(gx+w,gy+d,0),Db=iso(gx,gy+d,0);
+  const st='stroke="rgba(255,255,255,.10)" stroke-width="1"';
+  const left=`<polygon points="${P(D)} ${P(C)} ${P(Cb)} ${P(Db)}" fill="${cL}" ${st}/>`;
+  const right=`<polygon points="${P(B)} ${P(C)} ${P(Cb)} ${P(Bb)}" fill="${cR}" ${st}/>`;
+  const top=`<polygon points="${P(A)} ${P(B)} ${P(C)} ${P(D)}" fill="${cT}" ${st}/>`;
+  const attr=(opts.id?`id="${opts.id}" `:'')+`class="${opts.cls||'obj'}"`+(opts.style?` style="${opts.style}"`:'');
+  return `<g ${attr}>${left}${right}${top}</g>`;
+}
+const SHELF={t:'#1D2638',l:'#141C2B',r:'#0E1521'}, ORANGE={t:'#FF7A3D',l:'#C85E27',r:'#9E481B'};
+
+let lang='en', currentKiosk='KE', currentScenario=null, currentDest=null, litFlag=false;
+const app=document.getElementById('app'), welcome=document.getElementById('welcome'), thread=document.getElementById('thread');
+
+function buildFloor(){
+  let s='';
+  const c0=iso(0,0,0),c1=iso(6,0,0),c2=iso(6,6,0),c3=iso(0,6,0);
+  s+=`<polygon class="floorbase" points="${P(c0)} ${P(c1)} ${P(c2)} ${P(c3)}" fill="#0A0E16" stroke="rgba(255,255,255,.08)" stroke-width="1.2"/>`;
+  let grid='';
+  for(let i=1;i<6;i++){
+    grid+=`<line x1="${iso(i,0,0)[0]}" y1="${iso(i,0,0)[1]}" x2="${iso(i,6,0)[0]}" y2="${iso(i,6,0)[1]}" stroke="rgba(255,255,255,.045)"/>`;
+    grid+=`<line x1="${iso(0,i,0)[0]}" y1="${iso(0,i,0)[1]}" x2="${iso(6,i,0)[0]}" y2="${iso(6,i,0)[1]}" stroke="rgba(255,255,255,.045)"/>`;
+  }
+  s+=`<g class="floorbase">${grid}</g>`;
+  s+=box(0.9,1,0.6,4,22,SHELF.t,SHELF.l,SHELF.r,{style:'animation-delay:.05s'});
+  s+=box(2.7,1,0.6,4,22,SHELF.t,SHELF.l,SHELF.r,{style:'animation-delay:.12s'});
+  s+=box(4.5,1,0.6,4,22,SHELF.t,SHELF.l,SHELF.r,{style:'animation-delay:.19s'});
+  s+=box(1.5,4.7,0.5,0.5,5,'#161E2D','#101725','#0C111B',{style:'animation-delay:.24s'});
+  s+=box(2.4,4.7,0.5,0.5,5,'#161E2D','#101725','#0C111B',{style:'animation-delay:.27s'});
+  s+=box(3.5,5.0,1.1,0.45,9,'#172033','#101826','#0C121C',{style:'animation-delay:.3s'});
+  const L1=iso(0.9,1,30), L2=iso(2.7,1,30), L3=iso(4.5,1,30);
+  s+=`<g class="obj" style="animation-delay:.34s">
+    <text x="${L1[0]}" y="${L1[1]}" text-anchor="middle" fill="#5A6276" font-family="JetBrains Mono,monospace" font-size="8" font-weight="600">REF · B12–16</text>
+    <text x="${L2[0]}" y="${L2[1]}" text-anchor="middle" fill="#5A6276" font-family="JetBrains Mono,monospace" font-size="8" font-weight="600">TA · TK</text>
+    <text x="${L3[0]}" y="${L3[1]}" text-anchor="middle" fill="#5A6276" font-family="JetBrains Mono,monospace" font-size="8" font-weight="600">Aisle B</text>
+  </g>`;
+  s+=`<polyline id="route" points=""/>`;
+  s+=box(4.5,3.0,0.6,0.78,24,ORANGE.t,ORANGE.l,ORANGE.r,{id:'tgtBook',cls:'tgt'});
+  const bx=iso(4.8,3.4,24), bx2=iso(4.8,3.4,70);
+  s+=`<g id="beam" class="beam"><line x1="${bx[0]}" y1="${bx[1]}" x2="${bx2[0]}" y2="${bx2[1]}" stroke="var(--orange)" stroke-width="3" stroke-linecap="round" filter="drop-shadow(0 0 6px rgba(255,122,61,.9))"/><circle cx="${bx2[0]}" cy="${bx2[1]}" r="3.5" fill="var(--orange)"/></g>`;
+  s+=box(0.9,1,0.6,4,23,ORANGE.t,ORANGE.l,ORANGE.r,{id:'tgtRef',cls:'tgt'});
+  // beacon at current kiosk
+  const ko=NODES[currentKiosk], e0=iso(ko.x,ko.y,0), e1=iso(ko.x,ko.y,16);
+  s+=`<g class="obj" style="animation-delay:.4s">
+    <line x1="${e0[0]}" y1="${e0[1]}" x2="${e1[0]}" y2="${e1[1]}" stroke="var(--blue)" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="${e1[0]}" cy="${e1[1]}" r="4.5" fill="var(--blue)" filter="drop-shadow(0 0 6px rgba(61,123,255,.9))"/>
+    <circle class="bcn-ring" cx="${e0[0]}" cy="${e0[1]}" r="6" fill="none" stroke="var(--blue)" stroke-width="1.6"/>
+    <text x="${e0[0]}" y="${e0[1]+19}" text-anchor="middle" fill="#8B93A7" font-family="Inter,sans-serif" font-size="8.5" font-weight="600">${T[lang].knames[currentKiosk]}</text>
+  </g>`;
+  document.getElementById('floor').innerHTML=s;
+}
+
+function setLang(l){
+  lang=l; document.body.dataset.lang=l;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.dataset.lang===l));
+  glide();
+  document.querySelectorAll('[data-t]').forEach(el=>{const k=el.dataset.t; if(T[l][k]!==undefined) el.innerHTML=T[l][k];});
+  renderPills(); renderKioskBar(); buildFloor(); refreshNav();
+  if(currentScenario) renderAnswer(currentScenario,true);
+}
+function glide(){const g=document.getElementById('glider'), b=document.querySelector('.lang-btn.active'); g.style.width=b.offsetWidth+'px'; g.style.transform='translateX('+(b.offsetLeft-4)+'px)';}
+function renderPills(){const w=document.getElementById('pills'); w.innerHTML=''; T[lang].pills.forEach((p,i)=>{const b=document.createElement('button'); b.className='pill'; b.textContent=p; b.onclick=()=>ask(T[lang].pillMap[i]); w.appendChild(b);});}
+function renderKioskBar(){
+  const bar=document.getElementById('kioskBar');
+  let h=`<span class="kb-label">${T[lang].kioskLabel}</span>`;
+  ['KE','KR','KU'].forEach(k=>{h+=`<button class="kb${k===currentKiosk?' active':''}" data-k="${k}" onclick="setKiosk('${k}')">${I.pin}<span>${T[lang].knames[k]}</span></button>`;});
+  bar.innerHTML=h;
+}
+function setKiosk(k){
+  currentKiosk=k;
+  document.querySelectorAll('.kb').forEach(b=>b.classList.toggle('active',b.dataset.k===k));
+  buildFloor(); refreshNav();
+}
+
+let tt=null;
+let skipNextTranscription = false;
+function showToast(m){const e=document.getElementById('toast');document.getElementById('toastText').textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(hideToast,4200);}
+function hideToast(){document.getElementById('toast').classList.remove('show');}
+
+
+const State = {
+  IDLE: 'IDLE',
+  INTRODUCING: 'INTRODUCING',
+  LISTENING: 'LISTENING',
+  PROCESSING: 'PROCESSING',
+  RETRIEVING: 'RETRIEVING',
+  GENERATING: 'GENERATING',
+  SPEAKING: 'SPEAKING'
+};
+
+let currentState = State.IDLE;
+let activeRecognition = null;
+let hasIntroduced = false;
+
+let orbAnimationInterval = null;
+
+function setState(newState) {
+  currentState = newState;
+  console.log(`STATE -> ${newState}`);
   
-  function showDashTab(tab) {
-    document.getElementById('tabBtnLogin').classList.remove('active');
-    document.getElementById('tabBtnSearch').classList.remove('active');
-    
-    document.getElementById('panelLogin').classList.remove('active');
-    document.getElementById('panelAdmin').classList.remove('active');
-    document.getElementById('panelSearch').classList.remove('active');
-    
-    if (tab === 'login' || tab === 'admin') {
-      document.getElementById('tabBtnLogin').classList.add('active');
-      if (isAdminLogged) {
-        document.getElementById('panelAdmin').classList.add('active');
-        document.getElementById('tabBtnLogin').innerText = "Admin Dashboard";
-        startPolling();
+  const app = document.getElementById('app');
+  
+  // Sync the animation scale when speaking or listening
+  if (newState === State.SPEAKING || newState === State.LISTENING || newState === State.INTRODUCING) {
+    if (app) app.classList.add('busy');
+    if (!orbAnimationInterval) {
+      orbAnimationInterval = setInterval(() => {
+        const vid = document.getElementById('orbVideo');
+        if (vid) {
+          const scale = 1.0 + Math.random() * 0.15; // Pulse between 1x and 1.15x
+          vid.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+      }, 100);
+    }
+  } else {
+    if (app) app.classList.remove('busy');
+    if (orbAnimationInterval) {
+      clearInterval(orbAnimationInterval);
+      orbAnimationInterval = null;
+      const vid = document.getElementById('orbVideo');
+      if (vid) vid.style.transform = `translate(-50%, -50%) scale(1)`;
+    }
+  }
+
+  const statusEl = document.getElementById('dockStatus');
+  if (statusEl) {
+    if (newState === State.IDLE) statusEl.textContent = T[lang].dockIdle || "Tap to speak";
+    else if (newState === State.LISTENING) statusEl.textContent = T[lang].listening + '...';
+    else if (newState === State.PROCESSING || newState === State.RETRIEVING || newState === State.GENERATING) statusEl.textContent = T[lang].thinking;
+    else if (newState === State.SPEAKING || newState === State.INTRODUCING) statusEl.textContent = "Assistant speaking...";
+  }
+}
+
+let mediaRecorder = null;
+let audioChunks = [];
+let silenceDetectionInterval = null;
+
+async function startMicrophone() {
+  if (currentState !== State.IDLE && currentState !== State.LISTENING) {
+    console.log(`[STT Blocked] Cannot start STT in state: ${currentState}`);
+    return;
+  }
+
+  if (currentState === State.LISTENING) {
+    stopMicrophone();
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+
+    // Silence Detection Setup
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioContext.createAnalyser();
+    const microphone = audioContext.createMediaStreamSource(stream);
+    microphone.connect(analyser);
+    analyser.fftSize = 512;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    let silenceStart = Date.now();
+    let hasSpoken = false;
+
+    silenceDetectionInterval = setInterval(() => {
+      analyser.getByteFrequencyData(dataArray);
+      let maxVolume = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        if (dataArray[i] > maxVolume) maxVolume = dataArray[i];
+      }
+
+      if (maxVolume > 15) { 
+        hasSpoken = true;
+        silenceStart = Date.now();
       } else {
-        document.getElementById('panelLogin').classList.add('active');
-        document.getElementById('tabBtnLogin').innerText = "Admin Login";
-        if(dashPolling) clearInterval(dashPolling);
+        if (hasSpoken && Date.now() - silenceStart > 1500) {
+          // User stopped speaking
+          stopMicrophone();
+        } else if (!hasSpoken && Date.now() - silenceStart > 5000) {
+          // User never spoke for 5 seconds
+          stopMicrophone();
+        }
       }
-    } else if (tab === 'search') {
-      document.getElementById('tabBtnSearch').classList.add('active');
-      document.getElementById('panelSearch').classList.add('active');
-      if(dashPolling) clearInterval(dashPolling);
-    }
-  }
+    }, 100);
 
-  function doLogin() {
-    const u = document.getElementById('username').value;
-    const p = document.getElementById('password').value;
-    if(u === 'admin' && p === 'admin') {
-      isAdminLogged = true;
-      showDashTab('admin');
-    } else {
-      showToast('Invalid credentials');
-    }
-  }
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) audioChunks.push(event.data);
+    };
 
-  function startPolling() {
-    fetchDashboard();
-    if(dashPolling) clearInterval(dashPolling);
-    dashPolling = setInterval(fetchDashboard, 3000);
-  }
-
-  async function fetchDashboard() {
-    try {
-      const res = await fetch('/api/uploads');
-      const data = await res.json();
+    mediaRecorder.onstop = async () => {
+      if (silenceDetectionInterval) clearInterval(silenceDetectionInterval);
+      if (audioContext.state !== 'closed') audioContext.close();
       
-      const statRes = await fetch('/api/dashboard_stats');
-      const stats = await statRes.json();
-      
-      document.getElementById('statTotal').innerText = stats.total_documents;
-      document.getElementById('statFailed').innerText = data.filter(d => d.status === 'Failed').length;
-      
-      const tbody = document.getElementById('uploadHistory');
-      tbody.innerHTML = data.map(d => {
-        let col = '#fff';
-        if (d.status === 'Success') col = 'var(--blue)';
-        if (d.status === 'Processing') col = 'var(--orange)';
-        if (d.status === 'Failed') col = '#ff4a4a';
-        
-        return <tr>
-          <td><b style="color: var(--ink)"></b></td>
-          <td style="color: ; font-weight: 600;"></td>
-          <td style="color: var(--muted);"></td>
-          <td style="color: var(--faint); font-size: 12px;"></td>
-        </tr>;
-      }).join('');
-    } catch(e) { console.error("Dashboard fetch error", e); }
-  }
-
-  async function uploadFile() {
-    const file = document.getElementById('fileInput').files[0];
-    if(!file) return;
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    showToast("File queued for processing");
-    
-    try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (!res.ok) {
-         if (res.status === 409) {
-           const data = await res.json();
-           showToast("Upload skipped: " + data.reason);
-         } else {
-           showToast("Upload failed.");
-         }
-      }
-      fetchDashboard();
-    } catch(e) {
-      showToast("Upload network error.");
-    }
-  }
-
-  async function executeBookSearch() {
-    const q = document.getElementById('bookSearchInput').value.trim();
-    if (!q) return;
-    
-    const resBox = document.getElementById('searchResults');
-    resBox.innerHTML = '<p style="color: var(--blue); text-align: center;">Searching database...</p>';
-    
-    try {
-      const res = await fetch('/api/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q })
-      });
-      const data = await res.json();
-      
-      if (!data.chunks || data.chunks.length === 0) {
-        resBox.innerHTML = '<p style="color: var(--muted); text-align: center;">No results found.</p>';
+      if (skipNextTranscription) {
+        skipNextTranscription = false;
         return;
       }
       
-      resBox.innerHTML = data.chunks.map(c => {
-        const meta = c.metadata || {};
-        const author = meta.author || meta.Author || 'Unknown Author';
-        const title = meta.title || meta.Title || 'Untitled Document';
-        const loc = meta.location || meta.Location || 'General Stacks';
-        
-        return <div class="book-card">
-          <div class="book-card-title"> <span style="font-size: 12px; color: var(--blue); margin-left: 8px;">Rank Score: </span></div>
-          <div class="book-card-meta">
-             <span><svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="margin-right: 4px; vertical-align: -2px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-             <span><svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="margin-right: 4px; vertical-align: -2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
-          </div>
-          <div class="book-card-text"></div>
-        </div>;
-      }).join('');
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       
-    } catch (e) {
-      resBox.innerHTML = '<p style="color: #ff4a4a; text-align: center;">Failed to connect to search API.</p>';
-    }
+      setState(State.PROCESSING);
+      document.getElementById('dockStatus').textContent = "Transcribing...";
+      
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+      
+      try {
+        const response = await fetch('/api/transcribe', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) throw new Error('Transcription failed');
+        const data = await response.json();
+        const speechResult = data.text;
+        
+        if (speechResult && speechResult.trim().length > 0) {
+            setState(State.IDLE);
+            askQuery(speechResult, true);
+        } else {
+            setState(State.IDLE);
+            document.getElementById('dockStatus').textContent = "Could not hear you. Tap to try again.";
+        }
+      } catch (e) {
+        console.error("Transcription error:", e);
+        setState(State.IDLE);
+        showToast("Voice transcription failed. Please check network or type your question.");
+      }
+    };
+
+    mediaRecorder.start();
+    setState(State.LISTENING);
+    app.classList.add('busy');
+    console.log("Microphone Recording Started (Listening for silence...)");
+  } catch(e) {
+    console.error("Microphone access error:", e);
+    showToast("Please allow microphone access to use voice chat.");
+  }
+}
+
+function stopMicrophone() {
+  if (silenceDetectionInterval) {
+    clearInterval(silenceDetectionInterval);
+    silenceDetectionInterval = null;
+  }
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    console.log("Microphone Recording Stopped");
+  }
+  app.classList.remove('busy');
+}
+
+function askCustom() {
+  const inputEl = document.getElementById('chatInput');
+  const query = inputEl.value.trim();
+  if (!query) return;
+  inputEl.value = '';
+  
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  if (currentState !== State.IDLE) {
+    setState(State.IDLE);
+  }
+  
+  skipNextTranscription = true;
+  askQuery(query, false);
+}
+
+function speakText(text, callback) {
+  if (!('speechSynthesis' in window)) {
+    if (callback) callback();
+    return;
+  }
+  window.speechSynthesis.cancel();
+  
+  const cleanText = text.replace(/\*\*/g, '').replace(/_/g, '').replace(/#/g, '');
+  
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  utterance.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
+  
+  const voices = window.speechSynthesis.getVoices();
+  
+  let femaleVoice = voices.find(voice => {
+    const name = voice.name.toLowerCase();
+    return name.includes('google') && voice.lang.includes('en-US') && (name.includes('female') || !name.includes('male'));
+  });
+  
+  if (!femaleVoice) {
+    femaleVoice = voices.find(voice => {
+      const name = voice.name.toLowerCase();
+      return voice.lang.includes('en-US') && (name.includes('female') || name.includes('samantha') || name.includes('zira'));
+    });
+  }
+  
+  if (!femaleVoice) {
+    femaleVoice = voices.find(voice => voice.lang.includes('en'));
+  }
+  if (femaleVoice) utterance.voice = femaleVoice;
+  
+  utterance.rate = 1.2;
+  utterance.pitch = 1.0;
+  
+  if (callback) {
+    utterance.onend = () => callback();
+    utterance.onerror = () => callback();
+  }
+  
+  window.speechSynthesis.speak(utterance);
+}
+
+function startSpeechRecognition() {
+  if (currentState === State.SPEAKING || currentState === State.INTRODUCING || currentState === State.PROCESSING) {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    stopMicrophone();
+    setState(State.IDLE);
+    return;
   }
 
-  // Provide a mock setLevel function to replace the old canvas logic
+  if (currentState === State.LISTENING) {
+    stopMicrophone();
+    setState(State.IDLE);
+    return;
+  }
+
+  if (!hasIntroduced) {
+    hasIntroduced = true;
+    setState(State.INTRODUCING);
+    stopMicrophone();
+
+    const hour = new Date().getHours();
+    let greeting = "Good evening";
+    if (hour < 12) greeting = "Good morning";
+    else if (hour < 17) greeting = "Good afternoon";
+    const introText = `${greeting}. Welcome to the University Library. I'm your virtual library assistant. How may I assist you today?`;
+    renderCustomAnswer("", introText, true);
+
+    console.log("TTS Started");
+    speakText(introText, () => {
+      console.log("TTS Finished");
+      setTimeout(() => {
+        setState(State.IDLE);
+        startMicrophone();
+      }, 350);
+    });
+  } else {
+    startMicrophone();
+  }
+}
+
+async function askQuery(queryText, isVoice=false) {
+  if (currentState === State.PROCESSING || currentState === State.SPEAKING) return;
+
+  stopMicrophone();
+  setState(State.PROCESSING);
+  currentScenario = 'custom'; 
+
+  try {
+    setState(State.RETRIEVING);
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: queryText })
+    });
+
+    if (response.status === 503) {
+      const fallbackMsg = "I'm having trouble connecting. Please try again in a moment.";
+      renderCustomAnswer(queryText, fallbackMsg);
+      setState(State.SPEAKING);
+      speakText(fallbackMsg, () => {
+        setTimeout(() => {
+          setState(State.IDLE);
+          startMicrophone();
+        }, 350);
+      });
+      return;
+    }
+
+    const msgId = renderCustomAnswer(queryText, '');
+    const answerTextEl = document.getElementById(msgId);
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let fullText = '';
+
+    setState(State.GENERATING);
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      fullText += chunk;
+
+      if (answerTextEl) {
+        answerTextEl.innerHTML = fullText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br/>');
+        thread.scrollTo(0, thread.scrollHeight);
+      }
+    }
+
+    if (isVoice) {
+      setState(State.SPEAKING);
+      console.log("TTS Started");
+      speakText(fullText, () => {
+        console.log("TTS Finished");
+        setTimeout(() => {
+          setState(State.IDLE);
+          startMicrophone();
+        }, 400);
+      });
+    } else {
+      setTimeout(() => {
+        setState(State.IDLE);
+        startMicrophone();
+      }, 400);
+    }
+
+  } catch (error) {
+    console.error('Error fetching chat response:', error);
+    stopMicrophone();
+    setState(State.IDLE);
+    document.getElementById('dockStatus').textContent = "Connection error.";
+  }
+}
+
+// Preload voices to fix empty voice list on first click
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
+}
+function ask(kind){
+  let promptText = "";
+  if (kind === 'book') promptText = "Can you find a book about computer science and guide me there?";
+  else if (kind === 'hours') promptText = "What are the library's opening hours this week?";
+  else if (kind === 'where') promptText = "Where is the reference section?";
+  else promptText = "Tell me about " + kind;
+  
+  askQuery(promptText);
+}
+function backHome(){
+  currentScenario=null; currentDest=null; litFlag=false;
+  document.getElementById('navControls').style.display='none';
+  document.getElementById('ctxCard').innerHTML='';
+  document.getElementById('ctxIdle').classList.remove('hide');
+  document.getElementById('plan').style.display='';
+  document.getElementById('routeStat').classList.remove('show');
+  toggleRightPanel('map');
+  buildFloor(); hideToast();
+}
+function setCtxTitle(key){document.getElementById('ctxTitle').querySelector('span').textContent=T[lang][key];}
+
+/* draw the COMPUTED route from current kiosk to current destination */
+function renderCustomAnswer(query, answerText, hideThread=false) {
+  const t = T[lang];
+  thread.classList.add('show');
+  
+  const formattedAnswer = answerText
+    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+    .replace(/\n/g, '<br/>');
+
+  const msgId = 'msg-' + Date.now() + Math.floor(Math.random() * 1000);
+  const body = `<div class="a-text" id="${msgId}">${formattedAnswer}</div>`;
+  
+  document.getElementById('navControls').style.display = 'none';
+  document.getElementById('ctxCard').innerHTML = '';
+  document.getElementById('ctxIdle').classList.remove('hide');
+  
+  toggleRightPanel('chat');
+  
+  if (query) {
+    const html = `
+      <div class="q-row"><div><div class="q-bubble">${query}</div><div class="q-tag">${I.mic}<span>${t.voice} · ${t.langname}</span></div></div></div>
+      <div class="a-row"><div class="a-av">${I.spark}</div><div class="a-body reveal">${body}</div></div>`;
+    thread.insertAdjacentHTML('beforeend', html);
+  } else {
+    const html = `
+      <div class="a-row"><div class="a-av">${I.spark}</div><div class="a-body reveal">${body}</div></div>`;
+    thread.insertAdjacentHTML('beforeend', html);
+  }
+  
+  thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' });
+  
+  return msgId;
+}
+
+function refreshNav(){
+  const route=document.getElementById('route'); if(!route)return;
+  if(!currentDest){route.classList.remove('go');route.setAttribute('points','');return;}
+  const path=astar(currentKiosk,currentDest);
+  route.setAttribute('points', path.map(id=>P(iso(NODES[id].x,NODES[id].y,5))).join(' '));
+  route.classList.add('go');
+  const isBook=currentScenario==='book';
+  const tgt=document.getElementById(isBook?'tgtBook':'tgtRef');
+  tgt.classList.add('show'); if(litFlag&&isBook) tgt.classList.add('lit');
+  const beam=document.getElementById('beam'); isBook?beam.classList.add('show'):beam.classList.remove('show');
+  // live route stat
+  let len=0; for(let i=1;i<path.length;i++) len+=dist(path[i-1],path[i]);
+  const rs=document.getElementById('routeStat');
+  rs.innerHTML=`${T[lang].routefrom} <b>${T[lang].knames[currentKiosk]}</b> · ${path.length} ${T[lang].stops} · ~${Math.round(len*4)} m`;
+  rs.classList.add('show');
+}
+
+function renderAnswer(kind, keepState=false, hideThread=false){
+  const t=T[lang]; let q='', body='';
+  const back=`<button class="back-btn" onclick="backHome()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>${t.back}</button>`;
+   thread.classList.add('show');
+  
+  if(kind==='book'||kind==='where'||kind==='entrance'||kind==='stacks'||kind==='wish'){
+    const d=(kind==='book'||kind==='entrance'||kind==='stacks')?t.book:(kind==='wish'?t.wish:t.where); q=d.q;
+    if(kind==='book'){
+      const dots=Array.from({length:d.total},(_,i)=>`<i class="${i<d.avail?'':'off'}"></i>`).join('');
+      body=`<div class="a-text">${d.intro}</div>
+      <div class="book reveal">
+        <div class="spine"><span class="sp-call mono">${d.call}</span></div>
+        <div class="book-info">
+          <div class="book-title display">${d.title}</div>
+          <div class="book-auth">${d.auth}</div>
+          <div class="avail"><span class="avail-dots">${dots}</span><span class="avail-txt">${d.avail} ${t.of} ${d.total} ${t.available}</span></div>
+          <div class="book-meta">
+            <div class="bm"><span class="l">${t.callNo}</span><span class="v mono">${d.call}</span></div>
+            <div class="bm"><span class="l">${t.location}</span><span class="v">${d.loc}</span></div>
+            <div class="bm"><span class="l">${t.edition}</span><span class="v">${d.ed}</span></div>
+          </div>
+        </div>
+      </div>`;
+    } else {
+      body=`<div class="a-text">${d.intro}</div>
+      <div class="book reveal" style="align-items:center">
+        <div class="spine" style="min-height:60px"><span class="sp-call mono">REF</span></div>
+        <div class="book-info"><div class="book-title display">${d.refname}</div>
+        <div class="book-meta"><div class="bm"><span class="l">${t.location}</span><span class="v">${d.loc}</span></div></div></div>
+      </div>`;
+    }
+    if(!keepState) litFlag=false;
+    currentDest=DEST[kind];
+    setCtxTitle('ctxnav');
+    document.getElementById('ctxCard').innerHTML='';
+    document.getElementById('plan').style.display='';
+    document.getElementById('ctxIdle').classList.add('hide');
+    document.getElementById('navControls').style.display = (kind==='book' || kind==='where' || kind==='entrance' || kind==='stacks') ? 'block' : 'none';
+    if(!keepState) resetLightBtn();
+    refreshNav();
+  } else if(kind==='hours'){
+    const d=t.hours; q=d.q; body=`<div class="a-text">${d.text}</div>`;
+    currentDest=null;
+    setCtxTitle('ctxsrc');
+    document.getElementById('ctxIdle').classList.add('hide');
+    document.getElementById('plan').style.display='none';
+    document.getElementById('routeStat').classList.remove('show');
+    document.getElementById('navControls').style.display='none';
+    document.getElementById('ctxCard').innerHTML=`
+      <div class="source reveal" style="display:flex;width:100%;margin-top:0">
+        <span class="source-ic">${I.doc}</span>
+        <div class="source-t"><b>${d.srcT}</b><span>${d.srcS}</span></div>
+        <span style="margin-left:auto;color:var(--faint)">${I.ext}</span>
+      </div>
+      <p style="font-size:12px;color:var(--faint);line-height:1.55;margin-top:14px">${t.grounded}</p>`;
+  } else if(kind==='research'){
+    const d=t.research; q=d.q; body=`<div class="a-text">${d.intro}</div>`;
+    currentDest=null;
+    setCtxTitle('ctxres');
+    document.getElementById('ctxIdle').classList.add('hide');
+    document.getElementById('plan').style.display='none';
+    document.getElementById('routeStat').classList.remove('show');
+    document.getElementById('navControls').style.display='none';
+    const items=d.items.map((p,i)=>`<div class="paper reveal"><span class="paper-n">${String(i+1).padStart(2,'0')}</span><div class="paper-b"><div class="paper-t">${p.t}</div><div class="paper-m">${p.m}</div></div><span class="badge">${d.access}</span></div>`).join('');
+    document.getElementById('ctxCard').innerHTML=`<div class="papers" style="margin-top:0">${items}</div>`;
+  } else {
+    // Ignore invalid kinds
+    return;
+  }
+  if (!hideThread) {
+    thread.innerHTML=`${back}
+      <div class="q-row"><div><div class="q-bubble">${q}</div><div class="q-tag">${I.mic}<span>${t.voice} · ${t.langname}</span></div></div></div>
+      <div class="a-row"><div class="a-av">${I.spark}</div><div class="a-body reveal">${body}</div></div>`;
+  } else {
+    thread.innerHTML=`${back}`;
+  }
+}
+
+function resetLightBtn(){const b=document.getElementById('lightBtn'); b.classList.remove('done'); b.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.2 1 2.5h6c0-1.3.3-1.8 1-2.5A6 6 0 0 0 12 3Z"/></svg><span>${T[lang].light}</span>`;}
+function lightShelf(){const b=document.getElementById('lightBtn'); if(b.classList.contains('done'))return; litFlag=true; const tgt=document.getElementById('tgtBook'); tgt.classList.add('lit'); b.classList.add('done'); b.innerHTML=`${I.check}<span>${T[lang].lit}</span>`; showToast(T[lang].toast);}
+
+/* ===== parallax camera ===== */
+const plan=document.getElementById('plan'), cam=document.getElementById('cam');
+plan.addEventListener('pointermove',e=>{
+  const r=plan.getBoundingClientRect();
+  const px=(e.clientX-r.left)/r.width-0.5, py=(e.clientY-r.top)/r.height-0.5;
+  plan.classList.add('touch');
+  cam.style.transform=`rotateX(${6-py*10}deg) rotateY(${-6+px*16}deg)`;
+});
+plan.addEventListener('pointerleave',()=>{plan.classList.remove('touch');cam.style.transform='';});
+
+// Provide a mock setLevel function to replace the old canvas logic
 // and map it to our CSS 'busy' state so the Glass Orb reacts to activity
 window.setLevel = function(v) {
   const app = document.getElementById('app');
@@ -644,83 +1330,46 @@ window.addEventListener('resize',glide);
 
 
 
-
-  <div class="dash-overlay" id="fullScreenDashboard">
-    <div class="dash-nav">
-      <h2 style="font-size: 18px; margin: 0; margin-right: 16px; color: #fff; letter-spacing: -0.02em;">Library System</h2>
-      <button class="dash-nav-btn active" id="tabBtnLogin" onclick="showDashTab('login')">Admin Login</button>
-      <button class="dash-nav-btn" id="tabBtnSearch" onclick="showDashTab('search')">Book Search</button>
-      <button class="dash-nav-btn dash-close" onclick="closeDashboard()">Close Dashboard</button>
+<div class="modal-overlay" id="authModal">
+  <div class="modal" style="max-width: 600px;">
+    <button class="close-modal" onclick="closeModals()">×</button>
+    <div id="loginSection">
+      <h2>Librarian Login</h2>
+      <input type="text" id="username" placeholder="Username">
+      <input type="password" id="password" placeholder="Password">
+      <button onclick="doLogin()">Login</button>
     </div>
-    
-    <div class="dash-content">
-      <!-- Login Panel -->
-      <div class="dash-panel active" id="panelLogin">
-        <div class="login-card">
-          <h2 style="margin: 0; color: #fff; text-align: center; font-size: 24px;">Welcome Back</h2>
-          <p style="text-align: center; color: var(--muted); margin-bottom: 8px; font-size: 14px;">Enter your librarian credentials to access the admin dashboard.</p>
-          <input type="text" id="username" placeholder="Username" style="padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: rgba(0,0,0,0.2); color: var(--ink); outline: none; font-size: 15px;">
-          <input type="password" id="password" placeholder="Password" style="padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: rgba(0,0,0,0.2); color: var(--ink); outline: none; font-size: 15px;">
-          <button onclick="doLogin()" style="padding: 16px; border-radius: 12px; background: linear-gradient(135deg, var(--blue), var(--purple)); color: #fff; border: none; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 15px;">Log In</button>
+    <div id="uploadSection" style="display: none; flex-direction: column;">
+      <h2>Admin Dashboard</h2>
+      
+      <div style="display: flex; gap: 16px; margin-bottom: 20px;">
+        <div class="stat-card" style="flex: 1; padding: 16px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid var(--line); text-align: center;">
+          <h3 id="statTotal" style="font-size: 24px; color: var(--blue); margin: 0;">0</h3>
+          <p style="font-size: 11.5px; color: var(--faint); margin: 4px 0 0; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Files</p>
+        </div>
+        <div class="stat-card" style="flex: 1; padding: 16px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid var(--line); text-align: center;">
+          <h3 id="statVectors" style="font-size: 24px; color: var(--orange); margin: 0;">0</h3>
+          <p style="font-size: 11.5px; color: var(--faint); margin: 4px 0 0; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Vectors</p>
+        </div>
+        <div class="stat-card" style="flex: 1; padding: 16px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid var(--line); text-align: center;">
+          <h3 id="statFailed" style="font-size: 24px; color: #ff4a4a; margin: 0;">0</h3>
+          <p style="font-size: 11.5px; color: var(--faint); margin: 4px 0 0; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Failed</p>
         </div>
       </div>
-      
-      <!-- Admin Dashboard Panel -->
-      <div class="dash-panel" id="panelAdmin" style="max-width: 900px;">
-        <h2 style="margin: 0 0 24px 0; color: #fff; font-size: 28px;">Dashboard & File Tracking</h2>
-        
-        <div style="display: flex; gap: 16px; margin-bottom: 24px; width: 100%;">
-          <div style="flex: 1; padding: 24px; background: var(--raised); border-radius: 16px; border: 1px solid var(--line); text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-            <h3 id="statTotal" style="font-size: 36px; color: var(--blue); margin: 0;">0</h3>
-            <p style="color: var(--muted); margin: 8px 0 0; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; font-weight: 600;">Indexed Files</p>
-          </div>
-          <div style="flex: 1; padding: 24px; background: var(--raised); border-radius: 16px; border: 1px solid var(--line); text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-            <h3 id="statFailed" style="font-size: 36px; color: #ff4a4a; margin: 0;">0</h3>
-            <p style="color: var(--muted); margin: 8px 0 0; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; font-weight: 600;">Failed / Duplicates</p>
-          </div>
-        </div>
-        
-        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 48px; height: 48px; margin-bottom: 16px; color: var(--blue);">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-          </svg>
-          <h3 style="margin: 0 0 8px 0; color: #fff; font-size: 18px;">Upload Data File</h3>
-          <p style="margin: 0; color: var(--muted); font-size: 14px;">Click to upload a PDF, Word, or JSON file. The system will automatically store it and build the vector index.</p>
-        </div>
-        <input type="file" id="fileInput" style="display: none;" onchange="uploadFile()">
-        
-        <h3 style="margin: 32px 0 16px 0; color: #fff; font-size: 20px;">Live Tracking System</h3>
-        <div style="background: var(--raised); border-radius: 16px; border: 1px solid var(--line); overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Filename</th>
-                <th>Status</th>
-                <th>Message</th>
-                <th>Timestamp</th>
-              </tr>
-            </thead>
-            <tbody id="uploadHistory">
-              <!-- Dynamically populated -->
-            </tbody>
-          </table>
-        </div>
+
+      <div class="file-drop" onclick="document.getElementById('fileInput').click()" style="margin-bottom: 12px; padding: 20px; font-size: 13px;">
+        Click to select or drag and drop a PDF/Word/TXT file to inject into the AI brain.
       </div>
-      
-      <!-- Search Panel -->
-      <div class="dash-panel" id="panelSearch" style="max-width: 900px;">
-        <h2 style="margin: 0 0 24px 0; color: #fff; font-size: 28px;">Book Search System</h2>
-        <div class="search-input-container">
-          <input type="text" id="bookSearchInput" placeholder="Search by title, author, topic, or keyword..." onkeydown="if(event.key === 'Enter') executeBookSearch()">
-          <button onclick="executeBookSearch()">Search</button>
-        </div>
-        
-        <div id="searchResults" style="display: flex; flex-direction: column; gap: 16px; margin-top: 32px;">
-          <p style="color: var(--muted); text-align: center; font-size: 15px;">Enter a query to search the library database.</p>
-        </div>
+      <input type="file" id="fileInput" style="display: none;" onchange="uploadFile()">
+      <p id="uploadStatus" style="font-size: 13px; color: var(--blue); margin-top: 0; margin-bottom: 16px; text-align: center; height: 15px;"></p>
+
+      <h3 style="font-size: 14px; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 10px;">Upload History</h3>
+      <div id="uploadHistory" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+        <!-- History items -->
       </div>
     </div>
   </div>
+</div>
 
-  </body>
+</body>
 </html>
