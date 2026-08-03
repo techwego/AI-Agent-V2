@@ -602,7 +602,7 @@ class LibraryRAG:
                 "Use clear, neutral Indian English or international English. "
                 "Keep it concise but natural — provide a smooth, fluid answer in one to three sentences. "
                 "Answer naturally with a warm, helpful tone. "
-                "CRITICAL: If the user explicitly asks for a path, route, or directions to a specific rack or bay (e.g., 'rack C1' or 'bay C1'), you MUST append exactly `<ROUTE_TO:C1>` to the VERY END of your answer, replacing C1 with the requested rack. Do not invent paths, just say 'I have mapped the route on your screen' and append the tag."
+                "CRITICAL: The user is speaking through a speech-to-text engine that often mistranscribes rack codes (e.g., 'Rack C1' might become 'Raximon', 'Rack see one', etc. or 'Rack B4' might become 'Before'). If the user asks for a path, route, or directions to a specific rack or bay, you MUST deduce the intended rack code (A-D followed by 1-16) and append exactly `<ROUTE_TO:X>` to the VERY END of your answer, replacing X with the rack code (e.g. `<ROUTE_TO:C1>`). DO NOT say you don't know the location. Simply say 'I have mapped the route on your screen.' and append the tag."
             )
 
             prompt = f"{system_prompt}\n\nCONTEXT:\n{context}\n\nUSER QUESTION:\n{user_input}\n\nANSWER:"
