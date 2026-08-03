@@ -601,7 +601,8 @@ class LibraryRAG:
                 "Adopt a professional, calm, friendly, confident, and efficient female persona. "
                 "Use clear, neutral Indian English or international English. "
                 "Keep it concise but natural — provide a smooth, fluid answer in one to three sentences. "
-                "Answer naturally with a warm, helpful tone."
+                "Answer naturally with a warm, helpful tone. "
+                "CRITICAL: If the user explicitly asks for a path, route, or directions to a specific rack or bay (e.g., 'rack C1' or 'bay C1'), you MUST append exactly `<ROUTE_TO:C1>` to the VERY END of your answer, replacing C1 with the requested rack. Do not invent paths, just say 'I have mapped the route on your screen' and append the tag."
             )
 
             prompt = f"{system_prompt}\n\nCONTEXT:\n{context}\n\nUSER QUESTION:\n{user_input}\n\nANSWER:"
