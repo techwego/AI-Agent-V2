@@ -520,6 +520,7 @@
 
 /* ---------------------- */
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body data-lang="en">
 <div class="app" id="app">
@@ -1038,7 +1039,7 @@ window.clearRoute3D = clearRoute;
 
 })();
 /* -------------- */
-let currentRightPanelMode = 'chat';
+var currentRightPanelMode = 'chat';
         function toggleRightPanel(forceMode = null) {
           if (forceMode) currentRightPanelMode = forceMode;
           else currentRightPanelMode = currentRightPanelMode === 'chat' ? 'map' : 'chat';
@@ -1368,7 +1369,7 @@ function setLang(l){
   document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.dataset.lang===l));
   glide();
   document.querySelectorAll('[data-t]').forEach(el=>{const k=el.dataset.t; if(T[l][k]!==undefined) el.innerHTML=T[l][k];});
-  renderPills(); renderKioskBar(); buildFloor(); refreshNav();
+  renderPills();  buildFloor(); refreshNav();
   if(currentScenario) renderAnswer(currentScenario,true);
 }
 function glide(){const g=document.getElementById('glider'), b=document.querySelector('.lang-btn.active'); g.style.width=b.offsetWidth+'px'; g.style.transform='translateX('+(b.offsetLeft-4)+'px)';}
@@ -1916,14 +1917,14 @@ window.setLevel = function(v) {
 };
 // Original mock event removed to let app.js handle LiveKit connection
 // document.getElementById('orb').addEventListener('click',()=>ask('book'));
-window.addEventListener('load',()=>{ setLang('en'); renderPills(); renderKioskBar(); glide(); buildFloor(); });
+window.addEventListener('load',()=>{ setLang('en'); renderPills();  glide(); buildFloor(); });
 window.addEventListener('resize',glide);
 </script>
 
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
-<script src="app.js?v=3"></script>
+
 
 
 
