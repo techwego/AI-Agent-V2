@@ -554,10 +554,10 @@
 
       <!-- Persistent Navigation Menu -->
       <div class="custom-nav">
-        <a href="#" style="color: var(--ink); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--ink)'">Home</a>
-        <a href="#" style="color: var(--ink); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--ink)'" onclick="promptSearch()">Search Books</a>
-        <a href="#" style="color: var(--ink); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--ink)'" onclick="promptLogin()">User Login</a>
-        <a href="#" style="color: var(--ink); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--ink)'" onclick="ask('hours')">Help Desk</a>
+        <a href="javascript:void(0)" style="color: var(--ink); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--ink)'">Home</a>
+        <a href="javascript:void(0)" style="color: var(--ink); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--ink)'" onclick="window.promptSearch()">Search Books</a>
+        <a href="javascript:void(0)" style="color: var(--ink); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--ink)'" onclick="window.promptLogin()">User Login</a>
+        <a href="javascript:void(0)" style="color: var(--ink); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--ink)'" onclick="ask('hours')">Help Desk</a>
       </div>
       
       <script>
@@ -1038,7 +1038,9 @@ window.runRoute3D = function(fromId, destCode) {
 window.clearRoute3D = clearRoute;
 
 })();
-/* -------------- */
+</script>
+<script>
+/* -------------- UI / Dashboard functions (isolated from 3D) -------------- */
 var currentRightPanelMode = 'chat';
         function toggleRightPanel(forceMode = null) {
           if (forceMode) currentRightPanelMode = forceMode;
@@ -1065,17 +1067,17 @@ var currentRightPanelMode = 'chat';
         let dashPolling = null;
         let isAdminLogged = false;
 
-        function promptLogin() {
+        window.promptLogin = function() {
           document.getElementById('fullScreenDashboard').classList.add('show');
           document.getElementById('dashTitle').innerText = 'Library System';
           showDashTab(isAdminLogged ? 'admin' : 'login');
-        }
+        };
 
         window.promptSearch = function() {
           document.getElementById('fullScreenDashboard').classList.add('show');
           document.getElementById('dashTitle').innerText = 'Book Search';
           showDashTab('search');
-        }
+        };
         
         function closeDashboard() {
           document.getElementById('fullScreenDashboard').classList.remove('show');
