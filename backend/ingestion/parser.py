@@ -13,9 +13,15 @@ def parse_file(file_path: str) -> List[Dict]:
     elif ext == 'txt':
         return parse_txt(file_path, filename)
     elif ext in ['md', 'markdown']:
-        return parse_txt(file_path, filename) # handle as text for now
+        return parse_txt(file_path, filename)
     elif ext == 'json':
         return parse_json(file_path, filename)
+    elif ext == 'pdf':
+        return parse_pdf(file_path, filename)
+    elif ext in ['docx', 'doc']:
+        return parse_docx(file_path, filename)
+    elif ext in ['xlsx', 'xls']:
+        return parse_excel(file_path, filename)
     else:
         # Fallback to basic text parsing for other types
         return parse_txt(file_path, filename)
@@ -93,4 +99,69 @@ def parse_json(file_path: str, filename: str) -> List[Dict]:
                     "text": str(text),
                     "metadata": item
                 })
+    return chunks
+
+def parse_pdf(file_path: str, filename: str) -> List[Dict]:
+    import pypdf
+    chunks = []
+    try:
+        with open(file_path, "rb") as f:
+            reader = pypdf.PdfReader(f)
+            for i, page in enumerate(reader.pages):
+                text = page.extract_text()
+                if text and text.strip():
+                    chunks.append({
+                        "text": text.strip(),
+                        "metadata": {
+                            "source": filename,
+                            "document_type": "pdf",
+                            "page": i + 1
+                        }
+                    })
+    except Exception as e:
+        print(f"Error parsing PDF {filename}: {e}")
+    return chunks
+
+def parse_docx(file_path: str, filename: str) -> List[Dict]:
+    import docx2txt
+    chunks = []
+    try:
+        text = docx2txt.process(file_path)
+        if text:
+            paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+            for i, p in enumerate(paragraphs):
+                chunks.append({
+                    "text": p,
+                    "metadata": {
+                        "source": filename,
+                        "document_type": "docx",
+                        "paragraph_index": i
+                    }
+                })
+    except Exception as e:
+        print(f"Error parsing DOCX {filename}: {e}")
+    return chunks
+
+def parse_excel(file_path: str, filename: str) -> List[Dict]:
+    import pandas as pd
+    chunks = []
+    try:
+        df = pd.read_excel(file_path)
+        for i, row in df.iterrows():
+            lines = []
+            metadata = {"source": filename, "document_type": "excel"}
+            for col_name, val in row.items():
+                if pd.notna(val):
+                    val_str = str(val).strip()
+                    if val_str:
+                        metadata[str(col_name).lower()] = val_str
+                        lines.append(f"{col_name}: {val_str}")
+            text_block = "\n".join(lines)
+            if text_block.strip():
+                chunks.append({
+                    "text": text_block,
+                    "metadata": metadata
+                })
+    except Exception as e:
+        print(f"Error parsing Excel {filename}: {e}")
     return chunks

@@ -14,6 +14,7 @@ try:
 except ImportError:
     from rag.engine import LibraryRAG
 import uvicorn
+import sys
 
 app = FastAPI()
 
@@ -39,6 +40,11 @@ CHROMA_DIR = Config.PERSIST_DIR
 rag = LibraryRAG(data_dir=DATA_DIR, persist_dir=CHROMA_DIR)
 
 import threading
+
+try:
+    import backend.database as database
+except ImportError:
+    import database
 
 # Initialize RAG in background so it doesn't block FastAPI startup or cause 504 timeouts
 def init_rag_bg():
@@ -250,10 +256,10 @@ def process_upload_task(upload_id: int):
         print(f'[UPLOAD] Processing task {upload_id}')
         # We will replace index_books.py with the new ingestion logic later.
         # For now, just run index_books.py
-        result = subprocess.run([sys.executable, "index_books.py"], cwd=BASE_DIR, capture_output=True, text=True)
+        result = subprocess.run([sys.executable, os.path.join("scripts", "index_books.py")], cwd=BASE_DIR, capture_output=True, text=True)
         if result.returncode == 0:
             database.update_document_status(upload_id, "Success", "Indexed successfully")
-            rag_engine.reload_index()
+            rag.reload_index()
             print(f'[UPLOAD] Task {upload_id} Success')
         else:
             database.update_document_status(upload_id, "Failed", result.stderr[-200:] if result.stderr else "Failed without error trace")
