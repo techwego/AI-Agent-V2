@@ -3,6 +3,7 @@ import sys
 import hashlib
 import time
 import pickle
+import json
 import chromadb
 import pandas as pd
 from fastembed import TextEmbedding
@@ -104,6 +105,15 @@ def main():
                     })
                     
             print(f"  -> Generated {len(final_chunks)} chunks.")
+            
+            # Save the parsed chunks to a JSON file as per user requirement
+            json_out_path = os.path.join(DATA_DIR, f"{filename}_parsed.json")
+            try:
+                with open(json_out_path, "w", encoding="utf-8") as f:
+                    json.dump(final_chunks, f, indent=2)
+                print(f"  -> Saved parsed JSON to {json_out_path}")
+            except Exception as e:
+                print(f"  -> Warning: failed to save JSON: {e}")
             
             doc_chunk_map[doc_id] = []
             for c in final_chunks:

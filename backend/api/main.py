@@ -282,6 +282,7 @@ async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File
         })
     
     file_path = os.path.join(DATA_DIR, file.filename)
+    os.makedirs(DATA_DIR, exist_ok=True)
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
