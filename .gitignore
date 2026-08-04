@@ -434,3 +434,15 @@ cloudflared.exe
 
 chroma_db/
 
+
+frontend/node_modules/
+__pycache__/
+*.pyc
+library.db
+uploads.db
+*.db
+test.pdf
+test_*.py
+patch.py
+temp*.js
+check.js

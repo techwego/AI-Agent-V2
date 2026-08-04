@@ -13,3 +13,8 @@ tiktoken
 rank-bm25
 psutil
 groq
+sqlalchemy
+bcrypt
+python-jose[cryptography]
+python-dotenv
+alembic

@@ -338,8 +338,8 @@ class LibraryRAG:
             # ChromaDB
             self.state = RAGState.LOADING_DATABASE
             t_db = time.time()
-            chroma_client = chromadb.PersistentClient(path=self.persist_dir)
-            self.collection = chroma_client.get_or_create_collection(
+            self.chroma_client = chromadb.PersistentClient(path=self.persist_dir)
+            self.collection = self.chroma_client.get_or_create_collection(
                 "library_data_v2",
                 metadata={"hnsw:space": "cosine"},
             )
