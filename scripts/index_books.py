@@ -18,7 +18,6 @@ DATA_DIR = Config.DATA_DIR
 CHROMA_DIR = Config.PERSIST_DIR
 os.environ["OPENAI_API_KEY"] = "dummy_key_for_local_db_generation"
 
-from backend.config import Config
 from backend.rag.engine import TokenChunker
 from backend.ingestion.parser import parse_file
 import backend.database as database

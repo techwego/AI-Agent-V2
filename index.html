@@ -1181,10 +1181,23 @@ var currentRightPanelMode = 'chat';
                } else {
                  showToast("Upload failed.");
                }
+            } else {
+              showToast("Upload successful! Indexing in progress...");
             }
             fetchDashboard();
           } catch(e) {
             showToast("Upload network error.");
+          }
+        }
+
+        async function resetStuck() {
+          try {
+            const res = await fetch('/api/reset-stuck', { method: 'POST' });
+            const data = await res.json();
+            showToast(data.message);
+            fetchDashboard();
+          } catch(e) {
+            showToast('Failed to reset stuck files.');
           }
         }
 
@@ -1989,8 +2002,12 @@ window.addEventListener('resize',glide);
         <h2 style="margin: 0; color: #fff; text-align: center; font-size: 24px;">Welcome Back</h2>
         <p style="text-align: center; color: var(--muted); margin-bottom: 8px; font-size: 14px;">Enter your Librarian or User credentials.</p>
         <input type="text" id="username" placeholder="Username">
-        <input type="password" id="password" placeholder="Password">
+        <input type="password" id="password" placeholder="Password" onkeydown="if(event.key==='Enter') doLogin()">
         <button onclick="doLogin()">Log In</button>
+        <div style="margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid var(--line);">
+          <p style="color: var(--muted); font-size: 12px; margin: 0 0 4px; text-align: center;">Login Credentials</p>
+          <p style="color: var(--faint); font-size: 11px; margin: 0; text-align: center;">User: <b style="color:#fff">user / user</b> &nbsp;|&nbsp; Librarian: <b style="color:#fff">admin / admin</b></p>
+        </div>
       </div>
     </div>
     
@@ -2008,9 +2025,12 @@ window.addEventListener('resize',glide);
         </div>
       </div>
       
-      <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-        <h3 style="margin: 0 0 8px 0; color: #fff; font-size: 18px;">Upload Data File</h3>
-        <p style="margin: 0; color: var(--muted); font-size: 14px;">Click to upload a PDF, Word, or JSON file.</p>
+      <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 24px;">
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()" style="flex: 1;">
+          <h3 style="margin: 0 0 8px 0; color: #fff; font-size: 18px;">Upload Data File</h3>
+          <p style="margin: 0; color: var(--muted); font-size: 14px;">Click to upload any file (PDF, DOCX, CSV, TXT, Excel, JSON, etc.)</p>
+        </div>
+        <button onclick="resetStuck()" style="padding: 12px 20px; background: linear-gradient(135deg, #ff6b35, #ff4a4a); color: #fff; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 13px; white-space: nowrap;">Reset Stuck Files</button>
       </div>
       <input type="file" id="fileInput" style="display: none;" onchange="uploadFile()">
       

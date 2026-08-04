@@ -125,3 +125,13 @@ def get_dashboard_metrics() -> Dict:
         "total_documents": total_docs,
         "total_chunks": total_chunks
     }
+
+def reset_stuck_documents() -> int:
+    """Reset all documents stuck in 'Processing' status to 'Failed' so they can be re-uploaded."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE documents SET status = 'Failed', message = 'Reset: was stuck in Processing' WHERE status = 'Processing'")
+    count = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return count

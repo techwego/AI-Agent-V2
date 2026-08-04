@@ -277,11 +277,11 @@ async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File
         raise HTTPException(status_code=400, detail="No file provided")
     
     existing_doc = database.get_document_by_filename(file.filename)
-    if existing_doc and existing_doc.get("status") in ["Success", "Processing"]:
+    if existing_doc and existing_doc.get("status") == "Success":
         return JSONResponse(status_code=409, content={
-            "message": f"File {file.filename} already exists or is being processed.",
+            "message": f"File {file.filename} already exists.",
             "status": "Failed",
-            "reason": "File already exists"
+            "reason": "File already indexed successfully"
         })
     
     file_path = os.path.join(DATA_DIR, file.filename)
@@ -301,6 +301,12 @@ async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File
 @app.get("/api/uploads")
 def get_uploads():
     return database.get_all_documents()
+
+@app.post("/api/reset-stuck")
+def reset_stuck():
+    """Reset all documents stuck in 'Processing' status back to 'Failed' so they can be re-uploaded."""
+    count = database.reset_stuck_documents()
+    return {"message": f"Reset {count} stuck documents", "count": count}
 
 @app.get("/api/dashboard_stats")
 def get_dashboard_stats():
