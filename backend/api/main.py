@@ -46,6 +46,9 @@ try:
 except ImportError:
     import database
 
+# Ensure DB schema is initialized
+database.init_db()
+
 # Initialize RAG in background so it doesn't block FastAPI startup or cause 504 timeouts
 def init_rag_bg():
     def watchdog():
