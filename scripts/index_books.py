@@ -9,12 +9,15 @@ import pandas as pd
 from fastembed import TextEmbedding
 from rank_bm25 import BM25Okapi
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-CHROMA_DIR = os.path.join(BASE_DIR, "chroma_db")
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(PROJECT_ROOT)
+
+from backend.config import Config
+BASE_DIR = PROJECT_ROOT
+DATA_DIR = Config.DATA_DIR
+CHROMA_DIR = Config.PERSIST_DIR
 os.environ["OPENAI_API_KEY"] = "dummy_key_for_local_db_generation"
 
-sys.path.append(BASE_DIR)
 from backend.config import Config
 from backend.rag.engine import TokenChunker
 from backend.ingestion.parser import parse_file
