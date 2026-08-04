@@ -51,7 +51,7 @@ def main():
     doc_chunk_map = {} # document_id -> list of chunk_ids
     
     for filename in sorted(os.listdir(DATA_DIR)):
-        if filename.startswith("~$") or "temp" in filename:
+        if filename.startswith("~$") or "temp" in filename or filename.endswith("_parsed.json"):
             continue
             
         filepath = os.path.join(DATA_DIR, filename)
