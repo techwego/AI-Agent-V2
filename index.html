@@ -311,7 +311,7 @@
   .file-drop { border: 2px dashed var(--line); border-radius: 16px; padding: 40px 20px; text-align: center; color: var(--muted); cursor: pointer; transition: 0.3s; background: rgba(0,0,0,0.2); }
   .file-drop:hover { border-color: var(--blue); color: var(--blue); background: rgba(74,140,255,0.05); }
   
-  .toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,160%);background:#fff;color:#0B0E16;border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:500;box-shadow:0 24px 50px -16px rgba(0,0,0,.7);z-index:150;max-width:440px;transition:transform .55s var(--ease-out)}
+  .toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,160%);background:#fff;color:#0B0E16;border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:500;box-shadow:0 24px 50px -16px rgba(0,0,0,.7);z-index:9999;max-width:440px;transition:transform .55s var(--ease-out)}
   .toast.show{transform:translate(-50%,0)}
   .toast .td{width:32px;height:32px;border-radius:9px;background:var(--orange);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
   .toast .td svg{width:17px;height:17px}
@@ -1066,10 +1066,17 @@ var currentRightPanelMode = 'chat';
 
         let dashPolling = null;
         let isAdminLogged = false;
+        let isUserLogged = false;
 
         window.promptLogin = function() {
           document.getElementById('fullScreenDashboard').classList.add('show');
           document.getElementById('dashTitle').innerText = 'Library System';
+          
+          const closeBtn = document.getElementById('dashCloseBtn');
+          if (closeBtn) {
+            closeBtn.style.display = (isAdminLogged || isUserLogged) ? 'block' : 'none';
+          }
+          
           showDashTab(isAdminLogged ? 'admin' : 'login');
         };
 
@@ -1108,9 +1115,13 @@ var currentRightPanelMode = 'chat';
           const p = document.getElementById('password').value.trim();
           if(u === 'admin' && p === 'admin') {
             isAdminLogged = true;
+            isUserLogged = true;
+            if (document.getElementById('dashCloseBtn')) document.getElementById('dashCloseBtn').style.display = 'block';
             showDashTab('admin');
             showToast('Librarian logged in successfully');
           } else if(u === 'user' && p === 'user') {
+            isUserLogged = true;
+            if (document.getElementById('dashCloseBtn')) document.getElementById('dashCloseBtn').style.display = 'block';
             closeDashboard();
             showToast('User logged in successfully. Voice Concierge is ready.');
           } else {
@@ -1178,6 +1189,11 @@ var currentRightPanelMode = 'chat';
         }
 
         async function executeBookSearch() {
+          if (!isUserLogged && !isAdminLogged) {
+            showToast("Please login as User or Librarian to search books.");
+            window.promptLogin();
+            return;
+          }
           const q = document.getElementById('bookSearchInput').value.trim();
           if (!q) return;
           
@@ -1630,6 +1646,12 @@ function speakText(text, callback) {
 }
 
 function startSpeechRecognition() {
+  if (typeof isUserLogged !== 'undefined' && !isUserLogged && !isAdminLogged) {
+    showToast("Please login as User or Librarian to speak with the agent.");
+    if(window.promptLogin) window.promptLogin();
+    return;
+  }
+  
   if (currentState === State.SPEAKING || currentState === State.INTRODUCING || currentState === State.PROCESSING) {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     stopMicrophone();
@@ -1944,7 +1966,7 @@ window.setLevel = function(v) {
 };
 // Original mock event removed to let app.js handle LiveKit connection
 // document.getElementById('orb').addEventListener('click',()=>ask('book'));
-window.addEventListener('load',()=>{ setLang('en'); renderPills();  glide(); buildFloor(); });
+window.addEventListener('load',()=>{ setLang('en'); renderPills();  glide(); buildFloor(); if(window.promptLogin) window.promptLogin(); });
 window.addEventListener('resize',glide);
 </script>
 
@@ -1958,7 +1980,7 @@ window.addEventListener('resize',glide);
 <div class="dash-overlay" id="fullScreenDashboard">
   <div class="dash-nav">
     <h2 id="dashTitle" style="font-size: 18px; margin: 0; margin-right: 16px; color: #fff; letter-spacing: -0.02em;">Library System</h2>
-    <button class="dash-nav-btn dash-close" onclick="closeDashboard()">Close Dashboard</button>
+    <button id="dashCloseBtn" class="dash-nav-btn dash-close" onclick="closeDashboard()">Close Dashboard</button>
   </div>
   
   <div class="dash-content">
