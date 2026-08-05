@@ -4,8 +4,8 @@ import logging
 from typing import List, Dict, Any
 from backend.database.db import SessionLocal
 from backend.database.models import Upload, Book, EmbeddingRecord
-from backend.ingestion.parser import parse_document
-from backend.rag.engine import RAGEngine
+from backend.ingestion.parser import parse_file
+from backend.rag.engine import LibraryRAG
 import chromadb
 from fastembed import TextEmbedding
 
@@ -70,7 +70,7 @@ def run_pipeline(upload_id: int):
         file_path = os.path.join("./uploads", upload.filename)
         
         # 1. Parse file
-        chunks = parse_document(file_path)
+        chunks = parse_file(file_path)
         if not chunks:
             raise Exception("No data could be extracted from the file.")
             
@@ -79,57 +79,95 @@ def run_pipeline(upload_id: int):
         
         # 2. Normalize and insert books
         books_to_embed = []
+        
+        # Import chunker to break large pages/documents into smaller, focused semantic chunks
+        from backend.rag.engine import TokenChunker
+        chunker = TokenChunker(target_tokens=256, overlap_tokens=40)
+        
         for chunk in chunks:
             if isinstance(chunk, str):
-                # If parser returns strings (chunks of text)
-                books_to_embed.append({"text": chunk, "metadata": {"source": upload.filename}})
+                sub_chunks = chunker.chunk(chunk, {"source": upload.filename})
+                for sc in sub_chunks:
+                    books_to_embed.append(sc)
             elif isinstance(chunk, dict):
-                # Structured data (Excel/CSV)
-                mapped = map_fields(chunk)
-                new_book = Book(**mapped)
-                db.add(new_book)
-                db.flush() # get ID
+                text_content = chunk.get("text", "")
+                metadata = chunk.get("metadata", {})
                 
-                text_rep = f"Title: {new_book.title}\nAuthor: {new_book.author}\nLocation: {new_book.rack}\nCopies: {new_book.copies}"
-                books_to_embed.append({
-                    "id": f"book_{new_book.id}",
-                    "text": text_rep,
-                    "metadata": {
-                        "title": new_book.title,
-                        "author": new_book.author,
-                        "rack": new_book.rack or "",
-                        "book_id": new_book.id
-                    }
-                })
+                # Try to map fields for the SQL database (Book records)
+                mapped = map_fields(metadata)
+                
+                # Only insert into SQL if it has a real title (structured data)
+                if mapped.get("title") != "Unknown Title":
+                    new_book = Book(**mapped)
+                    db.add(new_book)
+                    db.flush() # get ID
+                    metadata["book_id"] = new_book.id
+                    
+                    # For structured book records, we keep them as one chunk
+                    books_to_embed.append({
+                        "id": f"upload_{upload_id}_{len(books_to_embed)}",
+                        "text": text_content,
+                        "metadata": metadata
+                    })
+                else:
+                    # For unstructured documents (PDFs, TXT), break into smaller chunks
+                    sub_chunks = chunker.chunk(text_content, metadata)
+                    for sc in sub_chunks:
+                        books_to_embed.append({
+                            "id": f"upload_{upload_id}_{len(books_to_embed)}",
+                            "text": sc["text"],
+                            "metadata": sc["metadata"]
+                        })
         
         db.commit()
         
-        # 5. Generate embeddings and Upsert
+        # 4. Save to JSON file as requested
+        upload.message = "Converting and saving to JSON..."
+        db.commit()
+        json_path = os.path.join("./uploads", f"{upload.filename}.parsed.json")
+        try:
+            with open(json_path, 'w', encoding='utf-8') as jf:
+                json.dump(books_to_embed, jf, indent=4)
+        except Exception as je:
+            logger.warning(f"Could not save JSON file: {je}")
+        
+        # 5. Generate embeddings and Upsert in Batches
         upload.message = "Generating embeddings..."
         db.commit()
         
+        from backend.api.main import rag_engine
         embedding_model = TextEmbedding("BAAI/bge-small-en-v1.5")
-        texts = [b["text"] for b in books_to_embed]
-        embeddings = list(embedding_model.embed(texts))
         
-        chroma_client = chromadb.PersistentClient(path="./chroma_db")
-        collection = chroma_client.get_or_create_collection(name="library_data_v2")
+        collection = rag_engine.collection
         
-        ids = [b.get("id", f"upload_{upload_id}_{i}") for i, b in enumerate(books_to_embed)]
-        metadatas = [b.get("metadata", {}) for b in books_to_embed]
+        # Process in batches to prevent OOM/crashing on large files
+        BATCH_SIZE = 250
+        total_chunks = len(books_to_embed)
         
-        # Convert embedding arrays to lists for ChromaDB
-        embeddings_list = [e.tolist() for e in embeddings]
-        
-        collection.upsert(
-            documents=texts,
-            embeddings=embeddings_list,
-            metadatas=metadatas,
-            ids=ids
-        )
+        for i in range(0, total_chunks, BATCH_SIZE):
+            batch = books_to_embed[i:i + BATCH_SIZE]
+            batch_texts = [b["text"] for b in batch]
+            batch_ids = [b.get("id", f"upload_{upload_id}_{i+j}") for j, b in enumerate(batch)]
+            batch_metadatas = [b.get("metadata", {}) for b in batch]
+            
+            # Embed batch
+            batch_embeddings = list(embedding_model.embed(batch_texts))
+            batch_embeddings_list = [e.tolist() for e in batch_embeddings]
+            
+            # Upsert batch
+            collection.upsert(
+                documents=batch_texts,
+                embeddings=batch_embeddings_list,
+                metadatas=batch_metadatas,
+                ids=batch_ids
+            )
+            
+            # Update progress
+            upload.message = f"Embedded {min(i + BATCH_SIZE, total_chunks)} of {total_chunks} chunks..."
+            db.commit()
         
         # Log embedding record
-        db.add(EmbeddingRecord(upload_id=upload_id, chunk_count=len(texts), status="success"))
+        db.add(EmbeddingRecord(upload_id=upload_id, chunk_count=total_chunks, status="success"))
         
         # 8. Update upload status
         upload.status = "completed"

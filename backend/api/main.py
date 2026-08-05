@@ -157,8 +157,8 @@ class ChatRequest(BaseModel):
     test: Optional[str] = None
 
 @app.post("/api/chat")
-async def chat(request: ChatRequest, current_user: User = Depends(require_auth)):
-    print(f"\n[BACKEND] POST /api/chat received from {current_user.username}")
+async def chat(request: ChatRequest):
+    print(f"\n[BACKEND] POST /api/chat received from user")
     
     if not rag.ready:
         state_val = getattr(rag, "state", "INITIALIZING")
@@ -199,7 +199,20 @@ async def transcribe_audio(audio: UploadFile = File(...)):
 
 frontend_dist = os.path.join(BASE_DIR, "frontend", "dist")
 if os.path.isdir(frontend_dist):
-    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
+    # Serve static assets (JS, CSS, images) from the dist/assets folder
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.isdir(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="static_assets")
+
+    # Catch-all: serve index.html for any non-API route (React SPA routing)
+    @app.get("/{full_path:path}")
+    async def serve_react(full_path: str):
+        # If it's a real file in dist, serve it
+        file_path = os.path.join(frontend_dist, full_path)
+        if full_path and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        # Otherwise serve index.html for React Router
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
 else:
     @app.get("/")
     def read_index():
@@ -214,3 +227,4 @@ else:
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
+

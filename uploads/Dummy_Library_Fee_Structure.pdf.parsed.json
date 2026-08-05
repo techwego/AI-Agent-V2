@@ -1,0 +1,20 @@
+[
+    {
+        "id": "upload_1_0",
+        "text": "Dummy University Library Fee Structure\nSample data for development and testing purposes only.",
+        "metadata": {
+            "source": "Dummy_Library_Fee_Structure.pdf",
+            "document_type": "pdf",
+            "page": 1
+        }
+    },
+    {
+        "id": "upload_1_1",
+        "text": "Category\nMembership\nDeposit\nBooks\nLoan\nLate Fee\nUG Students\n\u20b9500/Sem\n\u20b91,000\n4\n15 Days\n\u20b95/day\nPG Students\n\u20b9800/Sem\n\u20b91,500\n6\n21 Days\n\u20b95/day\nResearch Scholars\n\u20b91,200/Sem\n\u20b92,000\n10\n30 Days\n\u20b910/day\nTeaching Staff\nFree\nNil\n15\n90 Days\n\u20b92/day\nNon-Teaching Staff\n\u20b9300/Sem\n\u20b9500\n5\n30 Days\n\u20b93/day\nVisiting Faculty\n\u20b9500/Sem\n\u20b92,000\n8\n45 Days\n\u20b95/day\nAlumni\n\u20b91,000/Year\n\u20b92,500\n3\n15 Days\n\u20b910/day\nExternal Members\n\u20b92,500/Year\n\u20b95,000\n2\n15 Days\n\u20b920/day\nAdditional Charges\nService\nFee\nDuplicate Library Card\n\u20b9100\nLost Book Processing\n\u20b9250 + Book Cost\nPhotocopy (B/W)\n\u20b91/Page\nColor Print\n\u20b910/Page\nScanning\n\u20b95/Page\nLocker Facility\n\u20b9500/Semester\nDigital Library Access\nFree\nNote: This document contains fictional data created solely for demonstration and\ntesting of a library management system.",
+        "metadata": {
+            "source": "Dummy_Library_Fee_Structure.pdf",
+            "document_type": "pdf",
+            "page": 1
+        }
+    }
+]

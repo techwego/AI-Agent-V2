@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Library Wayfinder — 3D Digital Twin</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --ink:#0a0e1a;
+    --panel:#111a2e;
+    --panel-2:#0d1524;
+    --line:#24314d;
+    --brass:#f2a93b;
+    --brass-dim:#8a6a2c;
+    --teal:#3fa796;
+    --text:#eae6da;
+    --text-dim:#8d95ab;
+    --danger:#e2665f;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;width:100%;height:100%;background:var(--ink);overflow:hidden;
+    font-family:'Inter',system-ui,sans-serif;color:var(--text);}
+  #scene{position:fixed;inset:0;display:block;touch-action:none;cursor:grab;}
+  #scene:active{cursor:grabbing;}
+
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--brass);}
+
+  .glass{background:linear-gradient(180deg, rgba(17,26,46,.86), rgba(13,21,36,.92));
+    border:1px solid var(--line);border-radius:var(--radius);
+    backdrop-filter:blur(10px);box-shadow:0 12px 40px rgba(0,0,0,.45);}
+
+  /* top bar */
+  #topbar{position:fixed;top:16px;left:16px;right:16px;display:flex;justify-content:space-between;
+    align-items:flex-start;gap:12px;pointer-events:none;z-index:10;}
+  #titleblock{padding:12px 18px;pointer-events:auto;}
+  #titleblock h1{font-family:'Space Grotesk',sans-serif;font-size:18px;margin:2px 0 0;font-weight:700;
+    letter-spacing:.01em;}
+  #titleblock .sub{font-size:12px;color:var(--text-dim);margin-top:2px;}
+
+  #floorbar{display:flex;gap:6px;padding:6px;pointer-events:auto;align-self:flex-start;}
+  .pill{border:none;background:transparent;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;letter-spacing:.05em;padding:8px 14px;border-radius:9px;cursor:pointer;
+    transition:.15s;text-transform:uppercase;}
+  .pill:hover{color:var(--text);}
+  .pill.active{background:var(--brass);color:#1a1204;font-weight:600;}
+
+  /* legend */
+  #legend{position:fixed;top:80px;right:16px;padding:14px 16px;width:190px;z-index:10;font-size:12px;}
+  #legend .row{display:flex;align-items:center;gap:8px;margin:7px 0;color:var(--text-dim);}
+  .swatch{width:11px;height:11px;border-radius:3px;flex:none;}
+
+  /* assistant panel */
+  #assistant{position:fixed;left:16px;bottom:16px;width:360px;max-height:64vh;display:flex;
+    flex-direction:column;z-index:20;overflow:hidden;}
+  #assistant .hdr{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;
+    align-items:center;gap:8px;}
+  #assistant .hdr .dot{width:8px;height:8px;border-radius:50%;background:var(--teal);
+    box-shadow:0 0 8px var(--teal);}
+  #assistant .hdr h2{font-family:'Space Grotesk',sans-serif;font-size:14px;margin:0;font-weight:600;}
+  #chatLog{padding:12px 14px;overflow-y:auto;flex:1;min-height:120px;max-height:32vh;display:flex;
+    flex-direction:column;gap:8px;}
+  #chatLog::-webkit-scrollbar{width:5px;}
+  #chatLog::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+  .msg{font-size:13px;line-height:1.45;padding:9px 12px;border-radius:11px;max-width:88%;}
+  .msg.bot{background:var(--panel-2);border:1px solid var(--line);align-self:flex-start;
+    border-bottom-left-radius:3px;}
+  .msg.user{background:var(--brass);color:#1a1204;align-self:flex-end;border-bottom-right-radius:3px;
+    font-weight:500;}
+  .msg .lbl{display:block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;
+    letter-spacing:.08em;text-transform:uppercase;opacity:.55;margin-bottom:3px;}
+
+  #chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px;}
+  .chip{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--panel-2);
+    border:1px solid var(--line);color:var(--text);padding:6px 10px;border-radius:20px;cursor:pointer;}
+  .chip:hover{border-color:var(--brass);color:var(--brass);}
+
+  #controls{border-top:1px solid var(--line);padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
+  .selrow{display:flex;gap:6px;}
+  select{flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    font-family:'Inter',sans-serif;font-size:12px;padding:8px 8px;border-radius:8px;}
+  #goBtn{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;
+    text-transform:uppercase;background:var(--teal);color:#04211c;border:none;border-radius:8px;
+    padding:8px 14px;cursor:pointer;font-weight:700;}
+  #inputRow{display:flex;gap:6px;}
+  #chatInput{flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    font-size:13px;padding:9px 11px;border-radius:9px;outline:none;}
+  #chatInput:focus{border-color:var(--brass);}
+  #micBtn,#sendBtn{border:none;border-radius:9px;width:38px;height:38px;flex:none;cursor:pointer;
+    font-size:15px;display:flex;align-items:center;justify-content:center;}
+  #micBtn{background:var(--panel-2);border:1px solid var(--line);color:var(--text);}
+  #micBtn.listening{background:var(--danger);color:#fff;border-color:var(--danger);}
+  #sendBtn{background:var(--brass);color:#1a1204;}
+
+  /* directions readout */
+  #directions{position:fixed;right:16px;bottom:16px;width:270px;padding:12px 15px;z-index:15;
+    display:none;font-size:12px;}
+  #directions.show{display:block;}
+  #directions h3{font-family:'Space Grotesk',sans-serif;font-size:13px;margin:0 0 6px;}
+  #directions ol{margin:0;padding-left:16px;color:var(--text-dim);line-height:1.6;}
+  #directions .meta{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--brass);}
+
+  #resetBtn{position:absolute;bottom:10px;left:10px;}
+
+  @media(max-width:760px){
+    #legend{display:none;}
+    #assistant{left:8px;right:8px;bottom:8px;width:auto;max-height:56vh;}
+    #directions{display:none !important;}
+    #titleblock h1{font-size:15px;}
+    #titleblock .sub{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<div id="topbar">
+  <div id="titleblock" class="glass">
+    <div class="eyebrow">Prototype · Digital Twin</div>
+    <h1>Library Wayfinder</h1>
+    <div class="sub">2-floor block · voice-guided routing</div>
+  </div>
+  <div id="floorbar" class="glass">
+    <button class="pill active" data-floor="both">Both floors</button>
+    <button class="pill" data-floor="1">Floor 1</button>
+    <button class="pill" data-floor="2">Floor 2</button>
+  </div>
+</div>
+
+<div id="legend" class="glass">
+  <div class="eyebrow">Legend</div>
+  <div class="row"><span class="swatch" style="background:#a9743f"></span>Floor 1 racks (A / B)</div>
+  <div class="row"><span class="swatch" style="background:#3f8f94"></span>Floor 2 racks (C / D)</div>
+  <div class="row"><span class="swatch" style="background:#f2a93b"></span>Route path</div>
+  <div class="row"><span class="swatch" style="background:#5fe3a0"></span>Your location</div>
+  <div class="row"><span class="swatch" style="background:#e2665f"></span>Destination rack</div>
+  <div class="row" style="margin-top:8px;color:var(--text-dim);opacity:.75">Drag to orbit · scroll to zoom · click a rack to route there</div>
+</div>
+
+<div id="assistant" class="glass">
+  <div class="hdr"><span class="dot"></span><h2>Library Assistant</h2></div>
+  <div id="chatLog"></div>
+  <div id="chips"></div>
+  <div id="controls">
+    <div class="selrow">
+      <select id="destSel"><option value="">Destination rack…</option></select>
+      <select id="fromSel"><option value="">Current location…</option></select>
+      <button id="goBtn">Find route</button>
+    </div>
+    <div id="inputRow">
+      <input id="chatInput" placeholder="Try: route to rack C3" autocomplete="off"/>
+      <button id="micBtn" title="Voice input">🎙</button>
+      <button id="sendBtn" title="Send">➤</button>
+    </div>
+  </div>
+</div>
+
+<div id="directions" class="glass">
+  <h3>Turn-by-turn</h3>
+  <ol id="dirList"></ol>
+  <div class="meta" id="dirMeta"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   SCENE / RENDERER / CAMERA
+   ============================================================ */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0e1a);
+scene.fog = new THREE.FogExp2(0x0a0e1a, 0.0105);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 400);
+
+/* lighting */
+scene.add(new THREE.AmbientLight(0x8892b0, 0.55));
+const sun = new THREE.DirectionalLight(0xfff2d8, 0.9);
+sun.position.set(30,50,20);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-35; sun.shadow.camera.right=35;
+sun.shadow.camera.top=35; sun.shadow.camera.bottom=-35;
+sun.shadow.camera.far = 120;
+scene.add(sun);
+const rim = new THREE.DirectionalLight(0x3fa796, 0.35);
+rim.position.set(-25,20,-25);
+scene.add(rim);
+
+/* ============================================================
+   CUSTOM ORBIT CAMERA (mouse + touch, no external deps)
+   ============================================================ */
+const orbit = { theta: Math.PI*0.28, phi: 1.02, radius: 46, target: new THREE.Vector3(0,4,0),
+                 minPhi:0.35, maxPhi:1.45, minR:14, maxR:80 };
+let dragging=false, lastX=0, lastY=0;
+
+function updateCamera(){
+  const sp = orbit.radius*Math.sin(orbit.phi);
+  camera.position.set(
+    orbit.target.x + sp*Math.sin(orbit.theta),
+    orbit.target.y + orbit.radius*Math.cos(orbit.phi),
+    orbit.target.z + sp*Math.cos(orbit.theta)
+  );
+  camera.lookAt(orbit.target);
+}
+canvas.addEventListener('pointerdown', e=>{dragging=true; lastX=e.clientX; lastY=e.clientY; canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointerup', e=>{dragging=false;});
+canvas.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const dx=e.clientX-lastX, dy=e.clientY-lastY; lastX=e.clientX; lastY=e.clientY;
+  orbit.theta -= dx*0.0055;
+  orbit.phi = Math.min(orbit.maxPhi, Math.max(orbit.minPhi, orbit.phi - dy*0.0045));
+  updateCamera();
+});
+canvas.addEventListener('wheel', e=>{
+  e.preventDefault();
+  orbit.radius = Math.min(orbit.maxR, Math.max(orbit.minR, orbit.radius + e.deltaY*0.03));
+  updateCamera();
+},{passive:false});
+function resize(){
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize(); updateCamera();
+
+/* ============================================================
+   LABEL SPRITES (canvas texture)
+   ============================================================ */
+function makeLabel(text, opts={}){
+  const {bg='#f2a93b', fg='#181104', font='700 46px Space Grotesk, sans-serif', pad=20, scale=1} = opts;
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d');
+  ctx.font = font;
+  const w = Math.ceil(ctx.measureText(text).width) + pad*2;
+  const h = 64 + pad*0.4;
+  c.width = w; c.height = h;
+  ctx.font = font;
+  ctx.fillStyle = bg;
+  const r = 16;
+  ctx.beginPath();
+  ctx.moveTo(r,0); ctx.arcTo(w,0,w,h,r); ctx.arcTo(w,h,0,h,r); ctx.arcTo(0,h,0,0,r); ctx.arcTo(0,0,w,0,r);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = fg;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, pad, h/2+2);
+  const tex = new THREE.CanvasTexture(c);
+  tex.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({map:tex, depthTest:true, transparent:true});
+  const sprite = new THREE.Sprite(mat);
+  const aspect = w/h;
+  sprite.scale.set(1.5*aspect*scale, 1.5*scale, 1);
+  return sprite;
+}
+
+/* ============================================================
+   LIBRARY GEOMETRY: 2 floors x rack aisles inside a glass block
+   ============================================================ */
+const FLOOR1_Y = 0;
+const FLOOR2_Y = 6.4;
+const COLS_X = [-13,-7.8,-2.6,2.6,7.8,13];
+const rackGroups = { 1: new THREE.Group(), 2: new THREE.Group() };
+const nodeMarkers = new THREE.Group();
+const rackMeshByCode = {};
+
+scene.add(rackGroups[1], rackGroups[2], nodeMarkers);
+
+/* outer glass envelope */
+function buildEnvelope(){
+  const shellMat = new THREE.MeshPhongMaterial({color:0x9fd7ff, transparent:true, opacity:0.045, side:THREE.DoubleSide, shininess:80});
+  const shellGeo = new THREE.BoxGeometry(43, 10.6, 30.5);
+  const shell = new THREE.Mesh(shellGeo, shellMat);
+  shell.position.set(0, FLOOR2_Y/2+2, 0);
+  scene.add(shell);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(shellGeo), new THREE.LineBasicMaterial({color:0x3a4a70, transparent:true, opacity:0.5}));
+  edges.position.copy(shell.position);
+  scene.add(edges);
+}
+buildEnvelope();
+
+function buildFloorSlab(y, colorHex){
+  const geo = new THREE.BoxGeometry(41, 0.4, 28.5);
+  const mat = new THREE.MeshPhongMaterial({color:colorHex, shininess:15});
+  const slab = new THREE.Mesh(geo, mat);
+  slab.position.set(0, y-0.25, 0);
+  slab.receiveShadow = true;
+  scene.add(slab);
+  const grid = new THREE.GridHelper(40, 20, 0x24314d, 0x1a2338);
+  grid.position.set(0, y-0.02, 0);
+  scene.add(grid);
+}
+buildFloorSlab(FLOOR1_Y, 0x131c30);
+buildFloorSlab(FLOOR2_Y, 0x121b2c);
+
+/* floor title plates */
+function addFloorLabel(text, y){
+  const s = makeLabel(text, {bg:'#111a2e', fg:'#f2a93b', font:'700 34px Space Grotesk, sans-serif', scale:1.3});
+  s.position.set(-18.5, y+2.2, -13.6);
+  scene.add(s);
+}
+addFloorLabel('FLOOR 1', FLOOR1_Y);
+addFloorLabel('FLOOR 2', FLOOR2_Y);
+
+/* rack builder */
+function buildRack(code, x, z, y, floorNum, facing){
+  const group = new THREE.Group();
+  const bodyColor = floorNum===1 ? 0xa9743f : 0x3f8f94;
+  const geo = new THREE.BoxGeometry(3.3, 2.5, 1.1);
+  const mat = new THREE.MeshPhongMaterial({color:bodyColor, shininess:25});
+  const body = new THREE.Mesh(geo, mat);
+  body.position.y = 1.25;
+  body.castShadow = true; body.receiveShadow = true;
+  group.add(body);
+  // shelf lines
+  const edgeMat = new THREE.LineBasicMaterial({color:0x1a120a, transparent:true, opacity:0.35});
+  for(let i=1;i<4;i++){
+    const shelfGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(3.15, 1.0));
+    const shelf = new THREE.LineSegments(shelfGeo, edgeMat);
+    shelf.rotation.x = Math.PI/2;
+    shelf.position.set(0, i*0.6, 0);
+    group.add(shelf);
+  }
+  const label = makeLabel(code, {bg: floorNum===1?'#f2a93b':'#5fd6c9', fg:'#151109', scale:0.9});
+  label.position.set(0, 3.05, 0);
+  group.add(label);
+  group.position.set(x, y, z);
+  group.userData = {rackCode:code, floor:floorNum, baseColor:bodyColor};
+  rackGroups[floorNum].add(group);
+  rackMeshByCode[code] = group;
+  return group;
+}
+
+/* entrance + staircase markers */
+function buildPin(x,y,z,color,label){
+  const grp = new THREE.Group();
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.45,1.1,16), new THREE.MeshPhongMaterial({color, emissive:color, emissiveIntensity:0.35}));
+  cone.position.y = 0.55;
+  grp.add(cone);
+  if(label){
+    const s = makeLabel(label, {bg:'#111a2e', fg:'#eae6da', scale:0.65});
+    s.position.y = 1.5;
+    grp.add(s);
+  }
+  grp.position.set(x,y,z);
+  scene.add(grp);
+  return grp;
+}
+
+function buildStaircase(x,z){
+  const steps = 8;
+  const group = new THREE.Group();
+  const mat = new THREE.MeshPhongMaterial({color:0x6b7590, shininess:40});
+  for(let i=0;i<steps;i++){
+    const step = new THREE.Mesh(new THREE.BoxGeometry(2.6,0.22,0.9), mat);
+    step.position.set(x, FLOOR1_Y + (i+1)*(FLOOR2_Y/steps), z - 2.6 + i*0.72);
+    step.castShadow = true;
+    group.add(step);
+  }
+  scene.add(group);
+}
+buildStaircase(13,0);
+
+/* build racks: Floor1 south row A, north row B / Floor2 south row C, north row D */
+COLS_X.forEach((x,i)=>{
+  buildRack('A'+(i+1), x, -6, FLOOR1_Y, 1);
+  buildRack('B'+(i+1), x,  6, FLOOR1_Y, 1);
+  buildRack('C'+(i+1), x, -6, FLOOR2_Y, 2);
+  buildRack('D'+(i+1), x,  6, FLOOR2_Y, 2);
+});
+buildPin(0,FLOOR1_Y,-13.2, 0x5fe3a0, 'ENTRANCE');
+
+/* ============================================================
+   WAYFINDING GRAPH
+   ============================================================ */
+const nodes = {}; // id -> {x,y,z,label,edges:[{to,w}]}
+function addNode(id,x,y,z,label){ nodes[id] = {x,y:y+0.15,z,label:label||id,edges:[]}; }
+function addEdge(a,b,w){
+  const wt = w ?? dist(nodes[a],nodes[b]);
+  nodes[a].edges.push({to:b,w:wt});
+  nodes[b].edges.push({to:a,w:wt});
+}
+function dist(p,q){ return Math.hypot(p.x-q.x, p.y-q.y, p.z-q.z); }
+
+addNode('entrance', 0, FLOOR1_Y, -13.2, 'Entrance');
+addNode('stairs1', 13, FLOOR1_Y, 0, 'Staircase · Floor 1');
+addNode('stairs2', 13, FLOOR2_Y, 0, 'Staircase · Floor 2');
+
+COLS_X.forEach((x,i)=>{
+  addNode('cs1_'+i, x, FLOOR1_Y, -3, 'Aisle F1 col'+i);
+  addNode('cn1_'+i, x, FLOOR1_Y,  3, 'Aisle F1 col'+i);
+  addNode('cs2_'+i, x, FLOOR2_Y, -3, 'Aisle F2 col'+i);
+  addNode('cn2_'+i, x, FLOOR2_Y,  3, 'Aisle F2 col'+i);
+  addNode('rA'+(i+1), x, FLOOR1_Y, -4.7, 'Rack A'+(i+1));
+  addNode('rB'+(i+1), x, FLOOR1_Y,  4.7, 'Rack B'+(i+1));
+  addNode('rC'+(i+1), x, FLOOR2_Y, -4.7, 'Rack C'+(i+1));
+  addNode('rD'+(i+1), x, FLOOR2_Y,  4.7, 'Rack D'+(i+1));
+});
+
+for(let i=0;i<COLS_X.length;i++){
+  addEdge('rA'+(i+1), 'cs1_'+i);
+  addEdge('rB'+(i+1), 'cn1_'+i);
+  addEdge('rC'+(i+1), 'cs2_'+i);
+  addEdge('rD'+(i+1), 'cn2_'+i);
+  addEdge('cs1_'+i, 'cn1_'+i);
+  addEdge('cs2_'+i, 'cn2_'+i);
+  if(i>0){
+    addEdge('cs1_'+(i-1), 'cs1_'+i);
+    addEdge('cn1_'+(i-1), 'cn1_'+i);
+    addEdge('cs2_'+(i-1), 'cs2_'+i);
+    addEdge('cn2_'+(i-1), 'cn2_'+i);
+  }
+}
+addEdge('entrance','cs1_2');
+addEdge('entrance','cs1_3');
+addEdge('stairs1','cs1_5');
+addEdge('stairs1','cn1_5');
+addEdge('stairs2','cs2_5');
+addEdge('stairs2','cn2_5');
+addEdge('stairs1','stairs2', 9);
+
+/* dijkstra */
+function dijkstra(start,end){
+  const dist_={}, prev={}, visited=new Set();
+  Object.keys(nodes).forEach(k=>dist_[k]=Infinity);
+  dist_[start]=0;
+  const pq=[[0,start]];
+  while(pq.length){
+    pq.sort((a,b)=>a[0]-b[0]);
+    const [d,u] = pq.shift();
+    if(visited.has(u)) continue;
+    visited.add(u);
+    if(u===end) break;
+    nodes[u].edges.forEach(({to,w})=>{
+      const nd = d+w;
+      if(nd < dist_[to]){ dist_[to]=nd; prev[to]=u; pq.push([nd,to]); }
+    });
+  }
+  if(dist_[end]===Infinity) return null;
+  const path=[end]; let cur=end;
+  while(cur!==start){ cur=prev[cur]; path.unshift(cur); }
+  return {path, distance:dist_[end]};
+}
+
+/* ============================================================
+   ROUTE VISUALIZATION
+   ============================================================ */
+let routeTube=null, cometGroup=null, ringGroup=null, animReq=null;
+const clock = new THREE.Clock();
+
+function clearRoute(){
+  [routeTube, cometGroup, ringGroup].forEach(o=>{ if(o) scene.remove(o); });
+  routeTube=cometGroup=ringGroup=null;
+  if(animReq) cancelAnimationFrame(animReq);
+  Object.values(rackMeshByCode).forEach(g=>{
+    g.children[0].material.emissive.setHex(0x000000);
+  });
+}
+
+function nodePos(id){
+  const n = nodes[id];
+  return new THREE.Vector3(n.x, n.y+0.9, n.z);
+}
+
+function drawRoute(path, destCode){
+  clearRoute();
+  const pts = path.map(nodePos);
+  const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.15);
+  const tubeGeo = new THREE.TubeGeometry(curve, Math.max(64, path.length*12), 0.09, 8, false);
+  const tubeMat = new THREE.MeshBasicMaterial({color:0xf2a93b, transparent:true, opacity:0.85});
+  routeTube = new THREE.Mesh(tubeGeo, tubeMat);
+  routeTube.geometry.setDrawRange(0,0);
+  scene.add(routeTube);
+
+  // comet
+  cometGroup = new THREE.Group();
+  const headMat = new THREE.MeshBasicMaterial({color:0xfff2d8});
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.28,16,16), headMat);
+  cometGroup.add(head);
+  const trail=[];
+  for(let i=1;i<=6;i++){
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.22 - i*0.025,12,12),
+      new THREE.MeshBasicMaterial({color:0xf2a93b, transparent:true, opacity:0.55 - i*0.08}));
+    cometGroup.add(m);
+    trail.push(m);
+  }
+  scene.add(cometGroup);
+
+  // destination flash
+  if(destCode && rackMeshByCode[destCode]){
+    rackMeshByCode[destCode].children[0].material.emissive.setHex(0xe2665f);
+    rackMeshByCode[destCode].children[0].material.emissiveIntensity = 0.6;
+  }
+
+  const totalLen = curve.getLength();
+  const speed = 9; // world units per second
+  const duration = Math.max(1.8, totalLen/speed);
+  const trailPts = [];
+  const startT = clock.getElapsedTime();
+
+  function animate(){
+    const t = Math.min(1, (clock.getElapsedTime()-startT)/duration);
+    const drawCount = Math.floor(tubeGeo.index.count * t);
+    routeTube.geometry.setDrawRange(0, drawCount);
+    const p = curve.getPointAt(t);
+    cometGroup.position.copy(p);
+    trailPts.unshift(p.clone());
+    if(trailPts.length>60) trailPts.pop();
+    trail.forEach((m,i)=>{
+      const idx = Math.min(trailPts.length-1, (i+1)*4);
+      if(trailPts[idx]) m.position.copy(trailPts[idx]).sub(p);
+    });
+    // gentle camera follow
+    orbit.target.lerp(p, 0.02);
+    updateCamera();
+
+    if(t<1){
+      animReq = requestAnimationFrame(animate);
+    } else {
+      spawnArrivalRing(p);
+    }
+  }
+  animate();
+}
+
+function spawnArrivalRing(pos){
+  ringGroup = new THREE.Group();
+  ringGroup.position.copy(pos);
+  ringGroup.position.y = 0.05 - pos.y + pos.y; // keep at path height
+  scene.add(ringGroup);
+  const rings = [];
+  for(let i=0;i<3;i++){
+    const geo = new THREE.RingGeometry(0.2,0.32,32);
+    const mat = new THREE.MeshBasicMaterial({color:0xe2665f, transparent:true, opacity:0.9, side:THREE.DoubleSide});
+    const ring = new THREE.Mesh(geo, mat);
+    ring.rotation.x = -Math.PI/2;
+    ring.userData.delay = i*0.35;
+    ringGroup.add(ring);
+    rings.push(ring);
+  }
+  const start = clock.getElapsedTime();
+  function pulse(){
+    const el = clock.getElapsedTime()-start;
+    let alive = false;
+    rings.forEach(r=>{
+      const t = ((el - r.userData.delay) % 1.4);
+      if(t>=0){
+        alive = true;
+        const s = 1 + t*3.2;
+        r.scale.set(s,s,s);
+        r.material.opacity = Math.max(0, 0.9*(1-t/1.4));
+      }
+    });
+    if(el < 4.2){ requestAnimationFrame(pulse); }
+    else { scene.remove(ringGroup); }
+  }
+  pulse();
+}
+
+/* ============================================================
+   RACK CLICK / HOVER
+   ============================================================ */
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+canvas.addEventListener('click', e=>{
+  if(Math.abs(e.clientX-lastX)>4 || Math.abs(e.clientY-lastY)>4) return; // was a drag
+  mouse.x = (e.clientX/innerWidth)*2-1;
+  mouse.y = -(e.clientY/innerHeight)*2+1;
+  raycaster.setFromCamera(mouse, camera);
+  const objs = [];
+  Object.values(rackMeshByCode).forEach(g=>objs.push(g.children[0]));
+  const hits = raycaster.intersectObjects(objs);
+  if(hits.length){
+    const code = hits[0].object.parent.userData.rackCode;
+    handleUserMessage('Route to rack '+code);
+  }
+});
+
+/* ============================================================
+   FLOOR TOGGLE
+   ============================================================ */
+document.querySelectorAll('#floorbar .pill').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#floorbar .pill').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const mode = btn.dataset.floor;
+    rackGroups[1].visible = (mode==='both'||mode==='1');
+    rackGroups[2].visible = (mode==='both'||mode==='2');
+    setOpacity(rackGroups[1], mode==='2' ? 0.12 : 1);
+    setOpacity(rackGroups[2], mode==='1' ? 0.12 : 1);
+    rackGroups[1].visible = true; rackGroups[2].visible = true;
+  });
+});
+function setOpacity(group, op){
+  group.traverse(o=>{
+    if(o.isMesh){
+      o.material.transparent = op<1;
+      o.material.opacity = op;
+    }
+  });
+}
+
+/* ============================================================
+   RENDER LOOP
+   ============================================================ */
+(function loop(){
+  requestAnimationFrame(loop);
+  renderer.render(scene, camera);
+})();
+
+/* ============================================================
+   ASSISTANT / CHAT LOGIC
+   ============================================================ */
+const chatLog = document.getElementById('chatLog');
+const chipsEl = document.getElementById('chips');
+const destSel = document.getElementById('destSel');
+const fromSel = document.getElementById('fromSel');
+const dirBox = document.getElementById('directions');
+const dirList = document.getElementById('dirList');
+const dirMeta = document.getElementById('dirMeta');
+
+const ALL_RACKS = [];
+COLS_X.forEach((_,i)=>['A','B','C','D'].forEach(r=>ALL_RACKS.push(r+(i+1))));
+ALL_RACKS.sort();
+const LOCATIONS = [
+  {id:'entrance', label:'Entrance'},
+  {id:'stairs1', label:'Staircase — Floor 1'},
+  {id:'stairs2', label:'Staircase — Floor 2'},
+  ...ALL_RACKS.map(c=>({id:'r'+c, label:'Near Rack '+c}))
+];
+ALL_RACKS.forEach(c=>{
+  const o=document.createElement('option'); o.value=c; o.textContent='Rack '+c; destSel.appendChild(o);
+});
+LOCATIONS.forEach(l=>{
+  const o=document.createElement('option'); o.value=l.id; o.textContent=l.label; fromSel.appendChild(o);
+});
+
+function addMsg(text, who, label){
+  const d = document.createElement('div');
+  d.className = 'msg '+who;
+  d.innerHTML = (label? `<span class="lbl">${label}</span>`:'') + text;
+  chatLog.appendChild(d);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+function speak(text){
+  try{
+    if(!window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.02; u.pitch = 1.0;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function setChips(list){
+  chipsEl.innerHTML='';
+  list.forEach(c=>{
+    const b=document.createElement('button');
+    b.className='chip'; b.textContent=c.label;
+    b.addEventListener('click', ()=>handleUserMessage(c.value, true));
+    chipsEl.appendChild(b);
+  });
+}
+
+let convo = { stage:'idle', destCode:null };
+
+function normalizeRackCode(str){
+  const m = str.toUpperCase().match(/\b([ABCD])\s*-?\s*(\d{1,2})\b/);
+  if(m){
+    const n = parseInt(m[2],10);
+    if(n>=1 && n<=COLS_X.length) return m[1]+n;
+  }
+  return null;
+}
+function normalizeLocation(str){
+  const s = str.toLowerCase();
+  if(/entrance|front door|lobby/.test(s)) return 'entrance';
+  if(/stair/.test(s)){
+    if(/2|two|second/.test(s)) return 'stairs2';
+    return 'stairs1';
+  }
+  const code = normalizeRackCode(str);
+  if(code) return 'r'+code;
+  return null;
+}
+function locLabel(id){
+  if(id==='entrance') return 'the Entrance';
+  if(id==='stairs1') return 'the Staircase on Floor 1';
+  if(id==='stairs2') return 'the Staircase on Floor 2';
+  if(id.startsWith('r')) return 'Rack '+id.slice(1);
+  return id;
+}
+function locNodeId(id){
+  if(id==='entrance') return 'entrance';
+  if(id==='stairs1') return 'stairs1';
+  if(id==='stairs2') return 'stairs2';
+  if(id.startsWith('r')) return 'r'+id.slice(1);
+  return id;
+}
+
+function classify(id){
+  if(id==='entrance') return {type:'entrance'};
+  if(id==='stairs1') return {type:'stairs', floor:1};
+  if(id==='stairs2') return {type:'stairs', floor:2};
+  const m = id.match(/^r([ABCD])(\d)$/);
+  if(m) return {type:'rack', code:m[1]+m[2]};
+  const c = id.match(/^c([sn])(\d)_(\d)$/);
+  if(c) return {type:'corridor', row:c[1], floor:parseInt(c[2]), col:parseInt(c[3])};
+  return {type:'node'};
+}
+
+function generateDirections(path){
+  const steps = [];
+  let prevType = null, colStreak = 0;
+  for(let i=0;i<path.length;i++){
+    const cl = classify(path[i]);
+    if(cl.type==='entrance'){ steps.push('Enter through the main Entrance.'); }
+    else if(cl.type==='rack' && i===path.length-1){ steps.push(`Arrive at Rack ${cl.code}, Floor ${cl.code>='C'?2:1}.`); }
+    else if(cl.type==='stairs'){
+      if(prevType!=='stairs') steps.push(`Take the staircase ${cl.floor===2?'up to Floor 2':'down to Floor 1'}.`);
+    }
+    else if(cl.type==='corridor'){
+      if(prevType!=='corridor'){
+        steps.push(`Walk into the ${cl.row==='s'?'south':'north'} aisle on Floor ${cl.floor}.`);
+      }
+    }
+    prevType = cl.type;
+  }
+  return steps;
+}
+
+function runRoute(fromId, destCode){
+  const startNode = locNodeId(fromId);
+  const endNode = 'r'+destCode;
+  const result = dijkstra(startNode, endNode);
+  if(!result){
+    addMsg("I couldn't find a path between those two points — try another starting location.", 'bot','Assistant');
+    return;
+  }
+  drawRoute(result.path, destCode);
+  const steps = generateDirections(result.path);
+  dirList.innerHTML = steps.map(s=>`<li>${s}</li>`).join('');
+  dirMeta.textContent = `~${Math.round(result.distance)} m · ${steps.length} steps`;
+  dirBox.classList.add('show');
+  const floorTxt = destCode>='C' ? 'Floor 2' : 'Floor 1';
+  const msg = `Got it — routing from ${locLabel(fromId)} to Rack ${destCode} on ${floorTxt}. Follow the amber path in the 3D view.`;
+  addMsg(msg, 'bot', 'Assistant');
+  speak(`Routing you to Rack ${destCode} on ${floorTxt}. Follow the glowing path.`);
+  convo = { stage:'idle', destCode:null };
+  setChips([]);
+}
+
+function handleUserMessage(raw, silent){
+  if(!silent) addMsg(raw, 'user');
+  const text = raw.trim();
+  if(!text) return;
+
+  if(convo.stage==='await_location'){
+    const loc = normalizeLocation(text) || (LOCATIONS.find(l=>l.label.toLowerCase()===text.toLowerCase())||{}).id;
+    if(!loc){
+      addMsg("I didn't catch that location — try 'Entrance', 'Staircase', or 'Near Rack B2', or pick one below.", 'bot','Assistant');
+      return;
+    }
+    runRoute(loc, convo.destCode);
+    return;
+  }
+
+  const code = normalizeRackCode(text);
+  if(code){
+    convo = { stage:'await_location', destCode:code };
+    addMsg(`Sure — I can route you to Rack ${code}. Where are you currently?`, 'bot','Assistant');
+    speak(`Where are you currently?`);
+    setChips([
+      {label:'Entrance', value:'Entrance'},
+      {label:'Staircase Fl.1', value:'Staircase floor 1'},
+      {label:'Staircase Fl.2', value:'Staircase floor 2'}
+    ]);
+    return;
+  }
+
+  addMsg("Ask me things like “Route to rack A3” or “Take me to C2”, or use the dropdowns below.", 'bot','Assistant');
+}
+
+document.getElementById('sendBtn').addEventListener('click', ()=>{
+  const inp = document.getElementById('chatInput');
+  if(inp.value.trim()){ handleUserMessage(inp.value); inp.value=''; }
+});
+document.getElementById('chatInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); document.getElementById('sendBtn').click(); }
+});
+document.getElementById('goBtn').addEventListener('click', ()=>{
+  if(!destSel.value || !fromSel.value){
+    addMsg('Pick both a destination rack and your current location first.', 'bot','Assistant');
+    return;
+  }
+  addMsg(`Route to rack ${destSel.value}`, 'user');
+  addMsg(`Current location: ${fromSel.options[fromSel.selectedIndex].text}`, 'user');
+  runRoute(fromSel.value, destSel.value);
+});
+
+/* mic */
+const micBtn = document.getElementById('micBtn');
+let recognition = null;
+try{
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(SR){
+    recognition = new SR();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (e)=>{
+      const said = e.results[0][0].transcript;
+      handleUserMessage(said);
+    };
+    recognition.onend = ()=> micBtn.classList.remove('listening');
+    recognition.onerror = ()=>{
+      micBtn.classList.remove('listening');
+      addMsg("Voice input didn't come through — this preview sandbox often blocks microphone access. Type your request instead, or try again once this is deployed on your own HTTPS site.", 'bot','Assistant');
+    };
+  }
+}catch(e){ recognition = null; }
+
+micBtn.addEventListener('click', ()=>{
+  if(!recognition){
+    addMsg("Voice recognition isn't available in this preview environment. Once you deploy this prototype to your own HTTPS site, the mic button will work using the same Web Speech API — for now, type your request or use the dropdowns.", 'bot','Assistant');
+    return;
+  }
+  try{
+    micBtn.classList.add('listening');
+    recognition.start();
+  }catch(e){
+    micBtn.classList.remove('listening');
+  }
+});
+
+/* reset view */
+window.addEventListener('keydown', e=>{ if(e.key==='r'){ orbit.theta=Math.PI*0.28; orbit.phi=1.02; orbit.radius=46; orbit.target.set(0,4,0); updateCamera(); }});
+
+/* boot message */
+addMsg("Welcome to the Library. Ask me for a rack — e.g. “Route to rack B4” — and I’ll ask where you are, then map the shortest path in 3D.", 'bot','Assistant');
+
+})();
+</script>
+</body>
+</html>

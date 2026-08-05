@@ -65,6 +65,8 @@ export const uploadFile = (formData) => api.post('/admin/upload', formData, {
   headers: { 'Content-Type': 'multipart/form-data' }
 });
 export const getUploads = () => api.get('/admin/uploads');
+export const deleteUpload = (id) => api.delete(`/admin/uploads/${id}`);
+export const resetStuckUploads = () => api.post('/admin/uploads/reset-stuck');
 
 export const getAnalytics = () => api.get('/admin/analytics');
 export const getLogs = () => api.get('/admin/logs');

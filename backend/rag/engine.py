@@ -425,8 +425,41 @@ class LibraryRAG:
             "library_data_v2",
             metadata={"hnsw:space": "cosine"},
         )
-        self._build_or_load_bm25_index()
+        self.rebuild_bm25_index()
         print("RAG reload complete.", flush=True)
+
+    def rebuild_bm25_index(self):
+        """Rebuilds the BM25 index from scratch using all documents in ChromaDB."""
+        print("BM25: Rebuilding index from ChromaDB...")
+        try:
+            results = self.collection.get(include=["documents", "metadatas"])
+            if not results or not results["documents"]:
+                print("BM25: No documents found to index.")
+                return
+
+            doc_map = []
+            corpus = []
+            
+            for doc, meta in zip(results["documents"], results["metadatas"]):
+                doc_map.append({"text": doc, "metadata": meta})
+                corpus.append(doc.lower().split())
+
+            self.bm25_index = BM25Okapi(corpus)
+            self.bm25_doc_map = doc_map
+            
+            cache_data = {
+                "index": self.bm25_index,
+                "doc_map": self.bm25_doc_map,
+                "count": len(self.bm25_doc_map)
+            }
+            
+            cache_path = os.path.join(self.persist_dir, "bm25_cache.pkl")
+            with open(cache_path, "wb") as f:
+                pickle.dump(cache_data, f)
+                
+            print(f"BM25: Rebuild complete. Cached {len(self.bm25_doc_map)} docs.")
+        except Exception as e:
+            print(f"BM25: Failed to rebuild index: {e}")
 
     def _warmup_pipeline(self):
         """Execute a dummy request to ensure models are loaded into RAM."""
@@ -596,7 +629,7 @@ class LibraryRAG:
             system_prompt = (
                 "You are Sam, a virtual library assistant for the University Library. "
                 "Use ONLY the provided context documents to answer the user's question. "
-                "When citing information, mention the source document name and page if available. "
+                "Answer the user naturally and directly. DO NOT mention file names, document names, source files, page numbers, or book record numbers in your response. Just provide the answer. "
                 "If you don't know the answer from the context, say you don't know. Do not guess. "
                 "Adopt a professional, calm, friendly, confident, and efficient female persona. "
                 "Use clear, neutral Indian English or international English. "
