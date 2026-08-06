@@ -1,0 +1,1201 @@
+Book_Number,Book_Title,Author,Rack_Number,Available_Copies
+NB100001,Advanced Ship Stability - Advanced Edition #1,John Harris,R-09-B,11
+NB100002,Essentials of Maritime Navigation - Field Manual #2,Paul Brown,R-02-B,4
+NB100003,Fundamentals of Navigation Charts - Field Manual #3,James Roberts,R-13-G,4
+NB100004,Applied Naval AI - Advanced Edition #4,Elizabeth Morgan,R-01-C,12
+NB100005,Principles of Coastal Defense - Advanced Edition #5,William Garcia,R-49-F,2
+NB100006,Advanced Maritime Law - Vol. II #6,Daniel Morgan,R-23-E,13
+NB100007,Modern Underwater Acoustics - Professional Edition #7,Michael White,R-25-B,9
+NB100008,Handbook of Cybersecurity at Sea - Reference Manual #8,Henry Garcia,R-46-B,1
+NB100009,Fundamentals of Hull Structures - Vol. II #9,Sarah Harris,R-56-B,7
+NB100010,Handbook of Underwater Acoustics - Reference Manual #10,Richard Lewis,R-23-D,11
+NB100011,Handbook of Ocean Engineering - Field Manual #11,Susan Fisher,R-35-D,3
+NB100012,Applied Maritime Law - Advanced Edition #12,Emma Walker,R-45-D,11
+NB100013,Guide to Ship Design - 3rd Ed. #13,Maria Brown,R-52-F,7
+NB100014,Handbook of Ocean Engineering - 3rd Ed. #14,Emma Smith,R-57-F,4
+NB100015,Applied Port Management - Laboratory Guide #15,William Irwin,R-09-D,12
+NB100016,Essentials of Oceanography - Advanced Edition #16,Karen Smith,R-28-G,6
+NB100017,Fundamentals of Sonar Systems - Professional Edition #17,Brian Clark,R-49-A,14
+NB100018,Advanced Submarine Technology - 2nd Ed. #18,Elizabeth Young,R-28-B,7
+NB100019,Principles of Autonomous Vessels - Laboratory Guide #19,George Irwin,R-36-A,11
+NB100020,Advanced Oceanography - Advanced Edition #20,Jennifer Walker,R-22-B,5
+NB100021,Principles of Aircraft Carriers - Laboratory Guide #21,James Allen,R-57-E,9
+NB100022,Practical Navigation Charts - Vol. II #22,Sarah Walker,R-20-D,3
+NB100023,Guide to Aircraft Carriers - Professional Edition #23,Jennifer White,R-34-A,10
+NB100024,Guide to Naval Communications - Vol. I #24,Michael White,R-24-E,4
+NB100025,Modern Fleet Operations - Field Manual #25,David Clark,R-47-H,14
+NB100026,Advanced Oceanography - 2nd Ed. #26,William Young,R-31-C,5
+NB100027,Essentials of Autonomous Vessels - Case Studies #27,Thomas White,R-35-D,12
+NB100028,Handbook of Port Management - Reference Manual #28,Kevin Turner,R-34-H,2
+NB100029,Fundamentals of Naval Logistics - Vol. II #29,Peter Anderson,R-38-D,10
+NB100030,Fundamentals of Naval Architecture - Vol. II #30,Patricia Walker,R-04-D,2
+NB100031,Modern Coastal Defense - Vol. II #31,George Harris,R-18-H,4
+NB100032,Essentials of Sonar Systems - Field Manual #32,Henry Parker,R-16-H,13
+NB100033,Principles of Frigates - Vol. II #33,Michael Young,R-28-F,7
+NB100034,Principles of Underwater Acoustics - Vol. I #34,Linda Walker,R-42-B,1
+NB100035,Principles of Coastal Defense - Vol. II #35,John Garcia,R-13-H,3
+NB100036,Principles of Destroyers - Advanced Edition #36,Kevin Harris,R-56-B,8
+NB100037,Essentials of Naval Weapons - Vol. I #37,Susan Roberts,R-54-A,2
+NB100038,Fundamentals of Aircraft Carriers - Case Studies #38,Brian Parker,R-14-G,15
+NB100039,Modern Aircraft Carriers - Case Studies #39,James Martin,R-17-H,5
+NB100040,Principles of Marine Materials - Laboratory Guide #40,William Garcia,R-19-D,1
+NB100041,Comprehensive Oceanography - Vol. I #41,Karen King,R-04-A,10
+NB100042,Applied Navigation Charts - Professional Edition #42,Richard Brown,R-33-B,14
+NB100043,Practical Ocean Engineering - Field Manual #43,David Young,R-56-D,7
+NB100044,Advanced Ship Automation - 3rd Ed. #44,Henry Taylor,R-03-B,7
+NB100045,Comprehensive Ship Automation - Professional Edition #45,Peter White,R-17-D,11
+NB100046,Guide to Fleet Operations - Advanced Edition #46,Mark Evans,R-43-E,8
+NB100047,Guide to Ocean Engineering - Vol. I #47,Kevin Taylor,R-37-B,2
+NB100048,Essentials of Corvettes - Professional Edition #48,Charles Evans,R-60-F,15
+NB100049,Advanced Fleet Operations - Reference Manual #49,Andrew Fisher,R-29-E,10
+NB100050,Essentials of Naval Architecture - Professional Edition #50,Andrew White,R-43-B,15
+NB100051,Practical Marine Diesel Engines - Vol. II #51,Laura Davis,R-48-C,5
+NB100052,Handbook of Autonomous Vessels - 3rd Ed. #52,Patricia King,R-14-E,9
+NB100053,Applied Marine Diesel Engines - Vol. I #53,David Walker,R-28-E,1
+NB100054,Modern Coastal Defense - 2nd Ed. #54,Susan Irwin,R-11-H,9
+NB100055,Principles of Marine Materials - Vol. I #55,Michael Clark,R-57-C,9
+NB100056,Modern Naval History - Field Manual #56,Edward Evans,R-28-C,1
+NB100057,Handbook of Naval History - Vol. I #57,Laura Lewis,R-14-D,11
+NB100058,Advanced Naval Strategy - Professional Edition #58,Laura Morgan,R-27-C,15
+NB100059,Fundamentals of Aircraft Carriers - 2nd Ed. #59,Laura Nelson,R-02-C,12
+NB100060,Guide to Seamanship - 3rd Ed. #60,Charles Fisher,R-51-B,7
+NB100061,Modern Marine Safety - 3rd Ed. #61,Thomas Scott,R-59-H,6
+NB100062,Handbook of Naval Logistics - 3rd Ed. #62,James Young,R-13-G,6
+NB100063,Handbook of Ocean Engineering - Advanced Edition #63,Daniel Walker,R-33-G,11
+NB100064,Essentials of Coastal Defense - Vol. I #64,Michael Turner,R-17-C,10
+NB100065,Handbook of Marine Engineering - Vol. II #65,Alan Nelson,R-23-F,7
+NB100066,Comprehensive Navigation Charts - Vol. II #66,Mark Turner,R-37-D,5
+NB100067,Modern Bridge Operations - Vol. I #67,George White,R-52-D,6
+NB100068,Principles of Ocean Engineering - Reference Manual #68,Alan King,R-43-B,12
+NB100069,Handbook of Navigation Charts - Advanced Edition #69,Linda Nelson,R-21-G,12
+NB100070,Handbook of Marine Materials - 2nd Ed. #70,Thomas Nelson,R-43-G,11
+NB100071,Practical Cybersecurity at Sea - Field Manual #71,Andrew Martin,R-36-A,5
+NB100072,Handbook of Corvettes - Case Studies #72,Elizabeth Smith,R-39-F,8
+NB100073,Applied Electronic Warfare - 3rd Ed. #73,George Parker,R-51-C,11
+NB100074,Advanced Hull Structures - Professional Edition #74,Linda Walker,R-40-F,2
+NB100075,Fundamentals of Ship Hydrodynamics - 3rd Ed. #75,Elizabeth Garcia,R-10-A,1
+NB100076,Fundamentals of Marine Safety - Field Manual #76,Sarah Baker,R-05-H,7
+NB100077,Comprehensive Frigates - Case Studies #77,Brian Martin,R-16-C,11
+NB100078,Modern Naval Weapons - Case Studies #78,John Fisher,R-52-H,1
+NB100079,Essentials of Fleet Operations - Vol. II #79,Kevin Evans,R-52-H,11
+NB100080,Essentials of Marine Materials - Field Manual #80,Peter Baker,R-58-H,10
+NB100081,Essentials of Bridge Operations - Professional Edition #81,Kevin Turner,R-11-H,8
+NB100082,Handbook of Fleet Operations - Advanced Edition #82,Jennifer Baker,R-34-H,11
+NB100083,Fundamentals of Propulsion Systems - Laboratory Guide #83,David Hall,R-19-D,5
+NB100084,Guide to Marine Electronics - Professional Edition #84,David Evans,R-10-D,7
+NB100085,Practical Corvettes - Vol. II #85,Paul Nelson,R-22-H,7
+NB100086,Modern Corvettes - Case Studies #86,Mark Turner,R-50-A,14
+NB100087,Comprehensive Maritime Law - Laboratory Guide #87,James Lewis,R-20-G,14
+NB100088,Principles of Oceanography - Professional Edition #88,Elizabeth Taylor,R-58-D,8
+NB100089,Fundamentals of Propulsion Systems - Case Studies #89,Brian Anderson,R-25-F,11
+NB100090,Principles of Aircraft Carriers - Laboratory Guide #90,Emma Evans,R-40-A,15
+NB100091,Principles of Naval AI - Field Manual #91,Linda Anderson,R-06-G,3
+NB100092,Applied Destroyers - Vol. I #92,Charles Martin,R-21-D,8
+NB100093,Guide to Coastal Defense - Case Studies #93,Charles Baker,R-54-G,5
+NB100094,Advanced Marine Safety - Vol. I #94,Karen Roberts,R-04-F,4
+NB100095,Advanced Marine Engineering - Vol. I #95,John Garcia,R-54-A,10
+NB100096,Practical Fleet Operations - 2nd Ed. #96,Brian Young,R-08-D,8
+NB100097,Handbook of Naval History - 2nd Ed. #97,Alan Taylor,R-48-B,13
+NB100098,Practical Ship Hydrodynamics - Vol. II #98,Henry Anderson,R-60-E,10
+NB100099,Principles of Port Management - 3rd Ed. #99,David Smith,R-45-D,2
+NB100100,Handbook of Autonomous Vessels - Vol. II #100,Elizabeth Smith,R-51-A,6
+NB100101,Essentials of Bridge Operations - Reference Manual #101,David Quinn,R-42-F,1
+NB100102,Principles of Naval Communications - Vol. II #102,Paul Lewis,R-41-H,12
+NB100103,Practical Bridge Operations - 2nd Ed. #103,Karen Quinn,R-42-E,10
+NB100104,Essentials of Marine Safety - Laboratory Guide #104,Paul Scott,R-47-E,6
+NB100105,Fundamentals of Maritime Navigation - Advanced Edition #105,Laura Owens,R-16-H,10
+NB100106,Comprehensive Maritime Law - Reference Manual #106,James Parker,R-55-F,3
+NB100107,Applied Corvettes - Reference Manual #107,Elizabeth Irwin,R-22-E,15
+NB100108,Comprehensive Propulsion Systems - Professional Edition #108,James Quinn,R-13-B,4
+NB100109,Principles of Naval Communications - Professional Edition #109,Jennifer Harris,R-45-H,11
+NB100110,Applied Electronic Warfare - Vol. I #110,David Johnson,R-15-G,12
+NB100111,Fundamentals of Ship Hydrodynamics - Field Manual #111,Daniel Parker,R-36-F,7
+NB100112,Essentials of Coastal Defense - Reference Manual #112,Patricia Owens,R-18-E,5
+NB100113,Fundamentals of Radar Systems - 3rd Ed. #113,Peter Davis,R-48-C,4
+NB100114,Fundamentals of Marine Safety - Advanced Edition #114,Karen Smith,R-49-E,2
+NB100115,Fundamentals of Hull Structures - 3rd Ed. #115,Daniel Fisher,R-20-A,12
+NB100116,Essentials of Sonar Systems - Advanced Edition #116,Robert Brown,R-36-E,12
+NB100117,Practical Naval Communications - Vol. II #117,Sarah Anderson,R-37-E,8
+NB100118,Applied Electronic Warfare - Reference Manual #118,Richard Brown,R-17-H,2
+NB100119,Advanced Port Management - Laboratory Guide #119,David Smith,R-41-A,3
+NB100120,Practical Ship Automation - Advanced Edition #120,David Harris,R-08-G,10
+NB100121,Comprehensive Cybersecurity at Sea - 3rd Ed. #121,Jennifer Quinn,R-25-H,15
+NB100122,Applied Ship Hydrodynamics - Field Manual #122,Paul Johnson,R-37-A,10
+NB100123,Advanced Corvettes - 3rd Ed. #123,Charles Young,R-06-C,4
+NB100124,Practical Marine Materials - Vol. II #124,Richard Anderson,R-27-H,12
+NB100125,Comprehensive Marine Safety - Advanced Edition #125,Robert Harris,R-19-E,12
+NB100126,Applied Ocean Engineering - 3rd Ed. #126,Emma Irwin,R-51-D,7
+NB100127,Advanced Oceanography - 3rd Ed. #127,Susan Evans,R-59-E,14
+NB100128,Practical Ocean Engineering - Vol. I #128,Richard Campbell,R-20-E,8
+NB100129,Advanced Underwater Acoustics - Advanced Edition #129,Patricia Martin,R-18-H,8
+NB100130,Advanced Autonomous Vessels - Vol. I #130,Laura Nelson,R-48-F,10
+NB100131,Handbook of Ship Stability - Vol. II #131,John Young,R-54-A,13
+NB100132,Handbook of Ship Automation - Vol. I #132,Jennifer Baker,R-12-H,9
+NB100133,Applied Propulsion Systems - 2nd Ed. #133,Henry Nelson,R-41-H,2
+NB100134,Applied Naval Strategy - Case Studies #134,Peter King,R-43-B,14
+NB100135,Practical Coastal Defense - Case Studies #135,Patricia Parker,R-19-G,14
+NB100136,Essentials of Marine Engineering - Laboratory Guide #136,David King,R-17-F,2
+NB100137,Principles of Navigation Charts - Vol. I #137,Linda Morgan,R-35-H,7
+NB100138,Modern Frigates - Professional Edition #138,Daniel Taylor,R-49-H,11
+NB100139,Applied Ship Design - 3rd Ed. #139,Charles Roberts,R-09-E,8
+NB100140,Applied Radar Systems - Vol. I #140,Susan Taylor,R-52-D,12
+NB100141,Practical Ship Hydrodynamics - Professional Edition #141,James Roberts,R-27-B,4
+NB100142,Advanced Underwater Acoustics - Vol. II #142,Susan Scott,R-10-H,15
+NB100143,Handbook of Navigation Charts - Advanced Edition #143,Paul Scott,R-31-H,4
+NB100144,Applied Marine Materials - 2nd Ed. #144,Mark Garcia,R-59-C,14
+NB100145,Advanced Propulsion Systems - Case Studies #145,Peter White,R-51-E,14
+NB100146,Modern Hull Structures - Advanced Edition #146,Maria Smith,R-38-H,14
+NB100147,Practical Electronic Warfare - Professional Edition #147,Brian Lewis,R-22-G,8
+NB100148,Guide to Frigates - 3rd Ed. #148,Henry Martin,R-15-G,1
+NB100149,Guide to Marine Safety - Case Studies #149,Mark Young,R-51-C,8
+NB100150,Modern Sonar Systems - Professional Edition #150,Henry King,R-56-B,14
+NB100151,Applied Naval Weapons - Professional Edition #151,Emma Owens,R-01-C,7
+NB100152,Practical Ocean Engineering - Laboratory Guide #152,Elizabeth Irwin,R-22-G,11
+NB100153,Advanced Coastal Defense - Professional Edition #153,Mark King,R-41-H,14
+NB100154,Essentials of Marine Engineering - Field Manual #154,David Harris,R-41-E,4
+NB100155,Advanced Bridge Operations - Vol. II #155,Jennifer Walker,R-46-B,8
+NB100156,Practical Ship Hydrodynamics - Vol. I #156,Robert King,R-51-A,5
+NB100157,Guide to Naval History - Case Studies #157,William Harris,R-34-G,10
+NB100158,Practical Aircraft Carriers - 2nd Ed. #158,David Taylor,R-56-G,10
+NB100159,Fundamentals of Naval Communications - Field Manual #159,William Harris,R-30-E,8
+NB100160,Handbook of Naval Architecture - Laboratory Guide #160,Laura Johnson,R-44-C,2
+NB100161,Applied Naval Strategy - Field Manual #161,Andrew Walker,R-28-E,8
+NB100162,Handbook of Frigates - Case Studies #162,Sarah Parker,R-07-D,7
+NB100163,Comprehensive Naval Strategy - Field Manual #163,Andrew Hall,R-19-A,14
+NB100164,Principles of Propulsion Systems - Vol. I #164,Henry Morgan,R-44-A,15
+NB100165,Comprehensive Naval Communications - Advanced Edition #165,Jennifer Campbell,R-15-F,4
+NB100166,Fundamentals of Cybersecurity at Sea - Advanced Edition #166,Linda Baker,R-47-C,11
+NB100167,Advanced Marine Engineering - Advanced Edition #167,Elizabeth Owens,R-03-F,12
+NB100168,Practical Maritime Navigation - Advanced Edition #168,Peter Allen,R-27-C,4
+NB100169,Practical Oceanography - Reference Manual #169,George Quinn,R-59-E,14
+NB100170,Practical Marine Diesel Engines - Laboratory Guide #170,Elizabeth Johnson,R-48-F,13
+NB100171,Advanced Underwater Acoustics - Vol. II #171,William Baker,R-15-G,14
+NB100172,Essentials of Naval History - Vol. II #172,Elizabeth Martin,R-01-E,9
+NB100173,Advanced Underwater Acoustics - Reference Manual #173,Linda Allen,R-44-E,10
+NB100174,Principles of Naval History - Vol. II #174,Linda Harris,R-31-A,10
+NB100175,Essentials of Marine Electronics - Field Manual #175,John Walker,R-05-H,15
+NB100176,Handbook of Seamanship - Vol. II #176,William Brown,R-03-E,8
+NB100177,Advanced Naval Weapons - 3rd Ed. #177,Laura Roberts,R-09-G,8
+NB100178,Guide to Oceanography - Case Studies #178,Henry Allen,R-47-C,15
+NB100179,Principles of Naval Weapons - Laboratory Guide #179,Alan Nelson,R-18-A,12
+NB100180,Guide to Corvettes - Laboratory Guide #180,Kevin Harris,R-55-F,2
+NB100181,Guide to Oceanography - Reference Manual #181,Robert Martin,R-18-D,2
+NB100182,Applied Maritime Navigation - 3rd Ed. #182,Susan Walker,R-39-A,1
+NB100183,Guide to Fleet Operations - 2nd Ed. #183,Elizabeth Smith,R-14-B,14
+NB100184,Essentials of Corvettes - Field Manual #184,Thomas Scott,R-56-D,6
+NB100185,Practical Autonomous Vessels - Vol. I #185,Charles Morgan,R-10-C,9
+NB100186,Handbook of Destroyers - Vol. II #186,Linda Morgan,R-02-C,1
+NB100187,Guide to Fleet Operations - Field Manual #187,Peter Anderson,R-12-E,1
+NB100188,Practical Seamanship - Professional Edition #188,Michael Allen,R-05-H,8
+NB100189,Guide to Navigation Charts - Field Manual #189,Michael Owens,R-33-D,10
+NB100190,Modern Weather Routing - Advanced Edition #190,Kevin Walker,R-02-A,8
+NB100191,Principles of Bridge Operations - Vol. II #191,Brian Hall,R-59-H,2
+NB100192,Advanced Marine Electronics - Field Manual #192,William Clark,R-09-E,10
+NB100193,Comprehensive Marine Materials - Reference Manual #193,Mark Taylor,R-34-E,8
+NB100194,Essentials of Autonomous Vessels - Case Studies #194,Michael Campbell,R-45-B,14
+NB100195,Essentials of Corvettes - Case Studies #195,Kevin Turner,R-15-G,6
+NB100196,Applied Port Management - Case Studies #196,Karen Davis,R-21-G,6
+NB100197,Handbook of Naval History - 2nd Ed. #197,Linda White,R-31-B,2
+NB100198,Advanced Maritime Navigation - Case Studies #198,Michael Allen,R-48-F,13
+NB100199,Practical Marine Materials - Vol. I #199,Henry Roberts,R-36-F,11
+NB100200,Advanced Seamanship - Reference Manual #200,Sarah Young,R-49-G,14
+NB100201,Modern Hull Structures - Field Manual #201,Andrew Lewis,R-07-D,3
+NB100202,Applied Naval Logistics - Vol. II #202,Daniel Morgan,R-36-F,2
+NB100203,Handbook of Ship Automation - 3rd Ed. #203,Elizabeth Nelson,R-55-A,10
+NB100204,Handbook of Ship Stability - 2nd Ed. #204,Charles Hall,R-49-E,15
+NB100205,Guide to Naval Strategy - Vol. I #205,Richard Morgan,R-10-G,2
+NB100206,Practical Ship Stability - Vol. II #206,Karen Quinn,R-14-G,7
+NB100207,Applied Coastal Defense - 2nd Ed. #207,Daniel Johnson,R-47-F,13
+NB100208,Comprehensive Autonomous Vessels - Vol. II #208,Laura Brown,R-10-C,13
+NB100209,Comprehensive Ship Design - Vol. II #209,Charles Owens,R-43-G,8
+NB100210,Comprehensive Electronic Warfare - Case Studies #210,Charles Garcia,R-49-B,6
+NB100211,Principles of Radar Systems - Advanced Edition #211,Linda Young,R-38-H,9
+NB100212,Handbook of Marine Engineering - 3rd Ed. #212,Mark Taylor,R-04-A,4
+NB100213,Handbook of Corvettes - 2nd Ed. #213,Jennifer Irwin,R-19-F,2
+NB100214,Modern Naval Communications - Case Studies #214,Richard Evans,R-25-D,9
+NB100215,Essentials of Naval Strategy - Vol. II #215,Mark Morgan,R-48-A,7
+NB100216,Modern Underwater Acoustics - Vol. II #216,Sarah King,R-37-G,10
+NB100217,Principles of Seamanship - Advanced Edition #217,Michael Martin,R-02-F,3
+NB100218,Comprehensive Underwater Acoustics - Reference Manual #218,David Nelson,R-55-B,4
+NB100219,Principles of Naval AI - Case Studies #219,George Clark,R-26-E,12
+NB100220,Guide to Naval Logistics - Reference Manual #220,Jennifer Fisher,R-05-B,9
+NB100221,Essentials of Frigates - Reference Manual #221,Daniel Allen,R-53-C,4
+NB100222,Advanced Submarine Technology - Advanced Edition #222,Thomas Fisher,R-39-C,13
+NB100223,Advanced Destroyers - Laboratory Guide #223,Kevin Baker,R-37-H,11
+NB100224,Comprehensive Cybersecurity at Sea - Reference Manual #224,Sarah Walker,R-21-C,8
+NB100225,Advanced Marine Safety - Laboratory Guide #225,Susan Johnson,R-51-E,10
+NB100226,Modern Naval Strategy - Professional Edition #226,David Johnson,R-30-H,1
+NB100227,Modern Naval History - Advanced Edition #227,David Walker,R-56-B,10
+NB100228,Comprehensive Navigation Charts - Case Studies #228,Kevin Smith,R-36-A,8
+NB100229,Comprehensive Frigates - Reference Manual #229,Alan Parker,R-33-C,1
+NB100230,Applied Naval Weapons - Reference Manual #230,Patricia Clark,R-33-C,1
+NB100231,Fundamentals of Electronic Warfare - Laboratory Guide #231,George Quinn,R-40-C,6
+NB100232,Guide to Hull Structures - Case Studies #232,Paul Baker,R-22-A,13
+NB100233,Guide to Ocean Engineering - Reference Manual #233,Michael Roberts,R-44-G,5
+NB100234,Handbook of Autonomous Vessels - 2nd Ed. #234,Peter Clark,R-38-C,15
+NB100235,Guide to Ship Hydrodynamics - Case Studies #235,William Taylor,R-46-B,5
+NB100236,Essentials of Maritime Law - Reference Manual #236,Maria Evans,R-43-B,11
+NB100237,Principles of Navigation Charts - Reference Manual #237,James Lewis,R-20-C,4
+NB100238,Guide to Naval Communications - 3rd Ed. #238,John Evans,R-10-B,5
+NB100239,Advanced Navigation Charts - Professional Edition #239,Maria Allen,R-57-A,11
+NB100240,Guide to Cybersecurity at Sea - 2nd Ed. #240,Alan Martin,R-10-C,3
+NB100241,Comprehensive Aircraft Carriers - Laboratory Guide #241,Robert Nelson,R-24-D,8
+NB100242,Comprehensive Hull Structures - Laboratory Guide #242,John Roberts,R-16-E,13
+NB100243,Applied Frigates - Reference Manual #243,Linda Smith,R-29-H,13
+NB100244,Handbook of Maritime Law - Professional Edition #244,George Nelson,R-11-D,13
+NB100245,Comprehensive Sonar Systems - Advanced Edition #245,Robert Walker,R-31-F,9
+NB100246,Advanced Weather Routing - Vol. II #246,Andrew Clark,R-49-C,5
+NB100247,Applied Navigation Charts - 2nd Ed. #247,Maria Nelson,R-06-D,14
+NB100248,Applied Naval Strategy - Vol. I #248,Paul Brown,R-26-F,4
+NB100249,Principles of Maritime Navigation - Reference Manual #249,John Anderson,R-21-B,14
+NB100250,Guide to Submarine Technology - 2nd Ed. #250,Robert Johnson,R-59-H,12
+NB100251,Practical Marine Safety - Laboratory Guide #251,Alan Anderson,R-58-B,1
+NB100252,Handbook of Corvettes - 2nd Ed. #252,Edward Allen,R-39-G,2
+NB100253,Handbook of Fleet Operations - Advanced Edition #253,Michael Brown,R-16-G,11
+NB100254,Comprehensive Underwater Acoustics - Vol. II #254,Michael Scott,R-58-H,10
+NB100255,Essentials of Ship Stability - Professional Edition #255,Henry Harris,R-46-C,5
+NB100256,Principles of Naval Architecture - Field Manual #256,Daniel Harris,R-37-G,3
+NB100257,Advanced Weather Routing - Reference Manual #257,David Quinn,R-35-A,7
+NB100258,Applied Marine Engineering - Case Studies #258,Daniel Irwin,R-48-A,6
+NB100259,Advanced Naval Strategy - 3rd Ed. #259,Karen Young,R-41-B,13
+NB100260,Comprehensive Coastal Defense - 2nd Ed. #260,Robert Lewis,R-35-F,14
+NB100261,Practical Underwater Acoustics - Laboratory Guide #261,Susan Fisher,R-52-C,2
+NB100262,Applied Marine Engineering - Advanced Edition #262,Thomas Brown,R-51-D,15
+NB100263,Modern Marine Electronics - Advanced Edition #263,George Martin,R-53-H,5
+NB100264,Modern Frigates - Advanced Edition #264,Daniel Morgan,R-50-A,14
+NB100265,Guide to Propulsion Systems - Vol. II #265,Elizabeth Lewis,R-28-G,12
+NB100266,Applied Maritime Law - Reference Manual #266,Richard Parker,R-45-H,6
+NB100267,Essentials of Propulsion Systems - Vol. II #267,Karen Nelson,R-06-G,10
+NB100268,Practical Oceanography - Advanced Edition #268,Peter Davis,R-06-F,11
+NB100269,Handbook of Ship Hydrodynamics - Laboratory Guide #269,Alan Hall,R-28-C,12
+NB100270,Applied Naval Strategy - Laboratory Guide #270,Robert Allen,R-56-F,10
+NB100271,Principles of Propulsion Systems - Vol. I #271,David Young,R-41-G,6
+NB100272,Essentials of Aircraft Carriers - Vol. I #272,William Morgan,R-39-H,1
+NB100273,Practical Ocean Engineering - 3rd Ed. #273,Jennifer Walker,R-24-F,7
+NB100274,Comprehensive Marine Engineering - Field Manual #274,William Young,R-29-F,6
+NB100275,Applied Ocean Engineering - Field Manual #275,William Quinn,R-24-G,6
+NB100276,Handbook of Fleet Operations - Vol. II #276,James Allen,R-12-H,9
+NB100277,Principles of Marine Materials - Vol. II #277,Charles Baker,R-17-H,4
+NB100278,Comprehensive Hull Structures - Laboratory Guide #278,Thomas Davis,R-09-B,8
+NB100279,Practical Electronic Warfare - Vol. II #279,Elizabeth Young,R-55-F,11
+NB100280,Guide to Ocean Engineering - Professional Edition #280,Edward Johnson,R-58-E,14
+NB100281,Practical Destroyers - Reference Manual #281,George Harris,R-08-D,13
+NB100282,Practical Fleet Operations - Laboratory Guide #282,James Lewis,R-36-F,8
+NB100283,Essentials of Sonar Systems - Field Manual #283,Laura Clark,R-05-E,7
+NB100284,Applied Weather Routing - Case Studies #284,Jennifer Nelson,R-53-B,3
+NB100285,Guide to Ocean Engineering - Laboratory Guide #285,Kevin Young,R-34-F,3
+NB100286,Essentials of Naval AI - 2nd Ed. #286,Jennifer Evans,R-28-A,14
+NB100287,Advanced Weather Routing - 2nd Ed. #287,Andrew Fisher,R-11-F,15
+NB100288,Fundamentals of Naval Strategy - Professional Edition #288,Laura Johnson,R-55-B,5
+NB100289,Fundamentals of Marine Materials - Advanced Edition #289,William Walker,R-20-B,9
+NB100290,Practical Naval AI - Field Manual #290,William Fisher,R-43-F,14
+NB100291,Comprehensive Marine Engineering - Vol. I #291,David Brown,R-42-E,11
+NB100292,Fundamentals of Ship Automation - Case Studies #292,Alan Walker,R-02-H,15
+NB100293,Essentials of Hull Structures - Advanced Edition #293,Brian Harris,R-52-G,5
+NB100294,Applied Ocean Engineering - Vol. I #294,Richard Owens,R-27-H,8
+NB100295,Fundamentals of Coastal Defense - Field Manual #295,William King,R-56-F,12
+NB100296,Guide to Port Management - 2nd Ed. #296,Jennifer Lewis,R-33-B,6
+NB100297,Fundamentals of Underwater Acoustics - Vol. II #297,Charles Owens,R-16-C,2
+NB100298,Modern Hull Structures - Case Studies #298,Sarah Taylor,R-27-D,14
+NB100299,Practical Marine Electronics - Field Manual #299,Karen King,R-13-C,8
+NB100300,Essentials of Underwater Acoustics - Laboratory Guide #300,Laura Johnson,R-32-A,2
+NB100301,Principles of Navigation Charts - Laboratory Guide #301,John Garcia,R-38-F,1
+NB100302,Modern Hull Structures - Laboratory Guide #302,Alan Turner,R-54-H,5
+NB100303,Essentials of Naval Architecture - Vol. II #303,Paul Evans,R-57-E,12
+NB100304,Guide to Port Management - Reference Manual #304,Robert Martin,R-04-D,6
+NB100305,Essentials of Hull Structures - Vol. II #305,Mark Quinn,R-29-E,14
+NB100306,Comprehensive Cybersecurity at Sea - Vol. II #306,William Davis,R-26-F,13
+NB100307,Guide to Marine Materials - Reference Manual #307,Jennifer Evans,R-13-G,9
+NB100308,Modern Marine Engineering - Vol. I #308,William Hall,R-22-H,9
+NB100309,Applied Submarine Technology - Field Manual #309,Laura Quinn,R-09-F,15
+NB100310,Comprehensive Marine Electronics - 2nd Ed. #310,Mark Taylor,R-48-E,10
+NB100311,Guide to Navigation Charts - Professional Edition #311,Edward Parker,R-46-E,8
+NB100312,Modern Naval History - Reference Manual #312,Linda Davis,R-27-E,13
+NB100313,Modern Autonomous Vessels - Laboratory Guide #313,Charles Walker,R-51-D,12
+NB100314,Modern Naval AI - Laboratory Guide #314,Richard Quinn,R-41-G,3
+NB100315,Fundamentals of Marine Engineering - Field Manual #315,Patricia Davis,R-13-A,8
+NB100316,Guide to Seamanship - 2nd Ed. #316,Paul Hall,R-14-G,9
+NB100317,Comprehensive Marine Safety - Vol. I #317,Patricia Evans,R-34-D,9
+NB100318,Guide to Marine Safety - Professional Edition #318,Mark King,R-12-H,15
+NB100319,Essentials of Coastal Defense - Professional Edition #319,Daniel Young,R-50-E,10
+NB100320,Applied Frigates - 3rd Ed. #320,Charles Roberts,R-20-D,5
+NB100321,Handbook of Corvettes - Laboratory Guide #321,Peter Parker,R-23-E,5
+NB100322,Advanced Ship Automation - Professional Edition #322,Mark Turner,R-26-F,13
+NB100323,Practical Hull Structures - Vol. I #323,Andrew Hall,R-06-F,15
+NB100324,Applied Marine Diesel Engines - Laboratory Guide #324,Thomas Garcia,R-53-E,15
+NB100325,Essentials of Propulsion Systems - 2nd Ed. #325,Michael Taylor,R-48-D,4
+NB100326,Modern Weather Routing - 3rd Ed. #326,Susan Harris,R-04-B,7
+NB100327,Guide to Marine Safety - Vol. II #327,Linda Baker,R-09-A,9
+NB100328,Practical Seamanship - Laboratory Guide #328,Brian Walker,R-13-E,6
+NB100329,Handbook of Ship Design - Vol. II #329,Susan Smith,R-15-A,15
+NB100330,Practical Seamanship - 2nd Ed. #330,Emma White,R-03-G,13
+NB100331,Applied Destroyers - Advanced Edition #331,Laura Brown,R-01-E,10
+NB100332,Comprehensive Naval Weapons - Reference Manual #332,Andrew Owens,R-42-H,15
+NB100333,Practical Navigation Charts - Laboratory Guide #333,Charles Garcia,R-52-B,6
+NB100334,Practical Underwater Acoustics - Advanced Edition #334,Patricia Fisher,R-01-F,13
+NB100335,Handbook of Ship Automation - 3rd Ed. #335,Richard Taylor,R-55-G,14
+NB100336,Principles of Navigation Charts - Reference Manual #336,David Martin,R-43-B,3
+NB100337,Practical Marine Safety - Reference Manual #337,Emma Harris,R-01-E,7
+NB100338,Fundamentals of Electronic Warfare - Advanced Edition #338,Peter Johnson,R-38-A,5
+NB100339,Guide to Fleet Operations - Vol. I #339,Linda Davis,R-30-E,3
+NB100340,Principles of Navigation Charts - Advanced Edition #340,Patricia Davis,R-41-E,6
+NB100341,Comprehensive Naval Logistics - 3rd Ed. #341,William Parker,R-10-H,12
+NB100342,Comprehensive Naval History - Case Studies #342,Patricia Roberts,R-59-H,13
+NB100343,Essentials of Corvettes - 3rd Ed. #343,Linda Baker,R-39-B,9
+NB100344,Applied Weather Routing - Reference Manual #344,David White,R-37-B,1
+NB100345,Essentials of Navigation Charts - 3rd Ed. #345,Henry Roberts,R-10-C,6
+NB100346,Essentials of Electronic Warfare - Vol. II #346,Linda Garcia,R-46-H,2
+NB100347,Essentials of Electronic Warfare - Vol. I #347,Kevin Evans,R-33-G,8
+NB100348,Comprehensive Ship Design - Professional Edition #348,Kevin Young,R-52-E,12
+NB100349,Modern Port Management - Advanced Edition #349,Maria Anderson,R-48-D,10
+NB100350,Advanced Marine Engineering - Case Studies #350,Daniel Hall,R-05-A,15
+NB100351,Advanced Marine Safety - Vol. I #351,Andrew Nelson,R-12-C,13
+NB100352,Principles of Naval History - Case Studies #352,Kevin Morgan,R-59-G,7
+NB100353,Advanced Oceanography - 2nd Ed. #353,Susan Morgan,R-23-B,3
+NB100354,Essentials of Port Management - Professional Edition #354,William Allen,R-15-A,13
+NB100355,Modern Ship Hydrodynamics - Laboratory Guide #355,Linda Allen,R-35-G,9
+NB100356,Principles of Naval Logistics - 3rd Ed. #356,Kevin Lewis,R-10-E,4
+NB100357,Advanced Marine Engineering - Case Studies #357,Alan Baker,R-60-A,4
+NB100358,Fundamentals of Ocean Engineering - Vol. II #358,Alan Brown,R-29-A,4
+NB100359,Modern Port Management - Laboratory Guide #359,John Roberts,R-14-A,3
+NB100360,Essentials of Hull Structures - 3rd Ed. #360,Maria White,R-47-F,10
+NB100361,Comprehensive Marine Electronics - 3rd Ed. #361,Andrew Turner,R-10-D,7
+NB100362,Handbook of Propulsion Systems - Vol. I #362,Edward Smith,R-57-C,11
+NB100363,Principles of Marine Materials - Laboratory Guide #363,Robert Lewis,R-42-G,13
+NB100364,Essentials of Marine Electronics - Case Studies #364,Paul Evans,R-20-G,3
+NB100365,Essentials of Marine Safety - 3rd Ed. #365,Sarah Harris,R-20-C,13
+NB100366,Applied Ship Design - Professional Edition #366,Paul Nelson,R-36-C,7
+NB100367,Fundamentals of Marine Diesel Engines - 3rd Ed. #367,Peter Walker,R-06-H,14
+NB100368,Guide to Maritime Navigation - Professional Edition #368,Karen Scott,R-13-A,5
+NB100369,Principles of Autonomous Vessels - Field Manual #369,Robert Morgan,R-05-D,13
+NB100370,Comprehensive Marine Materials - 3rd Ed. #370,Brian Garcia,R-56-F,5
+NB100371,Modern Corvettes - 3rd Ed. #371,Karen Davis,R-48-H,15
+NB100372,Fundamentals of Autonomous Vessels - 3rd Ed. #372,Mark White,R-16-F,13
+NB100373,Handbook of Maritime Law - Laboratory Guide #373,Edward Walker,R-23-E,5
+NB100374,Guide to Navigation Charts - Laboratory Guide #374,Kevin Davis,R-52-H,13
+NB100375,Guide to Corvettes - Reference Manual #375,Peter Nelson,R-03-D,12
+NB100376,Practical Ship Stability - Advanced Edition #376,Edward White,R-38-G,5
+NB100377,Practical Frigates - Reference Manual #377,John Martin,R-37-D,8
+NB100378,Essentials of Coastal Defense - Advanced Edition #378,Jennifer Scott,R-32-H,8
+NB100379,Practical Naval Strategy - 2nd Ed. #379,William Allen,R-35-H,3
+NB100380,Essentials of Ship Design - Professional Edition #380,Robert Scott,R-55-B,14
+NB100381,Modern Naval Architecture - Case Studies #381,William Scott,R-41-D,2
+NB100382,Practical Naval Architecture - 3rd Ed. #382,George Owens,R-24-A,10
+NB100383,Comprehensive Marine Safety - Laboratory Guide #383,James Anderson,R-35-G,1
+NB100384,Modern Weather Routing - Advanced Edition #384,Edward Johnson,R-02-G,13
+NB100385,Practical Naval Weapons - Vol. II #385,George Evans,R-16-D,10
+NB100386,Essentials of Marine Diesel Engines - Reference Manual #386,Charles Campbell,R-26-B,6
+NB100387,Principles of Underwater Acoustics - Field Manual #387,John Hall,R-15-E,11
+NB100388,Advanced Marine Engineering - Vol. II #388,Mark Martin,R-25-H,1
+NB100389,Modern Aircraft Carriers - Vol. II #389,Brian Morgan,R-28-F,10
+NB100390,Advanced Weather Routing - Vol. I #390,John Garcia,R-58-H,5
+NB100391,Modern Ocean Engineering - Advanced Edition #391,Laura Roberts,R-37-A,3
+NB100392,Guide to Ship Stability - 3rd Ed. #392,Henry Evans,R-49-G,15
+NB100393,Advanced Ship Hydrodynamics - 2nd Ed. #393,Henry Harris,R-37-G,11
+NB100394,Essentials of Coastal Defense - Case Studies #394,Jennifer Allen,R-09-B,9
+NB100395,Guide to Ship Design - Vol. II #395,Paul Harris,R-54-B,6
+NB100396,Comprehensive Cybersecurity at Sea - Field Manual #396,Mark Baker,R-21-A,11
+NB100397,Handbook of Electronic Warfare - Laboratory Guide #397,John Lewis,R-36-G,7
+NB100398,Practical Naval AI - Case Studies #398,David Baker,R-40-E,13
+NB100399,Fundamentals of Ocean Engineering - Vol. II #399,Charles Evans,R-25-C,12
+NB100400,Principles of Marine Electronics - Reference Manual #400,Michael Clark,R-01-E,8
+NB100401,Guide to Propulsion Systems - Vol. II #401,William Clark,R-12-G,8
+NB100402,Essentials of Marine Materials - Professional Edition #402,Paul Davis,R-02-B,6
+NB100403,Essentials of Maritime Navigation - Field Manual #403,Alan Campbell,R-21-G,1
+NB100404,Handbook of Seamanship - Case Studies #404,Jennifer Clark,R-47-D,10
+NB100405,Essentials of Aircraft Carriers - Case Studies #405,Richard Evans,R-18-E,5
+NB100406,Applied Submarine Technology - Vol. II #406,Richard Nelson,R-18-G,5
+NB100407,Applied Ocean Engineering - Reference Manual #407,Charles Harris,R-47-H,10
+NB100408,Comprehensive Frigates - Laboratory Guide #408,Michael Evans,R-20-A,7
+NB100409,Guide to Cybersecurity at Sea - Case Studies #409,Elizabeth Morgan,R-22-H,6
+NB100410,Principles of Autonomous Vessels - 2nd Ed. #410,Andrew King,R-39-D,8
+NB100411,Guide to Destroyers - Case Studies #411,Peter Johnson,R-48-H,10
+NB100412,Fundamentals of Marine Electronics - Case Studies #412,Charles Scott,R-51-G,6
+NB100413,Advanced Ship Automation - 3rd Ed. #413,Henry Roberts,R-12-A,12
+NB100414,Applied Corvettes - Laboratory Guide #414,Elizabeth Johnson,R-54-B,14
+NB100415,Principles of Naval Communications - 2nd Ed. #415,Susan Johnson,R-16-E,11
+NB100416,Practical Bridge Operations - Case Studies #416,David Owens,R-39-H,10
+NB100417,Principles of Oceanography - Professional Edition #417,Emma White,R-56-G,9
+NB100418,Modern Naval History - Professional Edition #418,Alan Walker,R-59-B,2
+NB100419,Fundamentals of Naval Strategy - 2nd Ed. #419,Susan Taylor,R-03-G,13
+NB100420,Guide to Bridge Operations - Vol. II #420,James Davis,R-17-D,9
+NB100421,Essentials of Marine Materials - Field Manual #421,Patricia Smith,R-15-H,6
+NB100422,Principles of Underwater Acoustics - Field Manual #422,Patricia Quinn,R-10-F,1
+NB100423,Applied Naval Weapons - Advanced Edition #423,Paul White,R-06-B,14
+NB100424,Practical Naval Strategy - Advanced Edition #424,Peter Owens,R-51-D,9
+NB100425,Applied Naval Strategy - Laboratory Guide #425,Michael Owens,R-47-H,6
+NB100426,Advanced Ship Hydrodynamics - Vol. I #426,Elizabeth Hall,R-08-A,14
+NB100427,Guide to Naval Weapons - 2nd Ed. #427,Emma Allen,R-16-C,9
+NB100428,Practical Coastal Defense - Professional Edition #428,Paul Owens,R-15-G,11
+NB100429,Practical Destroyers - Case Studies #429,Mark Anderson,R-48-D,8
+NB100430,Comprehensive Bridge Operations - Case Studies #430,James Hall,R-14-D,5
+NB100431,Advanced Ship Automation - Vol. II #431,Elizabeth Morgan,R-35-C,6
+NB100432,Guide to Frigates - Laboratory Guide #432,Michael Irwin,R-43-H,9
+NB100433,Guide to Autonomous Vessels - Case Studies #433,Alan Martin,R-38-B,6
+NB100434,Guide to Underwater Acoustics - Field Manual #434,Richard Scott,R-44-E,15
+NB100435,Comprehensive Naval AI - Vol. II #435,Linda Evans,R-21-B,4
+NB100436,Handbook of Radar Systems - 2nd Ed. #436,Daniel Hall,R-10-G,7
+NB100437,Comprehensive Sonar Systems - Field Manual #437,Mark Nelson,R-12-H,11
+NB100438,Essentials of Destroyers - Professional Edition #438,Richard Parker,R-19-C,3
+NB100439,Guide to Electronic Warfare - Field Manual #439,Robert Morgan,R-23-A,8
+NB100440,Practical Frigates - Case Studies #440,Edward Quinn,R-42-H,7
+NB100441,Applied Seamanship - Laboratory Guide #441,Brian Fisher,R-06-A,13
+NB100442,Fundamentals of Hull Structures - Vol. I #442,Charles Harris,R-35-E,3
+NB100443,Applied Ship Automation - Laboratory Guide #443,Edward Quinn,R-08-B,5
+NB100444,Essentials of Naval History - Professional Edition #444,Maria Baker,R-03-H,9
+NB100445,Fundamentals of Bridge Operations - Vol. II #445,Karen Scott,R-42-D,5
+NB100446,Modern Electronic Warfare - Advanced Edition #446,Daniel Morgan,R-53-B,8
+NB100447,Advanced Fleet Operations - 3rd Ed. #447,Elizabeth Allen,R-38-F,14
+NB100448,Comprehensive Bridge Operations - 2nd Ed. #448,Alan Evans,R-51-D,14
+NB100449,Fundamentals of Ship Design - Field Manual #449,Daniel Roberts,R-18-C,6
+NB100450,Handbook of Hull Structures - Field Manual #450,Charles Morgan,R-33-B,3
+NB100451,Principles of Ship Design - Advanced Edition #451,Sarah Walker,R-09-C,4
+NB100452,Practical Marine Electronics - 3rd Ed. #452,Jennifer Scott,R-44-G,8
+NB100453,Practical Ship Automation - Advanced Edition #453,Susan Nelson,R-25-H,2
+NB100454,Advanced Port Management - Professional Edition #454,Karen Irwin,R-45-F,8
+NB100455,Applied Marine Electronics - Field Manual #455,James Morgan,R-50-B,12
+NB100456,Applied Naval Strategy - Vol. II #456,Elizabeth Roberts,R-26-D,7
+NB100457,Fundamentals of Naval Communications - Advanced Edition #457,Peter Scott,R-19-F,9
+NB100458,Comprehensive Sonar Systems - Field Manual #458,Sarah Parker,R-51-F,15
+NB100459,Modern Marine Engineering - Vol. II #459,Susan Campbell,R-54-H,1
+NB100460,Advanced Aircraft Carriers - Laboratory Guide #460,Kevin Anderson,R-28-D,12
+NB100461,Practical Ship Hydrodynamics - 2nd Ed. #461,Sarah White,R-57-E,2
+NB100462,Guide to Marine Diesel Engines - Vol. II #462,Daniel Young,R-58-C,1
+NB100463,Principles of Ship Hydrodynamics - 3rd Ed. #463,Paul Walker,R-06-B,1
+NB100464,Fundamentals of Marine Safety - Vol. II #464,William Smith,R-15-H,1
+NB100465,Modern Coastal Defense - Vol. II #465,Sarah Nelson,R-45-C,8
+NB100466,Advanced Naval Logistics - Case Studies #466,David Allen,R-52-B,2
+NB100467,Guide to Naval History - Advanced Edition #467,William Martin,R-50-C,11
+NB100468,Practical Ocean Engineering - Professional Edition #468,Henry Anderson,R-40-C,8
+NB100469,Guide to Corvettes - 2nd Ed. #469,Emma Nelson,R-40-H,14
+NB100470,Fundamentals of Maritime Navigation - Vol. II #470,William Baker,R-08-G,6
+NB100471,Principles of Marine Electronics - 2nd Ed. #471,John Irwin,R-42-B,4
+NB100472,Essentials of Autonomous Vessels - Field Manual #472,Karen Taylor,R-19-A,14
+NB100473,Handbook of Corvettes - Professional Edition #473,Alan Quinn,R-13-G,5
+NB100474,Modern Fleet Operations - Laboratory Guide #474,Mark Davis,R-16-H,11
+NB100475,Comprehensive Ocean Engineering - Professional Edition #475,Laura Anderson,R-24-F,3
+NB100476,Principles of Ship Automation - Case Studies #476,Daniel Roberts,R-44-C,13
+NB100477,Applied Ocean Engineering - Vol. I #477,Henry Clark,R-01-E,4
+NB100478,Modern Ship Design - Case Studies #478,George Johnson,R-41-G,7
+NB100479,Principles of Maritime Navigation - Professional Edition #479,Edward Taylor,R-10-E,2
+NB100480,Handbook of Maritime Navigation - Professional Edition #480,Emma Garcia,R-52-C,9
+NB100481,Guide to Port Management - Field Manual #481,Susan Baker,R-54-B,5
+NB100482,Principles of Fleet Operations - Vol. I #482,John Clark,R-60-G,2
+NB100483,Applied Cybersecurity at Sea - Field Manual #483,Robert Johnson,R-43-C,2
+NB100484,Modern Sonar Systems - Vol. I #484,Richard Parker,R-23-E,3
+NB100485,Guide to Sonar Systems - Advanced Edition #485,Karen Turner,R-08-A,6
+NB100486,Principles of Propulsion Systems - Professional Edition #486,David Irwin,R-46-B,8
+NB100487,Applied Navigation Charts - Reference Manual #487,Robert Parker,R-55-C,6
+NB100488,Practical Marine Diesel Engines - Vol. II #488,Laura Smith,R-44-B,4
+NB100489,Essentials of Naval Architecture - Vol. I #489,Sarah Morgan,R-01-D,1
+NB100490,Applied Naval History - Case Studies #490,Emma Evans,R-12-A,9
+NB100491,Principles of Naval Logistics - Reference Manual #491,John Nelson,R-59-F,5
+NB100492,Advanced Ship Automation - Reference Manual #492,Michael Quinn,R-44-A,3
+NB100493,Fundamentals of Weather Routing - Vol. I #493,Mark Clark,R-57-H,14
+NB100494,Handbook of Ship Hydrodynamics - Reference Manual #494,David Roberts,R-30-A,6
+NB100495,Fundamentals of Hull Structures - Field Manual #495,Elizabeth Johnson,R-48-D,8
+NB100496,Guide to Naval AI - Laboratory Guide #496,Jennifer Baker,R-13-D,3
+NB100497,Modern Seamanship - Vol. I #497,John Roberts,R-23-A,6
+NB100498,Modern Maritime Law - Advanced Edition #498,Michael Garcia,R-34-D,7
+NB100499,Applied Ship Design - 2nd Ed. #499,Patricia Irwin,R-06-A,15
+NB100500,Fundamentals of Weather Routing - Case Studies #500,Patricia Turner,R-24-H,12
+NB100501,Advanced Naval AI - Vol. II #501,George Evans,R-41-G,2
+NB100502,Comprehensive Ship Automation - Vol. I #502,Paul Young,R-09-D,5
+NB100503,Handbook of Marine Electronics - Case Studies #503,Patricia Scott,R-48-F,6
+NB100504,Applied Propulsion Systems - 3rd Ed. #504,David Garcia,R-09-B,3
+NB100505,Advanced Aircraft Carriers - Laboratory Guide #505,Kevin King,R-27-B,9
+NB100506,Guide to Corvettes - Laboratory Guide #506,Andrew Owens,R-17-B,2
+NB100507,Practical Ship Hydrodynamics - Field Manual #507,Robert Garcia,R-54-F,3
+NB100508,Advanced Fleet Operations - Reference Manual #508,Mark Quinn,R-04-E,5
+NB100509,Practical Ship Stability - Case Studies #509,Sarah Owens,R-36-D,2
+NB100510,Applied Naval Weapons - 2nd Ed. #510,Michael Anderson,R-04-D,3
+NB100511,Fundamentals of Port Management - Reference Manual #511,Linda Walker,R-42-B,10
+NB100512,Comprehensive Marine Diesel Engines - Vol. II #512,James Clark,R-13-H,13
+NB100513,Practical Maritime Navigation - Reference Manual #513,Michael Brown,R-30-A,3
+NB100514,Comprehensive Bridge Operations - Case Studies #514,Brian Anderson,R-25-G,3
+NB100515,Guide to Corvettes - 2nd Ed. #515,Charles Irwin,R-29-C,1
+NB100516,Comprehensive Cybersecurity at Sea - Field Manual #516,John Walker,R-19-H,7
+NB100517,Essentials of Marine Safety - Vol. I #517,David Irwin,R-25-C,7
+NB100518,Fundamentals of Weather Routing - 3rd Ed. #518,Susan Campbell,R-35-A,7
+NB100519,Guide to Marine Safety - Professional Edition #519,Elizabeth Parker,R-23-F,7
+NB100520,Handbook of Destroyers - Vol. I #520,Peter Taylor,R-15-A,15
+NB100521,Handbook of Ship Design - Laboratory Guide #521,George Lewis,R-50-D,3
+NB100522,Advanced Fleet Operations - 3rd Ed. #522,Charles Roberts,R-53-A,13
+NB100523,Fundamentals of Ship Automation - Case Studies #523,Daniel White,R-54-C,3
+NB100524,Fundamentals of Naval AI - Reference Manual #524,Elizabeth Allen,R-45-F,15
+NB100525,Comprehensive Ship Stability - Reference Manual #525,Henry Smith,R-10-D,14
+NB100526,Applied Oceanography - Advanced Edition #526,Richard Parker,R-03-B,1
+NB100527,Fundamentals of Autonomous Vessels - 3rd Ed. #527,James Quinn,R-31-A,6
+NB100528,Comprehensive Frigates - 2nd Ed. #528,Peter Hall,R-12-F,1
+NB100529,Modern Submarine Technology - Field Manual #529,Patricia White,R-10-B,14
+NB100530,Essentials of Naval History - Vol. II #530,Daniel Hall,R-43-G,10
+NB100531,Advanced Coastal Defense - Advanced Edition #531,Peter Evans,R-11-G,13
+NB100532,Applied Marine Electronics - 2nd Ed. #532,Patricia Roberts,R-45-F,4
+NB100533,Comprehensive Destroyers - Case Studies #533,Andrew Allen,R-45-E,3
+NB100534,Practical Naval Architecture - Field Manual #534,Mark Morgan,R-50-A,3
+NB100535,Comprehensive Marine Electronics - Field Manual #535,John Walker,R-37-B,15
+NB100536,Applied Submarine Technology - Reference Manual #536,Karen Clark,R-16-F,6
+NB100537,Practical Maritime Navigation - Reference Manual #537,Kevin Anderson,R-17-D,4
+NB100538,Advanced Naval Strategy - Advanced Edition #538,Elizabeth Davis,R-47-A,1
+NB100539,Principles of Electronic Warfare - Case Studies #539,Richard Turner,R-27-H,15
+NB100540,Principles of Naval Strategy - Professional Edition #540,Mark Davis,R-54-H,13
+NB100541,Comprehensive Naval Logistics - 2nd Ed. #541,Kevin Clark,R-52-A,5
+NB100542,Modern Marine Electronics - Advanced Edition #542,Michael Clark,R-22-C,15
+NB100543,Principles of Aircraft Carriers - Vol. II #543,Edward Turner,R-06-F,10
+NB100544,Comprehensive Marine Safety - Vol. I #544,Paul Walker,R-11-G,3
+NB100545,Modern Naval Weapons - Reference Manual #545,Thomas Garcia,R-27-E,11
+NB100546,Handbook of Ship Hydrodynamics - 3rd Ed. #546,Michael Brown,R-26-H,3
+NB100547,Modern Naval History - Vol. I #547,Paul Clark,R-19-H,4
+NB100548,Advanced Ship Stability - 3rd Ed. #548,Richard Walker,R-19-B,8
+NB100549,Advanced Ship Hydrodynamics - Case Studies #549,Brian Parker,R-58-E,2
+NB100550,Essentials of Maritime Law - 2nd Ed. #550,Daniel Turner,R-25-F,3
+NB100551,Applied Marine Engineering - Advanced Edition #551,Kevin Owens,R-17-D,14
+NB100552,Handbook of Ship Automation - Vol. I #552,William Baker,R-45-B,2
+NB100553,Guide to Oceanography - Case Studies #553,Jennifer Smith,R-15-A,14
+NB100554,Principles of Weather Routing - Case Studies #554,Edward Young,R-56-H,10
+NB100555,Fundamentals of Marine Safety - Advanced Edition #555,David Martin,R-58-A,9
+NB100556,Comprehensive Weather Routing - Field Manual #556,Linda Taylor,R-10-B,13
+NB100557,Applied Destroyers - 2nd Ed. #557,Thomas Campbell,R-13-C,1
+NB100558,Principles of Maritime Navigation - Case Studies #558,Thomas Scott,R-41-C,14
+NB100559,Comprehensive Marine Diesel Engines - Reference Manual #559,Emma Allen,R-59-B,2
+NB100560,Principles of Marine Materials - Case Studies #560,Edward King,R-55-E,9
+NB100561,Applied Naval Architecture - Field Manual #561,Henry Quinn,R-51-G,2
+NB100562,Principles of Submarine Technology - 2nd Ed. #562,Henry Smith,R-38-B,15
+NB100563,Advanced Ship Automation - Vol. II #563,Elizabeth Johnson,R-56-F,15
+NB100564,Principles of Marine Diesel Engines - Case Studies #564,Susan Parker,R-37-H,1
+NB100565,Practical Propulsion Systems - Case Studies #565,William Taylor,R-39-G,1
+NB100566,Principles of Coastal Defense - 3rd Ed. #566,Robert Allen,R-31-E,15
+NB100567,Guide to Ship Stability - Reference Manual #567,Maria Campbell,R-20-E,5
+NB100568,Applied Naval Weapons - 3rd Ed. #568,William Johnson,R-48-H,13
+NB100569,Guide to Propulsion Systems - Case Studies #569,Alan Walker,R-06-D,8
+NB100570,Fundamentals of Seamanship - Laboratory Guide #570,Jennifer Quinn,R-56-F,14
+NB100571,Modern Navigation Charts - 2nd Ed. #571,David Johnson,R-46-G,3
+NB100572,Essentials of Ship Automation - Vol. I #572,Richard Garcia,R-57-D,14
+NB100573,Modern Fleet Operations - Vol. I #573,Kevin Brown,R-59-F,12
+NB100574,Fundamentals of Propulsion Systems - Reference Manual #574,Maria Owens,R-33-G,11
+NB100575,Advanced Ship Stability - 3rd Ed. #575,Daniel Parker,R-39-H,3
+NB100576,Applied Naval AI - Professional Edition #576,Daniel Lewis,R-11-E,12
+NB100577,Advanced Hull Structures - Vol. I #577,Mark Brown,R-11-D,14
+NB100578,Fundamentals of Naval Logistics - 3rd Ed. #578,Charles Walker,R-27-A,14
+NB100579,Modern Marine Safety - 2nd Ed. #579,Susan Fisher,R-39-A,4
+NB100580,Handbook of Autonomous Vessels - Advanced Edition #580,Patricia Hall,R-42-E,7
+NB100581,Principles of Naval Strategy - Laboratory Guide #581,Charles Garcia,R-30-E,11
+NB100582,Essentials of Cybersecurity at Sea - Case Studies #582,Henry Davis,R-01-F,9
+NB100583,Comprehensive Autonomous Vessels - Advanced Edition #583,Andrew Young,R-07-H,2
+NB100584,Guide to Propulsion Systems - Reference Manual #584,Sarah Irwin,R-17-E,4
+NB100585,Practical Weather Routing - 3rd Ed. #585,Laura Brown,R-52-G,11
+NB100586,Guide to Sonar Systems - Vol. I #586,Susan Parker,R-19-E,15
+NB100587,Principles of Port Management - Case Studies #587,Karen Brown,R-38-D,6
+NB100588,Fundamentals of Oceanography - Laboratory Guide #588,Emma Young,R-23-E,14
+NB100589,Practical Marine Materials - 2nd Ed. #589,Andrew Davis,R-31-C,12
+NB100590,Handbook of Marine Materials - 2nd Ed. #590,Linda Turner,R-22-B,4
+NB100591,Guide to Naval Logistics - Advanced Edition #591,Paul Campbell,R-57-F,6
+NB100592,Handbook of Naval AI - Advanced Edition #592,Kevin Morgan,R-08-H,1
+NB100593,Comprehensive Naval AI - Field Manual #593,David Parker,R-57-D,9
+NB100594,Advanced Maritime Law - Professional Edition #594,Andrew Nelson,R-04-C,3
+NB100595,Fundamentals of Coastal Defense - Case Studies #595,Henry Turner,R-59-H,3
+NB100596,Guide to Destroyers - Vol. II #596,Brian King,R-41-C,6
+NB100597,Modern Naval Architecture - Laboratory Guide #597,Charles Garcia,R-49-C,10
+NB100598,Practical Naval Communications - Vol. II #598,William Taylor,R-28-G,7
+NB100599,Principles of Marine Safety - Case Studies #599,James Brown,R-35-D,12
+NB100600,Guide to Naval Architecture - Reference Manual #600,Jennifer Scott,R-34-D,1
+NB100601,Modern Fleet Operations - 3rd Ed. #601,Patricia Turner,R-23-E,3
+NB100602,Advanced Maritime Law - Professional Edition #602,Henry Johnson,R-11-B,14
+NB100603,Modern Ship Hydrodynamics - Advanced Edition #603,Kevin Allen,R-34-F,7
+NB100604,Practical Coastal Defense - Laboratory Guide #604,Daniel Baker,R-13-C,15
+NB100605,Principles of Ship Stability - 3rd Ed. #605,John Allen,R-09-D,12
+NB100606,Modern Naval AI - Professional Edition #606,Richard Davis,R-24-A,7
+NB100607,Handbook of Oceanography - Field Manual #607,Robert Taylor,R-04-B,11
+NB100608,Modern Ship Design - Vol. II #608,Paul Owens,R-25-B,9
+NB100609,Handbook of Marine Safety - 2nd Ed. #609,Thomas Hall,R-44-A,5
+NB100610,Principles of Naval Weapons - Professional Edition #610,Charles Taylor,R-39-C,7
+NB100611,Advanced Navigation Charts - Field Manual #611,Michael Johnson,R-08-B,8
+NB100612,Fundamentals of Autonomous Vessels - 3rd Ed. #612,Jennifer Irwin,R-54-D,6
+NB100613,Principles of Hull Structures - 2nd Ed. #613,Robert Roberts,R-32-D,12
+NB100614,Applied Coastal Defense - 3rd Ed. #614,James Anderson,R-43-B,15
+NB100615,Advanced Ship Automation - Laboratory Guide #615,William Clark,R-50-B,12
+NB100616,Advanced Marine Diesel Engines - 3rd Ed. #616,Kevin Johnson,R-17-H,1
+NB100617,Advanced Destroyers - Vol. I #617,Sarah Johnson,R-24-F,7
+NB100618,Advanced Naval Weapons - Vol. I #618,James Morgan,R-09-C,6
+NB100619,Guide to Electronic Warfare - Field Manual #619,Charles Turner,R-47-B,6
+NB100620,Guide to Destroyers - Vol. II #620,Mark Martin,R-30-E,14
+NB100621,Principles of Marine Safety - Case Studies #621,Susan Turner,R-52-C,2
+NB100622,Practical Ship Design - 2nd Ed. #622,Michael Nelson,R-59-H,13
+NB100623,Comprehensive Electronic Warfare - 2nd Ed. #623,Alan Martin,R-50-F,10
+NB100624,Modern Sonar Systems - Laboratory Guide #624,Emma Parker,R-08-G,8
+NB100625,Modern Ocean Engineering - Advanced Edition #625,Susan King,R-01-D,11
+NB100626,Guide to Weather Routing - Professional Edition #626,Patricia Hall,R-40-B,7
+NB100627,Fundamentals of Marine Safety - Reference Manual #627,Linda Young,R-42-G,3
+NB100628,Essentials of Cybersecurity at Sea - Vol. I #628,James Walker,R-60-C,9
+NB100629,Applied Naval Communications - 2nd Ed. #629,David Baker,R-32-F,4
+NB100630,Guide to Propulsion Systems - Vol. I #630,George Harris,R-36-G,7
+NB100631,Fundamentals of Maritime Navigation - Laboratory Guide #631,Kevin Campbell,R-37-H,2
+NB100632,Applied Electronic Warfare - Reference Manual #632,Michael Parker,R-48-A,2
+NB100633,Principles of Seamanship - Vol. I #633,Edward Roberts,R-01-B,13
+NB100634,Comprehensive Cybersecurity at Sea - Advanced Edition #634,Laura Quinn,R-36-D,11
+NB100635,Applied Coastal Defense - Reference Manual #635,Maria Brown,R-53-D,14
+NB100636,Applied Coastal Defense - Professional Edition #636,Jennifer Taylor,R-39-H,12
+NB100637,Guide to Electronic Warfare - Vol. II #637,Michael Baker,R-43-D,1
+NB100638,Guide to Naval Strategy - Advanced Edition #638,Edward Quinn,R-24-B,1
+NB100639,Practical Naval Communications - 2nd Ed. #639,Maria Hall,R-48-G,2
+NB100640,Handbook of Cybersecurity at Sea - 3rd Ed. #640,Thomas Davis,R-60-G,4
+NB100641,Applied Frigates - Reference Manual #641,Michael Baker,R-27-A,15
+NB100642,Comprehensive Radar Systems - Laboratory Guide #642,Kevin Young,R-38-C,8
+NB100643,Modern Weather Routing - Vol. I #643,Edward White,R-28-H,15
+NB100644,Essentials of Destroyers - Field Manual #644,Richard Allen,R-53-C,2
+NB100645,Principles of Autonomous Vessels - Field Manual #645,Laura King,R-33-G,7
+NB100646,Comprehensive Fleet Operations - Advanced Edition #646,Mark King,R-19-H,13
+NB100647,Practical Sonar Systems - Case Studies #647,Alan Hall,R-57-E,14
+NB100648,Essentials of Marine Electronics - Professional Edition #648,Susan Garcia,R-13-D,10
+NB100649,Handbook of Naval Strategy - 2nd Ed. #649,Patricia Walker,R-12-F,12
+NB100650,Advanced Naval Strategy - Professional Edition #650,Brian Smith,R-37-G,11
+NB100651,Essentials of Hull Structures - Case Studies #651,Elizabeth Anderson,R-34-B,1
+NB100652,Principles of Submarine Technology - Vol. I #652,Linda Brown,R-13-E,13
+NB100653,Practical Hull Structures - Advanced Edition #653,William Scott,R-04-E,4
+NB100654,Essentials of Marine Engineering - Reference Manual #654,Maria Owens,R-07-D,12
+NB100655,Essentials of Maritime Law - 3rd Ed. #655,George Campbell,R-51-E,12
+NB100656,Modern Maritime Law - Case Studies #656,Paul Campbell,R-44-F,9
+NB100657,Modern Naval Architecture - Advanced Edition #657,Thomas Taylor,R-56-H,14
+NB100658,Fundamentals of Naval History - Field Manual #658,Edward Allen,R-39-D,13
+NB100659,Fundamentals of Hull Structures - Laboratory Guide #659,Richard Young,R-05-C,3
+NB100660,Essentials of Radar Systems - Case Studies #660,Robert Nelson,R-18-E,3
+NB100661,Practical Naval AI - Advanced Edition #661,James King,R-30-C,1
+NB100662,Practical Marine Electronics - Field Manual #662,Robert Baker,R-60-E,8
+NB100663,Comprehensive Marine Materials - Reference Manual #663,David Campbell,R-46-F,9
+NB100664,Fundamentals of Destroyers - Professional Edition #664,David Campbell,R-33-C,7
+NB100665,Essentials of Oceanography - Case Studies #665,David Lewis,R-15-D,11
+NB100666,Guide to Coastal Defense - Reference Manual #666,Andrew Garcia,R-49-H,9
+NB100667,Modern Radar Systems - Reference Manual #667,Kevin Harris,R-58-D,1
+NB100668,Guide to Maritime Law - Vol. II #668,Mark Irwin,R-35-E,1
+NB100669,Essentials of Naval History - Professional Edition #669,Elizabeth Quinn,R-29-H,1
+NB100670,Handbook of Frigates - Reference Manual #670,George Clark,R-07-C,13
+NB100671,Essentials of Oceanography - Vol. I #671,Susan Clark,R-14-D,14
+NB100672,Principles of Naval Weapons - 3rd Ed. #672,Edward Scott,R-45-G,11
+NB100673,Advanced Submarine Technology - Vol. I #673,Kevin Hall,R-22-A,2
+NB100674,Advanced Ship Design - 2nd Ed. #674,Elizabeth Irwin,R-36-B,10
+NB100675,Fundamentals of Marine Diesel Engines - Case Studies #675,Mark Owens,R-41-G,7
+NB100676,Guide to Ship Stability - Case Studies #676,Linda Davis,R-35-A,11
+NB100677,Comprehensive Ocean Engineering - Field Manual #677,Robert Hall,R-55-B,6
+NB100678,Essentials of Naval Weapons - Advanced Edition #678,Elizabeth Young,R-20-B,5
+NB100679,Applied Maritime Law - Case Studies #679,Maria Young,R-02-H,3
+NB100680,Essentials of Naval Logistics - 2nd Ed. #680,Karen Martin,R-51-E,11
+NB100681,Practical Ship Hydrodynamics - Reference Manual #681,James Roberts,R-56-C,2
+NB100682,Modern Naval Architecture - Field Manual #682,Alan Martin,R-35-B,5
+NB100683,Fundamentals of Naval Strategy - 3rd Ed. #683,Paul Turner,R-42-C,3
+NB100684,Practical Naval Logistics - Field Manual #684,Maria Irwin,R-13-B,3
+NB100685,Comprehensive Ship Design - Professional Edition #685,Kevin Walker,R-36-B,5
+NB100686,Advanced Marine Diesel Engines - Vol. II #686,Thomas Allen,R-38-H,6
+NB100687,Guide to Sonar Systems - 3rd Ed. #687,Michael Johnson,R-40-B,15
+NB100688,Fundamentals of Marine Electronics - Laboratory Guide #688,Kevin King,R-40-E,12
+NB100689,Comprehensive Submarine Technology - Field Manual #689,Henry Lewis,R-52-F,7
+NB100690,Practical Naval Architecture - Reference Manual #690,John Campbell,R-15-G,5
+NB100691,Guide to Sonar Systems - Reference Manual #691,Laura Parker,R-30-H,6
+NB100692,Handbook of Naval Communications - Professional Edition #692,Michael Fisher,R-42-B,14
+NB100693,Handbook of Sonar Systems - Professional Edition #693,Thomas Irwin,R-47-B,12
+NB100694,Advanced Ship Stability - Professional Edition #694,Susan Anderson,R-53-G,13
+NB100695,Comprehensive Corvettes - Vol. I #695,Edward Irwin,R-35-H,11
+NB100696,Practical Naval History - Case Studies #696,John Turner,R-50-E,3
+NB100697,Applied Navigation Charts - Professional Edition #697,David Martin,R-24-A,11
+NB100698,Fundamentals of Cybersecurity at Sea - 2nd Ed. #698,Jennifer Quinn,R-09-H,3
+NB100699,Practical Ship Automation - Field Manual #699,Linda Morgan,R-10-H,6
+NB100700,Modern Naval Logistics - Laboratory Guide #700,John Clark,R-17-F,4
+NB100701,Modern Corvettes - Professional Edition #701,Emma Campbell,R-24-G,8
+NB100702,Applied Marine Engineering - Vol. I #702,Susan King,R-07-E,14
+NB100703,Handbook of Naval AI - Professional Edition #703,Henry Fisher,R-25-G,6
+NB100704,Comprehensive Ocean Engineering - Professional Edition #704,Charles Martin,R-59-D,9
+NB100705,Principles of Naval Strategy - Reference Manual #705,Brian Campbell,R-31-A,9
+NB100706,Practical Electronic Warfare - 2nd Ed. #706,John Clark,R-33-E,4
+NB100707,Practical Destroyers - 2nd Ed. #707,Daniel Taylor,R-46-B,11
+NB100708,Fundamentals of Seamanship - Reference Manual #708,Karen Davis,R-31-H,8
+NB100709,Fundamentals of Naval AI - 2nd Ed. #709,Susan Scott,R-27-A,4
+NB100710,Modern Sonar Systems - Field Manual #710,Henry Fisher,R-09-A,15
+NB100711,Comprehensive Submarine Technology - Vol. I #711,Richard Irwin,R-60-C,9
+NB100712,Principles of Autonomous Vessels - Field Manual #712,Susan Anderson,R-57-E,2
+NB100713,Fundamentals of Electronic Warfare - Field Manual #713,Brian Morgan,R-31-C,4
+NB100714,Principles of Autonomous Vessels - 2nd Ed. #714,Elizabeth Smith,R-53-C,10
+NB100715,Essentials of Marine Diesel Engines - 2nd Ed. #715,Karen Young,R-22-H,10
+NB100716,Comprehensive Ocean Engineering - 3rd Ed. #716,Mark Martin,R-09-B,1
+NB100717,Fundamentals of Weather Routing - Professional Edition #717,Linda Nelson,R-53-C,10
+NB100718,Advanced Destroyers - Laboratory Guide #718,Laura Taylor,R-39-A,15
+NB100719,Essentials of Navigation Charts - Vol. II #719,David Parker,R-43-C,15
+NB100720,Comprehensive Oceanography - Vol. I #720,Laura Baker,R-44-G,9
+NB100721,Principles of Naval History - Vol. I #721,Patricia Quinn,R-28-D,13
+NB100722,Applied Maritime Law - Reference Manual #722,Henry Campbell,R-48-B,7
+NB100723,Practical Marine Diesel Engines - Laboratory Guide #723,Jennifer Harris,R-59-B,5
+NB100724,Comprehensive Oceanography - Case Studies #724,Charles Garcia,R-01-A,10
+NB100725,Essentials of Radar Systems - Professional Edition #725,James Martin,R-42-D,12
+NB100726,Guide to Seamanship - Reference Manual #726,Michael Evans,R-28-E,5
+NB100727,Essentials of Bridge Operations - Field Manual #727,Daniel Taylor,R-18-G,13
+NB100728,Fundamentals of Seamanship - Professional Edition #728,Elizabeth Roberts,R-31-C,6
+NB100729,Essentials of Marine Materials - Laboratory Guide #729,Charles Johnson,R-37-F,13
+NB100730,Principles of Sonar Systems - Vol. II #730,Karen Harris,R-29-C,2
+NB100731,Fundamentals of Navigation Charts - Case Studies #731,Elizabeth King,R-52-A,3
+NB100732,Principles of Naval Architecture - Vol. II #732,Maria Evans,R-31-G,2
+NB100733,Advanced Marine Diesel Engines - 3rd Ed. #733,Daniel Clark,R-39-A,12
+NB100734,Principles of Port Management - Field Manual #734,Susan Quinn,R-19-A,13
+NB100735,Practical Naval Communications - Laboratory Guide #735,James Garcia,R-55-E,4
+NB100736,Modern Autonomous Vessels - Professional Edition #736,George Hall,R-15-C,11
+NB100737,Modern Naval History - 3rd Ed. #737,Susan Anderson,R-11-B,5
+NB100738,Principles of Naval Strategy - Case Studies #738,Mark Smith,R-13-A,12
+NB100739,Advanced Maritime Navigation - Professional Edition #739,Andrew Allen,R-54-F,6
+NB100740,Handbook of Naval Logistics - Field Manual #740,Thomas Owens,R-60-G,10
+NB100741,Modern Marine Diesel Engines - 2nd Ed. #741,Paul Quinn,R-07-B,9
+NB100742,Handbook of Coastal Defense - Vol. II #742,Elizabeth Quinn,R-17-E,12
+NB100743,Applied Maritime Law - Field Manual #743,Brian Baker,R-16-F,13
+NB100744,Applied Underwater Acoustics - Field Manual #744,Sarah Anderson,R-31-B,5
+NB100745,Advanced Maritime Law - 3rd Ed. #745,Linda Hall,R-15-F,7
+NB100746,Guide to Weather Routing - Professional Edition #746,James Hall,R-54-E,4
+NB100747,Handbook of Maritime Navigation - Case Studies #747,Linda Allen,R-53-F,2
+NB100748,Essentials of Destroyers - Laboratory Guide #748,Peter Lewis,R-14-E,3
+NB100749,Fundamentals of Naval Communications - 3rd Ed. #749,John Allen,R-16-E,4
+NB100750,Fundamentals of Frigates - 3rd Ed. #750,Maria Taylor,R-23-C,13
+NB100751,Advanced Radar Systems - Vol. II #751,Linda Young,R-32-A,13
+NB100752,Essentials of Marine Engineering - Laboratory Guide #752,Daniel Taylor,R-21-H,15
+NB100753,Comprehensive Propulsion Systems - Laboratory Guide #753,Richard Baker,R-59-E,7
+NB100754,Fundamentals of Ship Automation - 2nd Ed. #754,Robert Quinn,R-52-G,8
+NB100755,Essentials of Marine Engineering - Professional Edition #755,Daniel Martin,R-56-C,8
+NB100756,Advanced Weather Routing - Laboratory Guide #756,Peter Hall,R-01-A,11
+NB100757,Fundamentals of Maritime Law - Field Manual #757,Michael King,R-24-E,3
+NB100758,Essentials of Marine Diesel Engines - 3rd Ed. #758,Charles Parker,R-40-F,6
+NB100759,Practical Naval Communications - Case Studies #759,Thomas Nelson,R-45-F,6
+NB100760,Principles of Propulsion Systems - Laboratory Guide #760,Richard Smith,R-09-D,14
+NB100761,Advanced Propulsion Systems - 3rd Ed. #761,Edward Nelson,R-55-G,4
+NB100762,Practical Submarine Technology - Laboratory Guide #762,Elizabeth Anderson,R-12-G,8
+NB100763,Practical Weather Routing - Professional Edition #763,Karen King,R-51-H,5
+NB100764,Handbook of Marine Materials - Field Manual #764,Robert Martin,R-07-C,1
+NB100765,Fundamentals of Marine Diesel Engines - Laboratory Guide #765,Maria Walker,R-07-H,12
+NB100766,Guide to Marine Diesel Engines - Reference Manual #766,Daniel Roberts,R-36-E,6
+NB100767,Modern Seamanship - Vol. II #767,Daniel Morgan,R-44-D,10
+NB100768,Comprehensive Oceanography - 2nd Ed. #768,Jennifer Johnson,R-23-F,11
+NB100769,Essentials of Naval Communications - Laboratory Guide #769,Laura Clark,R-25-E,8
+NB100770,Practical Aircraft Carriers - Reference Manual #770,Paul Walker,R-40-G,14
+NB100771,Advanced Maritime Navigation - 2nd Ed. #771,Peter Harris,R-21-F,11
+NB100772,Handbook of Propulsion Systems - Field Manual #772,Susan Martin,R-18-H,13
+NB100773,Guide to Naval AI - Professional Edition #773,Kevin Nelson,R-11-C,14
+NB100774,Modern Sonar Systems - 3rd Ed. #774,Linda Irwin,R-48-B,4
+NB100775,Practical Port Management - Vol. II #775,Michael Clark,R-60-H,9
+NB100776,Modern Ship Stability - Case Studies #776,George Baker,R-06-B,5
+NB100777,Comprehensive Submarine Technology - Vol. II #777,Susan White,R-57-G,5
+NB100778,Fundamentals of Fleet Operations - Advanced Edition #778,Kevin Walker,R-09-C,9
+NB100779,Practical Ship Stability - Vol. I #779,Linda Lewis,R-56-F,14
+NB100780,Applied Underwater Acoustics - Professional Edition #780,Emma Irwin,R-36-H,3
+NB100781,Essentials of Destroyers - Field Manual #781,Alan Owens,R-41-G,9
+NB100782,Essentials of Ship Hydrodynamics - Reference Manual #782,Brian Roberts,R-15-B,8
+NB100783,Handbook of Naval History - Case Studies #783,Charles Evans,R-20-A,1
+NB100784,Essentials of Sonar Systems - Reference Manual #784,Andrew Parker,R-35-A,12
+NB100785,Applied Marine Safety - Advanced Edition #785,James Baker,R-28-E,10
+NB100786,Fundamentals of Naval Architecture - Professional Edition #786,Daniel Garcia,R-27-G,7
+NB100787,Fundamentals of Aircraft Carriers - Case Studies #787,Maria Martin,R-15-E,2
+NB100788,Principles of Fleet Operations - Professional Edition #788,Jennifer Campbell,R-59-E,5
+NB100789,Essentials of Propulsion Systems - Case Studies #789,Thomas Morgan,R-05-C,3
+NB100790,Handbook of Radar Systems - Laboratory Guide #790,Alan Owens,R-18-H,4
+NB100791,Guide to Ship Stability - 2nd Ed. #791,Robert Roberts,R-02-C,2
+NB100792,Handbook of Propulsion Systems - 2nd Ed. #792,Patricia Owens,R-47-A,4
+NB100793,Advanced Submarine Technology - Vol. I #793,Brian Garcia,R-22-G,5
+NB100794,Applied Naval History - Laboratory Guide #794,Patricia Campbell,R-03-F,2
+NB100795,Practical Ship Design - Advanced Edition #795,Jennifer Martin,R-05-H,3
+NB100796,Fundamentals of Marine Diesel Engines - Case Studies #796,Maria Anderson,R-08-D,7
+NB100797,Applied Fleet Operations - Vol. I #797,Thomas Owens,R-48-B,9
+NB100798,Fundamentals of Marine Safety - Case Studies #798,Linda Johnson,R-60-F,3
+NB100799,Modern Marine Materials - Professional Edition #799,Michael Irwin,R-31-E,4
+NB100800,Guide to Ship Design - 3rd Ed. #800,Michael Harris,R-41-G,6
+NB100801,Modern Aircraft Carriers - Advanced Edition #801,Henry Davis,R-26-D,1
+NB100802,Modern Naval AI - Laboratory Guide #802,Patricia Taylor,R-10-F,13
+NB100803,Advanced Fleet Operations - 2nd Ed. #803,Brian Clark,R-44-F,15
+NB100804,Modern Ship Design - Reference Manual #804,Susan Evans,R-45-B,3
+NB100805,Applied Naval Logistics - Reference Manual #805,Edward Campbell,R-42-F,13
+NB100806,Applied Frigates - Vol. I #806,Patricia Martin,R-23-C,5
+NB100807,Modern Naval Communications - Laboratory Guide #807,Edward Johnson,R-35-H,4
+NB100808,Comprehensive Destroyers - Professional Edition #808,Daniel King,R-47-H,5
+NB100809,Comprehensive Marine Materials - 2nd Ed. #809,David Quinn,R-10-H,5
+NB100810,Handbook of Oceanography - Reference Manual #810,Kevin Anderson,R-50-G,12
+NB100811,Practical Ship Stability - Field Manual #811,Sarah Lewis,R-50-D,6
+NB100812,Advanced Oceanography - Case Studies #812,Thomas Quinn,R-44-H,13
+NB100813,Essentials of Submarine Technology - Field Manual #813,Andrew King,R-27-F,2
+NB100814,Advanced Weather Routing - Vol. II #814,Robert Scott,R-09-C,14
+NB100815,Modern Frigates - Vol. II #815,Brian Garcia,R-07-A,10
+NB100816,Principles of Naval Communications - Professional Edition #816,Alan Hall,R-38-E,1
+NB100817,Guide to Naval Logistics - Field Manual #817,Patricia Clark,R-01-D,11
+NB100818,Applied Maritime Navigation - Laboratory Guide #818,Elizabeth Walker,R-04-F,9
+NB100819,Principles of Naval History - Vol. I #819,Maria Taylor,R-18-A,12
+NB100820,Advanced Ship Hydrodynamics - Vol. II #820,Thomas Quinn,R-07-B,12
+NB100821,Fundamentals of Oceanography - Case Studies #821,Thomas Garcia,R-34-D,10
+NB100822,Practical Marine Materials - Professional Edition #822,Paul Allen,R-07-F,11
+NB100823,Applied Bridge Operations - Vol. II #823,Richard Campbell,R-12-G,9
+NB100824,Guide to Aircraft Carriers - Professional Edition #824,Alan Owens,R-60-F,15
+NB100825,Guide to Marine Materials - Reference Manual #825,Sarah Lewis,R-27-G,14
+NB100826,Guide to Autonomous Vessels - 3rd Ed. #826,Henry Roberts,R-14-G,13
+NB100827,Essentials of Marine Diesel Engines - Reference Manual #827,Kevin Owens,R-26-A,12
+NB100828,Modern Hull Structures - Field Manual #828,James Quinn,R-09-E,1
+NB100829,Handbook of Naval Logistics - 3rd Ed. #829,Sarah King,R-02-E,15
+NB100830,Essentials of Navigation Charts - Professional Edition #830,Henry White,R-37-C,2
+NB100831,Modern Underwater Acoustics - Reference Manual #831,William Evans,R-17-F,15
+NB100832,Comprehensive Fleet Operations - 3rd Ed. #832,Charles Campbell,R-20-B,10
+NB100833,Principles of Ship Automation - 3rd Ed. #833,Karen Clark,R-47-F,13
+NB100834,Applied Destroyers - Laboratory Guide #834,Maria Turner,R-45-B,10
+NB100835,Handbook of Marine Engineering - Field Manual #835,Mark Clark,R-50-A,15
+NB100836,Guide to Naval Strategy - Case Studies #836,Paul White,R-56-B,14
+NB100837,Fundamentals of Autonomous Vessels - Vol. I #837,Susan Baker,R-41-G,1
+NB100838,Handbook of Weather Routing - Vol. I #838,Peter Roberts,R-37-C,6
+NB100839,Essentials of Naval Logistics - 2nd Ed. #839,Robert Young,R-47-G,8
+NB100840,Comprehensive Ship Automation - Professional Edition #840,David Harris,R-28-E,13
+NB100841,Principles of Submarine Technology - 2nd Ed. #841,Peter Clark,R-31-A,9
+NB100842,Principles of Marine Diesel Engines - Vol. II #842,Mark Quinn,R-28-C,13
+NB100843,Practical Marine Safety - Professional Edition #843,Thomas Parker,R-26-D,9
+NB100844,Comprehensive Weather Routing - 3rd Ed. #844,John Clark,R-18-G,6
+NB100845,Comprehensive Maritime Navigation - Vol. II #845,Linda Nelson,R-28-F,6
+NB100846,Fundamentals of Marine Electronics - Reference Manual #846,Alan Walker,R-02-E,3
+NB100847,Guide to Cybersecurity at Sea - Laboratory Guide #847,Alan Evans,R-29-A,15
+NB100848,Fundamentals of Frigates - Reference Manual #848,William Baker,R-47-B,2
+NB100849,Modern Fleet Operations - Field Manual #849,Emma Evans,R-56-E,1
+NB100850,Guide to Radar Systems - Advanced Edition #850,Kevin Parker,R-02-F,4
+NB100851,Essentials of Corvettes - 3rd Ed. #851,Edward Quinn,R-49-E,9
+NB100852,Applied Cybersecurity at Sea - 2nd Ed. #852,Patricia Hall,R-43-A,7
+NB100853,Comprehensive Weather Routing - Vol. I #853,Charles Fisher,R-04-E,4
+NB100854,Comprehensive Propulsion Systems - Vol. I #854,Kevin Walker,R-01-B,7
+NB100855,Handbook of Naval History - Vol. II #855,James Johnson,R-56-G,4
+NB100856,Principles of Navigation Charts - Vol. II #856,Laura King,R-32-B,3
+NB100857,Fundamentals of Navigation Charts - Laboratory Guide #857,Edward White,R-46-A,1
+NB100858,Fundamentals of Weather Routing - Advanced Edition #858,Peter Parker,R-26-C,1
+NB100859,Guide to Naval Strategy - Reference Manual #859,Susan Johnson,R-16-E,13
+NB100860,Modern Marine Diesel Engines - Case Studies #860,Laura Scott,R-02-E,4
+NB100861,Practical Coastal Defense - Case Studies #861,Linda Evans,R-06-G,9
+NB100862,Comprehensive Naval Logistics - Case Studies #862,John Smith,R-10-G,5
+NB100863,Comprehensive Coastal Defense - Laboratory Guide #863,Edward Evans,R-14-C,10
+NB100864,Essentials of Frigates - 2nd Ed. #864,Andrew Hall,R-46-C,7
+NB100865,Practical Ship Automation - 2nd Ed. #865,Peter Clark,R-36-B,3
+NB100866,Guide to Submarine Technology - Vol. I #866,Jennifer King,R-57-G,7
+NB100867,Handbook of Electronic Warfare - Advanced Edition #867,William Baker,R-13-B,3
+NB100868,Practical Ship Stability - Field Manual #868,Alan Irwin,R-39-D,10
+NB100869,Fundamentals of Naval Logistics - Vol. I #869,Daniel Clark,R-45-H,3
+NB100870,Essentials of Autonomous Vessels - Laboratory Guide #870,Patricia Walker,R-24-C,14
+NB100871,Principles of Naval Communications - Laboratory Guide #871,William Fisher,R-13-D,1
+NB100872,Principles of Naval Architecture - Advanced Edition #872,Paul Harris,R-48-D,13
+NB100873,Fundamentals of Ocean Engineering - 2nd Ed. #873,Emma Owens,R-56-H,12
+NB100874,Guide to Underwater Acoustics - 3rd Ed. #874,Paul Martin,R-50-A,10
+NB100875,Principles of Marine Electronics - Case Studies #875,Alan Allen,R-37-A,9
+NB100876,Advanced Electronic Warfare - Laboratory Guide #876,Maria Turner,R-03-D,9
+NB100877,Essentials of Port Management - Vol. I #877,Edward Martin,R-34-A,4
+NB100878,Handbook of Electronic Warfare - Case Studies #878,Laura Johnson,R-50-E,8
+NB100879,Practical Bridge Operations - Advanced Edition #879,Alan White,R-04-C,8
+NB100880,Applied Maritime Navigation - Professional Edition #880,Michael Fisher,R-50-C,7
+NB100881,Principles of Marine Electronics - Laboratory Guide #881,James Fisher,R-30-D,15
+NB100882,Applied Maritime Navigation - Advanced Edition #882,Peter Hall,R-42-C,12
+NB100883,Advanced Maritime Navigation - Vol. II #883,Patricia Owens,R-41-F,2
+NB100884,Essentials of Maritime Law - Professional Edition #884,Alan Fisher,R-25-G,1
+NB100885,Practical Coastal Defense - Field Manual #885,Sarah Young,R-56-C,3
+NB100886,Practical Destroyers - Vol. I #886,Paul Johnson,R-20-H,5
+NB100887,Practical Radar Systems - 2nd Ed. #887,Thomas Anderson,R-40-E,1
+NB100888,Applied Naval Communications - Laboratory Guide #888,Edward Campbell,R-01-H,4
+NB100889,Fundamentals of Naval AI - Laboratory Guide #889,Kevin Nelson,R-29-B,10
+NB100890,Comprehensive Naval Architecture - 3rd Ed. #890,Laura Roberts,R-18-D,1
+NB100891,Practical Submarine Technology - Vol. I #891,Susan Lewis,R-03-C,14
+NB100892,Modern Ship Automation - Field Manual #892,Andrew King,R-59-B,1
+NB100893,Advanced Seamanship - 2nd Ed. #893,Richard Young,R-19-C,8
+NB100894,Comprehensive Naval History - Vol. I #894,David Baker,R-20-F,6
+NB100895,Principles of Ocean Engineering - Case Studies #895,Maria Roberts,R-05-E,8
+NB100896,Practical Radar Systems - Advanced Edition #896,Peter Quinn,R-27-D,12
+NB100897,Fundamentals of Cybersecurity at Sea - Vol. I #897,Michael Smith,R-47-B,8
+NB100898,Comprehensive Hull Structures - Case Studies #898,Alan Morgan,R-21-E,9
+NB100899,Comprehensive Cybersecurity at Sea - Reference Manual #899,Emma Evans,R-40-H,9
+NB100900,Applied Naval Communications - 2nd Ed. #900,Laura Taylor,R-15-E,4
+NB100901,Modern Radar Systems - Vol. I #901,Kevin Walker,R-51-B,12
+NB100902,Fundamentals of Cybersecurity at Sea - Case Studies #902,Paul Brown,R-22-F,9
+NB100903,Fundamentals of Naval Architecture - 3rd Ed. #903,Patricia Johnson,R-17-B,5
+NB100904,Handbook of Navigation Charts - Professional Edition #904,Peter Baker,R-01-B,11
+NB100905,Guide to Coastal Defense - Case Studies #905,Karen Smith,R-40-A,14
+NB100906,Practical Frigates - Reference Manual #906,Maria King,R-60-H,15
+NB100907,Applied Marine Engineering - 2nd Ed. #907,Brian Evans,R-41-H,15
+NB100908,Essentials of Coastal Defense - Laboratory Guide #908,Elizabeth Scott,R-27-A,14
+NB100909,Essentials of Ship Hydrodynamics - Field Manual #909,Karen Young,R-21-A,4
+NB100910,Comprehensive Coastal Defense - Reference Manual #910,David Evans,R-18-A,6
+NB100911,Principles of Oceanography - 2nd Ed. #911,Henry Taylor,R-25-C,10
+NB100912,Advanced Ship Hydrodynamics - Reference Manual #912,Patricia Brown,R-18-G,2
+NB100913,Applied Fleet Operations - Reference Manual #913,Kevin Scott,R-20-D,9
+NB100914,Handbook of Destroyers - Vol. II #914,Daniel Campbell,R-03-D,15
+NB100915,Advanced Electronic Warfare - Professional Edition #915,James Campbell,R-31-C,4
+NB100916,Guide to Marine Safety - Professional Edition #916,Andrew Baker,R-21-C,13
+NB100917,Advanced Weather Routing - 2nd Ed. #917,Thomas Allen,R-03-H,7
+NB100918,Essentials of Radar Systems - Vol. I #918,Andrew White,R-03-B,6
+NB100919,Applied Marine Engineering - Vol. II #919,George Baker,R-43-E,1
+NB100920,Comprehensive Ship Hydrodynamics - 3rd Ed. #920,Peter Garcia,R-13-E,5
+NB100921,Essentials of Marine Electronics - Laboratory Guide #921,Linda Davis,R-18-C,3
+NB100922,Handbook of Radar Systems - Vol. I #922,Alan Roberts,R-33-B,4
+NB100923,Essentials of Naval Strategy - Professional Edition #923,Peter Irwin,R-10-E,10
+NB100924,Fundamentals of Aircraft Carriers - Vol. II #924,Andrew Taylor,R-58-F,9
+NB100925,Applied Ship Design - 2nd Ed. #925,James Parker,R-58-A,2
+NB100926,Principles of Ship Design - Vol. II #926,Paul Martin,R-12-H,10
+NB100927,Guide to Ship Hydrodynamics - Reference Manual #927,Maria Garcia,R-46-B,15
+NB100928,Applied Ship Automation - 2nd Ed. #928,David Scott,R-52-H,2
+NB100929,Applied Ship Hydrodynamics - Laboratory Guide #929,Brian Harris,R-15-C,14
+NB100930,Comprehensive Marine Diesel Engines - Reference Manual #930,Mark Fisher,R-45-F,13
+NB100931,Guide to Underwater Acoustics - Laboratory Guide #931,James Clark,R-31-B,6
+NB100932,Applied Underwater Acoustics - 2nd Ed. #932,Andrew Baker,R-23-C,9
+NB100933,Advanced Port Management - Vol. II #933,Peter Roberts,R-42-B,13
+NB100934,Handbook of Oceanography - Laboratory Guide #934,Mark Smith,R-27-D,10
+NB100935,Fundamentals of Marine Materials - 2nd Ed. #935,Brian Martin,R-05-F,4
+NB100936,Comprehensive Bridge Operations - Case Studies #936,Henry Campbell,R-22-D,3
+NB100937,Advanced Ship Automation - Laboratory Guide #937,Michael Smith,R-39-H,6
+NB100938,Essentials of Naval Weapons - Laboratory Guide #938,Richard Johnson,R-26-B,10
+NB100939,Advanced Autonomous Vessels - Case Studies #939,Peter Parker,R-42-A,2
+NB100940,Fundamentals of Sonar Systems - Field Manual #940,Laura Baker,R-41-A,13
+NB100941,Practical Submarine Technology - Laboratory Guide #941,Edward Johnson,R-25-H,4
+NB100942,Fundamentals of Marine Electronics - Advanced Edition #942,Henry Campbell,R-59-E,15
+NB100943,Principles of Naval Strategy - Vol. II #943,Henry Anderson,R-40-G,14
+NB100944,Practical Hull Structures - Vol. I #944,Daniel Turner,R-36-A,1
+NB100945,Essentials of Naval Strategy - Vol. II #945,Sarah Johnson,R-56-A,4
+NB100946,Principles of Naval AI - Case Studies #946,Susan King,R-46-G,7
+NB100947,Principles of Bridge Operations - Professional Edition #947,Thomas Young,R-12-H,3
+NB100948,Fundamentals of Marine Materials - Case Studies #948,Maria White,R-24-G,3
+NB100949,Handbook of Sonar Systems - 2nd Ed. #949,James Clark,R-42-A,3
+NB100950,Applied Bridge Operations - 2nd Ed. #950,David Evans,R-42-G,14
+NB100951,Applied Autonomous Vessels - Case Studies #951,Alan Fisher,R-30-G,9
+NB100952,Applied Maritime Law - Reference Manual #952,John Fisher,R-28-A,10
+NB100953,Applied Fleet Operations - Professional Edition #953,Charles Nelson,R-60-F,1
+NB100954,Modern Ship Automation - Laboratory Guide #954,Patricia Lewis,R-08-H,12
+NB100955,Advanced Submarine Technology - Professional Edition #955,Sarah Baker,R-50-E,8
+NB100956,Essentials of Maritime Navigation - Professional Edition #956,Laura Taylor,R-06-D,8
+NB100957,Advanced Oceanography - Field Manual #957,Andrew Taylor,R-04-F,9
+NB100958,Modern Marine Safety - Laboratory Guide #958,George Turner,R-31-F,7
+NB100959,Guide to Hull Structures - Advanced Edition #959,Richard Brown,R-45-E,12
+NB100960,Comprehensive Marine Diesel Engines - Vol. I #960,Susan Parker,R-38-C,10
+NB100961,Modern Hull Structures - Field Manual #961,James Johnson,R-32-B,3
+NB100962,Essentials of Ocean Engineering - Advanced Edition #962,Charles Evans,R-40-E,5
+NB100963,Handbook of Naval Architecture - Vol. II #963,Alan Fisher,R-59-C,11
+NB100964,Applied Naval History - 2nd Ed. #964,Charles Campbell,R-45-D,8
+NB100965,Practical Weather Routing - Vol. I #965,Peter Clark,R-10-C,14
+NB100966,Applied Seamanship - Case Studies #966,John Young,R-29-C,4
+NB100967,Comprehensive Naval Strategy - Vol. I #967,Susan Irwin,R-49-B,1
+NB100968,Practical Underwater Acoustics - Case Studies #968,Brian Johnson,R-31-D,7
+NB100969,Principles of Marine Safety - Advanced Edition #969,William Quinn,R-56-G,1
+NB100970,Handbook of Electronic Warfare - Case Studies #970,Linda King,R-34-A,2
+NB100971,Essentials of Naval Strategy - Case Studies #971,Alan White,R-42-E,6
+NB100972,Handbook of Propulsion Systems - Vol. II #972,Charles Walker,R-38-G,8
+NB100973,Fundamentals of Naval AI - 3rd Ed. #973,George King,R-44-C,6
+NB100974,Essentials of Naval Architecture - Vol. I #974,Maria Clark,R-01-G,2
+NB100975,Essentials of Naval Weapons - Laboratory Guide #975,Daniel Harris,R-47-E,5
+NB100976,Fundamentals of Marine Engineering - Vol. I #976,Alan Clark,R-04-D,10
+NB100977,Advanced Radar Systems - Vol. II #977,Sarah Taylor,R-09-G,11
+NB100978,Comprehensive Destroyers - Vol. II #978,Patricia Fisher,R-17-E,8
+NB100979,Advanced Underwater Acoustics - Advanced Edition #979,Jennifer Nelson,R-45-F,5
+NB100980,Practical Ocean Engineering - Advanced Edition #980,Jennifer Brown,R-25-G,6
+NB100981,Modern Marine Diesel Engines - Advanced Edition #981,Richard Owens,R-05-H,15
+NB100982,Fundamentals of Cybersecurity at Sea - Case Studies #982,Richard Walker,R-32-B,3
+NB100983,Essentials of Bridge Operations - 3rd Ed. #983,Alan Walker,R-07-H,12
+NB100984,Handbook of Naval Weapons - Vol. I #984,David Clark,R-37-E,13
+NB100985,Applied Ship Stability - Laboratory Guide #985,William Walker,R-41-A,15
+NB100986,Modern Maritime Law - Advanced Edition #986,William Hall,R-22-G,10
+NB100987,Modern Navigation Charts - Laboratory Guide #987,Brian Nelson,R-26-B,9
+NB100988,Fundamentals of Naval Architecture - Case Studies #988,Patricia Scott,R-50-H,2
+NB100989,Comprehensive Oceanography - Reference Manual #989,Peter Young,R-20-G,1
+NB100990,Advanced Naval History - Professional Edition #990,Sarah King,R-06-H,13
+NB100991,Handbook of Frigates - 2nd Ed. #991,Edward Brown,R-25-D,5
+NB100992,Principles of Naval Weapons - Reference Manual #992,Brian Clark,R-57-H,12
+NB100993,Fundamentals of Sonar Systems - Vol. I #993,Thomas Anderson,R-47-D,8
+NB100994,Principles of Ocean Engineering - Professional Edition #994,Susan Johnson,R-32-H,1
+NB100995,Modern Coastal Defense - Vol. I #995,Peter Campbell,R-47-A,7
+NB100996,Advanced Corvettes - Professional Edition #996,Kevin Young,R-56-C,12
+NB100997,Comprehensive Naval Logistics - Vol. II #997,Robert Allen,R-10-H,11
+NB100998,Modern Marine Safety - Field Manual #998,Robert Harris,R-45-C,1
+NB100999,Practical Ship Design - Advanced Edition #999,Maria Campbell,R-07-H,10
+NB101000,Practical Naval AI - Vol. II #1000,Maria Scott,R-07-B,8
+NB101001,Comprehensive Cybersecurity at Sea - 3rd Ed. #1001,David Campbell,R-13-G,6
+NB101002,Principles of Marine Electronics - Vol. II #1002,Linda Smith,R-35-C,6
+NB101003,Fundamentals of Marine Engineering - Field Manual #1003,Richard King,R-05-B,5
+NB101004,Practical Seamanship - 2nd Ed. #1004,Patricia Lewis,R-36-C,8
+NB101005,Fundamentals of Naval AI - Vol. I #1005,William Davis,R-51-G,13
+NB101006,Practical Ship Stability - Laboratory Guide #1006,David Anderson,R-01-C,15
+NB101007,Advanced Naval AI - Advanced Edition #1007,Paul Hall,R-52-H,12
+NB101008,Practical Corvettes - 2nd Ed. #1008,Susan Irwin,R-34-H,7
+NB101009,Fundamentals of Destroyers - Field Manual #1009,Patricia Brown,R-39-C,12
+NB101010,Applied Cybersecurity at Sea - Vol. II #1010,Susan Scott,R-51-E,6
+NB101011,Principles of Naval Architecture - Professional Edition #1011,John Garcia,R-08-B,10
+NB101012,Guide to Oceanography - Professional Edition #1012,John Owens,R-50-D,5
+NB101013,Modern Frigates - Vol. II #1013,Elizabeth Evans,R-44-H,8
+NB101014,Practical Aircraft Carriers - Vol. I #1014,Robert Walker,R-24-E,4
+NB101015,Principles of Marine Diesel Engines - Reference Manual #1015,Alan Campbell,R-57-H,1
+NB101016,Advanced Ship Design - Professional Edition #1016,Richard Fisher,R-51-A,8
+NB101017,Essentials of Radar Systems - Vol. II #1017,Laura Harris,R-47-H,10
+NB101018,Comprehensive Marine Electronics - Case Studies #1018,Thomas Allen,R-44-F,4
+NB101019,Advanced Marine Electronics - 3rd Ed. #1019,Michael Harris,R-48-G,14
+NB101020,Fundamentals of Maritime Law - 3rd Ed. #1020,David Parker,R-38-H,1
+NB101021,Principles of Submarine Technology - 3rd Ed. #1021,Emma Taylor,R-30-C,7
+NB101022,Guide to Sonar Systems - Laboratory Guide #1022,Karen Garcia,R-41-F,5
+NB101023,Fundamentals of Coastal Defense - 2nd Ed. #1023,Robert Hall,R-37-A,5
+NB101024,Practical Radar Systems - Laboratory Guide #1024,Kevin Nelson,R-11-F,4
+NB101025,Handbook of Autonomous Vessels - 2nd Ed. #1025,Elizabeth Campbell,R-41-C,10
+NB101026,Essentials of Naval Logistics - Vol. II #1026,Paul Morgan,R-34-H,14
+NB101027,Fundamentals of Naval AI - Laboratory Guide #1027,Maria Owens,R-18-A,12
+NB101028,Principles of Fleet Operations - 3rd Ed. #1028,Peter Nelson,R-38-D,15
+NB101029,Comprehensive Submarine Technology - Field Manual #1029,Laura Anderson,R-27-A,1
+NB101030,Applied Navigation Charts - Vol. I #1030,Paul Quinn,R-26-H,13
+NB101031,Advanced Electronic Warfare - Laboratory Guide #1031,John Clark,R-36-A,12
+NB101032,Principles of Corvettes - 2nd Ed. #1032,Daniel Johnson,R-16-B,1
+NB101033,Applied Ship Hydrodynamics - 2nd Ed. #1033,Patricia Owens,R-55-A,8
+NB101034,Applied Sonar Systems - Case Studies #1034,Richard Campbell,R-56-F,11
+NB101035,Applied Naval Architecture - Vol. II #1035,Mark Turner,R-45-F,9
+NB101036,Modern Hull Structures - Case Studies #1036,Jennifer Irwin,R-45-D,13
+NB101037,Advanced Cybersecurity at Sea - Reference Manual #1037,Karen White,R-04-F,15
+NB101038,Modern Radar Systems - Case Studies #1038,Daniel Owens,R-40-A,6
+NB101039,Guide to Destroyers - Professional Edition #1039,Patricia Clark,R-36-D,3
+NB101040,Guide to Fleet Operations - Professional Edition #1040,Michael Walker,R-31-D,13
+NB101041,Fundamentals of Marine Electronics - Reference Manual #1041,Laura Irwin,R-33-G,5
+NB101042,Modern Ocean Engineering - Reference Manual #1042,Daniel Owens,R-32-B,8
+NB101043,Essentials of Oceanography - Advanced Edition #1043,Kevin Taylor,R-24-B,4
+NB101044,Applied Maritime Navigation - Vol. II #1044,Mark Turner,R-12-E,2
+NB101045,Advanced Aircraft Carriers - Advanced Edition #1045,Michael Hall,R-10-H,3
+NB101046,Fundamentals of Weather Routing - Vol. I #1046,Andrew Nelson,R-44-C,8
+NB101047,Guide to Seamanship - Laboratory Guide #1047,Karen Walker,R-02-E,4
+NB101048,Advanced Ship Stability - 3rd Ed. #1048,Maria Quinn,R-42-F,7
+NB101049,Comprehensive Coastal Defense - Reference Manual #1049,Brian Smith,R-43-H,8
+NB101050,Handbook of Ship Automation - 2nd Ed. #1050,Laura Campbell,R-20-C,13
+NB101051,Handbook of Naval Logistics - Laboratory Guide #1051,Daniel Johnson,R-50-A,3
+NB101052,Guide to Hull Structures - Laboratory Guide #1052,Richard Taylor,R-60-C,12
+NB101053,Essentials of Hull Structures - 2nd Ed. #1053,Richard Scott,R-46-C,3
+NB101054,Fundamentals of Radar Systems - Vol. I #1054,Peter Smith,R-09-H,5
+NB101055,Guide to Destroyers - 3rd Ed. #1055,Edward Hall,R-03-F,6
+NB101056,Practical Naval History - Laboratory Guide #1056,Edward Fisher,R-35-E,2
+NB101057,Modern Port Management - Laboratory Guide #1057,Jennifer Evans,R-30-F,3
+NB101058,Modern Oceanography - Professional Edition #1058,Peter Walker,R-46-E,8
+NB101059,Handbook of Ship Automation - 2nd Ed. #1059,Elizabeth Smith,R-47-H,6
+NB101060,Advanced Marine Safety - Vol. I #1060,William Young,R-36-B,5
+NB101061,Modern Port Management - Field Manual #1061,Maria Harris,R-29-F,2
+NB101062,Guide to Ship Design - Field Manual #1062,Susan Garcia,R-38-D,13
+NB101063,Handbook of Frigates - Vol. I #1063,David Roberts,R-55-H,11
+NB101064,Advanced Navigation Charts - Case Studies #1064,Thomas Parker,R-21-A,15
+NB101065,Guide to Port Management - 2nd Ed. #1065,Patricia Morgan,R-28-F,7
+NB101066,Guide to Naval Architecture - Advanced Edition #1066,Daniel Lewis,R-20-H,14
+NB101067,Essentials of Maritime Navigation - 3rd Ed. #1067,Karen Turner,R-29-G,13
+NB101068,Applied Hull Structures - 2nd Ed. #1068,Elizabeth Allen,R-58-G,12
+NB101069,Principles of Sonar Systems - Field Manual #1069,Alan Clark,R-10-D,5
+NB101070,Applied Weather Routing - Reference Manual #1070,David White,R-38-G,2
+NB101071,Modern Seamanship - Advanced Edition #1071,Paul Fisher,R-36-H,12
+NB101072,Comprehensive Sonar Systems - 3rd Ed. #1072,Richard Scott,R-25-E,9
+NB101073,Applied Marine Engineering - Advanced Edition #1073,Maria Smith,R-20-H,9
+NB101074,Applied Naval Logistics - Vol. I #1074,Elizabeth Anderson,R-10-E,5
+NB101075,Applied Radar Systems - Advanced Edition #1075,Paul Fisher,R-32-D,1
+NB101076,Advanced Propulsion Systems - Laboratory Guide #1076,David Taylor,R-48-F,10
+NB101077,Applied Ship Automation - Case Studies #1077,Sarah Irwin,R-41-H,12
+NB101078,Advanced Naval History - Professional Edition #1078,Karen Smith,R-02-E,3
+NB101079,Comprehensive Ship Design - 2nd Ed. #1079,Peter Owens,R-57-C,6
+NB101080,Practical Ship Design - Advanced Edition #1080,Daniel Nelson,R-41-F,1
+NB101081,Handbook of Hull Structures - Professional Edition #1081,Susan White,R-05-D,13
+NB101082,Practical Naval Weapons - Field Manual #1082,Jennifer Fisher,R-35-F,14
+NB101083,Guide to Ship Hydrodynamics - Advanced Edition #1083,Linda Hall,R-45-F,2
+NB101084,Essentials of Naval AI - Reference Manual #1084,Maria Evans,R-01-C,9
+NB101085,Handbook of Naval History - Laboratory Guide #1085,Paul King,R-59-C,2
+NB101086,Fundamentals of Submarine Technology - Professional Edition #1086,John Scott,R-13-B,7
+NB101087,Applied Ocean Engineering - Vol. II #1087,Maria Evans,R-60-A,8
+NB101088,Guide to Ship Hydrodynamics - Reference Manual #1088,William Scott,R-29-F,3
+NB101089,Handbook of Ship Stability - Vol. II #1089,John Evans,R-55-C,12
+NB101090,Fundamentals of Ship Hydrodynamics - 2nd Ed. #1090,Thomas Evans,R-06-G,12
+NB101091,Advanced Ocean Engineering - Vol. I #1091,Jennifer Parker,R-49-G,1
+NB101092,Fundamentals of Naval Weapons - Vol. I #1092,Elizabeth Young,R-33-A,8
+NB101093,Advanced Marine Diesel Engines - Vol. I #1093,David Johnson,R-43-A,13
+NB101094,Advanced Radar Systems - Field Manual #1094,Thomas Smith,R-58-D,3
+NB101095,Guide to Ship Stability - Vol. II #1095,William Morgan,R-48-E,10
+NB101096,Guide to Naval Strategy - 2nd Ed. #1096,Sarah Quinn,R-50-D,9
+NB101097,Comprehensive Ocean Engineering - Vol. II #1097,Maria Smith,R-49-A,9
+NB101098,Fundamentals of Frigates - Advanced Edition #1098,Richard Turner,R-49-A,12
+NB101099,Advanced Corvettes - Professional Edition #1099,Sarah Hall,R-31-F,12
+NB101100,Comprehensive Destroyers - Laboratory Guide #1100,Linda Davis,R-12-F,7
+NB101101,Principles of Corvettes - Professional Edition #1101,John Nelson,R-08-F,2
+NB101102,Applied Radar Systems - Professional Edition #1102,William Parker,R-49-F,12
+NB101103,Handbook of Marine Materials - Vol. I #1103,David King,R-32-B,7
+NB101104,Handbook of Underwater Acoustics - Field Manual #1104,Karen Johnson,R-44-H,4
+NB101105,Essentials of Seamanship - Advanced Edition #1105,Sarah Nelson,R-13-B,15
+NB101106,Applied Naval History - 2nd Ed. #1106,James Young,R-32-B,7
+NB101107,Applied Weather Routing - Vol. II #1107,Michael Evans,R-26-G,12
+NB101108,Comprehensive Naval Weapons - 2nd Ed. #1108,David Lewis,R-13-F,4
+NB101109,Comprehensive Port Management - Vol. II #1109,John Scott,R-28-H,5
+NB101110,Comprehensive Naval AI - Advanced Edition #1110,Jennifer Campbell,R-52-G,6
+NB101111,Applied Autonomous Vessels - Case Studies #1111,Brian Quinn,R-18-C,13
+NB101112,Applied Naval Weapons - Vol. II #1112,Charles Parker,R-32-D,11
+NB101113,Practical Ship Stability - Vol. II #1113,Karen Brown,R-54-B,8
+NB101114,Modern Destroyers - Case Studies #1114,Alan Young,R-21-C,5
+NB101115,Comprehensive Cybersecurity at Sea - Vol. II #1115,Jennifer Clark,R-43-H,13
+NB101116,Applied Frigates - Advanced Edition #1116,Linda Parker,R-32-E,9
+NB101117,Guide to Oceanography - Professional Edition #1117,James Baker,R-03-G,15
+NB101118,Advanced Maritime Law - Laboratory Guide #1118,Peter Morgan,R-25-H,8
+NB101119,Modern Marine Engineering - 2nd Ed. #1119,Edward Young,R-56-E,15
+NB101120,Practical Naval Communications - Case Studies #1120,William Johnson,R-46-G,8
+NB101121,Advanced Ship Automation - Laboratory Guide #1121,Linda Roberts,R-44-H,8
+NB101122,Essentials of Aircraft Carriers - Professional Edition #1122,Robert Martin,R-17-H,10
+NB101123,Principles of Cybersecurity at Sea - Reference Manual #1123,Jennifer Johnson,R-21-A,1
+NB101124,Comprehensive Marine Engineering - 2nd Ed. #1124,Maria Lewis,R-23-A,13
+NB101125,Guide to Maritime Law - Vol. II #1125,Paul Lewis,R-23-G,6
+NB101126,Modern Fleet Operations - 3rd Ed. #1126,John Walker,R-20-B,15
+NB101127,Advanced Ship Hydrodynamics - Vol. II #1127,Peter Fisher,R-02-F,1
+NB101128,Applied Bridge Operations - Field Manual #1128,George Turner,R-27-E,1
+NB101129,Applied Naval AI - Vol. I #1129,Peter Martin,R-37-G,6
+NB101130,Comprehensive Naval Weapons - Laboratory Guide #1130,Michael Hall,R-44-D,6
+NB101131,Applied Navigation Charts - Reference Manual #1131,Richard Taylor,R-20-F,7
+NB101132,Fundamentals of Naval Communications - Vol. II #1132,Maria Morgan,R-35-D,5
+NB101133,Handbook of Ship Design - Advanced Edition #1133,Henry Martin,R-52-D,10
+NB101134,Advanced Naval AI - Vol. II #1134,Henry King,R-18-B,10
+NB101135,Essentials of Marine Safety - Case Studies #1135,Thomas Lewis,R-51-B,11
+NB101136,Handbook of Navigation Charts - Advanced Edition #1136,Paul Young,R-35-F,4
+NB101137,Principles of Port Management - Advanced Edition #1137,Alan Quinn,R-30-C,15
+NB101138,Modern Weather Routing - 2nd Ed. #1138,Henry Parker,R-14-H,5
+NB101139,Essentials of Cybersecurity at Sea - Case Studies #1139,Emma Smith,R-47-A,9
+NB101140,Fundamentals of Naval History - Laboratory Guide #1140,William Harris,R-10-E,14
+NB101141,Principles of Seamanship - Reference Manual #1141,Sarah Scott,R-59-B,11
+NB101142,Fundamentals of Seamanship - Advanced Edition #1142,Maria Johnson,R-42-C,5
+NB101143,Comprehensive Fleet Operations - Case Studies #1143,John Davis,R-10-D,1
+NB101144,Fundamentals of Ship Hydrodynamics - Laboratory Guide #1144,Brian Roberts,R-28-G,11
+NB101145,Modern Frigates - 2nd Ed. #1145,Charles Evans,R-02-E,13
+NB101146,Handbook of Marine Materials - 2nd Ed. #1146,Susan Morgan,R-03-H,13
+NB101147,Modern Ship Design - Vol. II #1147,Peter Taylor,R-20-B,15
+NB101148,Principles of Naval History - Vol. II #1148,Mark Scott,R-47-C,4
+NB101149,Advanced Ship Automation - Professional Edition #1149,Emma Davis,R-34-E,8
+NB101150,Advanced Fleet Operations - Field Manual #1150,Michael Baker,R-52-F,6
+NB101151,Comprehensive Maritime Law - 3rd Ed. #1151,Emma Nelson,R-14-C,2
+NB101152,Practical Corvettes - Advanced Edition #1152,Kevin Nelson,R-17-A,8
+NB101153,Essentials of Naval History - Vol. II #1153,Peter Roberts,R-28-H,11
+NB101154,Fundamentals of Propulsion Systems - 2nd Ed. #1154,Daniel Parker,R-46-F,14
+NB101155,Handbook of Ship Stability - Field Manual #1155,Robert Scott,R-48-A,12
+NB101156,Fundamentals of Marine Diesel Engines - Professional Edition #1156,Mark Johnson,R-41-F,15
+NB101157,Advanced Oceanography - 3rd Ed. #1157,Sarah Owens,R-25-A,15
+NB101158,Principles of Marine Diesel Engines - Advanced Edition #1158,David White,R-53-D,5
+NB101159,Fundamentals of Aircraft Carriers - Laboratory Guide #1159,Susan King,R-57-G,13
+NB101160,Modern Propulsion Systems - Vol. II #1160,Maria Baker,R-32-H,12
+NB101161,Principles of Coastal Defense - Case Studies #1161,Laura White,R-53-B,14
+NB101162,Practical Marine Diesel Engines - Professional Edition #1162,David Lewis,R-27-F,8
+NB101163,Modern Ship Design - 2nd Ed. #1163,Susan Owens,R-51-C,1
+NB101164,Principles of Frigates - Advanced Edition #1164,Peter Smith,R-06-B,3
+NB101165,Fundamentals of Weather Routing - 2nd Ed. #1165,Sarah Taylor,R-44-G,13
+NB101166,Guide to Electronic Warfare - Laboratory Guide #1166,Sarah Allen,R-09-E,3
+NB101167,Comprehensive Marine Electronics - Advanced Edition #1167,Thomas Clark,R-27-F,3
+NB101168,Principles of Maritime Law - Field Manual #1168,John Anderson,R-02-D,15
+NB101169,Advanced Underwater Acoustics - 3rd Ed. #1169,Charles Hall,R-55-C,1
+NB101170,Principles of Cybersecurity at Sea - Case Studies #1170,Alan Irwin,R-10-B,6
+NB101171,Practical Ship Automation - Vol. II #1171,James Hall,R-34-G,13
+NB101172,Applied Naval Communications - Vol. II #1172,John Hall,R-14-D,14
+NB101173,Handbook of Hull Structures - Laboratory Guide #1173,Mark Evans,R-28-D,10
+NB101174,Fundamentals of Hull Structures - 3rd Ed. #1174,Paul Fisher,R-27-C,1
+NB101175,Handbook of Marine Diesel Engines - 3rd Ed. #1175,Alan Owens,R-59-D,6
+NB101176,Comprehensive Underwater Acoustics - Vol. II #1176,James Parker,R-09-F,12
+NB101177,Principles of Corvettes - Case Studies #1177,Patricia Nelson,R-48-E,2
+NB101178,Advanced Marine Materials - Vol. I #1178,Robert King,R-60-D,8
+NB101179,Guide to Autonomous Vessels - Field Manual #1179,Patricia Allen,R-52-A,1
+NB101180,Handbook of Navigation Charts - Field Manual #1180,Mark Johnson,R-26-F,3
+NB101181,Essentials of Marine Engineering - Field Manual #1181,Richard Irwin,R-11-H,15
+NB101182,Guide to Underwater Acoustics - 2nd Ed. #1182,David King,R-46-G,3
+NB101183,Handbook of Radar Systems - Reference Manual #1183,Robert Evans,R-32-E,12
+NB101184,Guide to Bridge Operations - Advanced Edition #1184,Laura Turner,R-17-E,9
+NB101185,Guide to Bridge Operations - 2nd Ed. #1185,Peter Allen,R-32-C,9
+NB101186,Applied Ship Design - 3rd Ed. #1186,William Brown,R-15-C,1
+NB101187,Applied Marine Diesel Engines - 2nd Ed. #1187,Patricia Owens,R-28-B,15
+NB101188,Applied Marine Engineering - Laboratory Guide #1188,Daniel Hall,R-36-H,8
+NB101189,Applied Radar Systems - 2nd Ed. #1189,Michael Lewis,R-06-D,14
+NB101190,Handbook of Destroyers - 2nd Ed. #1190,Karen Quinn,R-53-E,10
+NB101191,Comprehensive Corvettes - Field Manual #1191,James Quinn,R-50-C,7
+NB101192,Advanced Fleet Operations - Laboratory Guide #1192,Linda Davis,R-57-F,1
+NB101193,Handbook of Radar Systems - Case Studies #1193,Daniel Smith,R-60-B,14
+NB101194,Guide to Submarine Technology - Vol. I #1194,David Owens,R-54-H,8
+NB101195,Handbook of Autonomous Vessels - Vol. I #1195,Peter Brown,R-42-H,6
+NB101196,Comprehensive Sonar Systems - 3rd Ed. #1196,Sarah Brown,R-52-E,6
+NB101197,Modern Ocean Engineering - Professional Edition #1197,Alan Martin,R-06-G,5
+NB101198,Practical Fleet Operations - Case Studies #1198,David Anderson,R-55-D,3
+NB101199,Principles of Port Management - Advanced Edition #1199,Susan Baker,R-42-C,2
+NB101200,Handbook of Naval Communications - Case Studies #1200,Karen Campbell,R-59-E,15

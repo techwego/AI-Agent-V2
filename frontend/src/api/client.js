@@ -70,5 +70,8 @@ export const resetStuckUploads = () => api.post('/admin/uploads/reset-stuck');
 
 export const getAnalytics = () => api.get('/admin/analytics');
 export const getLogs = () => api.get('/admin/logs');
+export const getSystemStatus = () => api.get('/admin/system-status');
+export const blockUser = (id) => api.put(`/admin/users/${id}/block`);
+export const unblockUser = (id) => api.put(`/admin/users/${id}/unblock`);
 
 export default api;

@@ -117,7 +117,7 @@ class SpeechRecognitionManager {
       } else {
         const now = Date.now();
         // Check for end of speech
-        if (this.hasSpoken && (now - silenceStart > 1500)) {
+        if (this.hasSpoken && (now - silenceStart > 500)) {
           this.stopListening();
         } 
         // Check for complete silence (no speech at all)

@@ -1,8 +1,8 @@
 # Stage 1: Build Frontend
-FROM node:18-slim AS frontend-builder
+FROM node:20 AS frontend-builder
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+COPY frontend/package.json ./
+RUN npm install
 COPY frontend/ .
 RUN npm run build
 

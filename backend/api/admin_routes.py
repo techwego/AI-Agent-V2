@@ -79,6 +79,27 @@ def create_department(dept: DepartmentCreate, db: Session = Depends(get_db), cur
     db.commit()
     return {"message": "Department created", "dept_id": new_dept.id}
 
+@router.put("/departments/{dept_id}")
+def update_department(dept_id: int, dept_data: DepartmentCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    dept = db.query(Department).filter(Department.id == dept_id).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+    for key, value in dept_data.model_dump().items():
+        setattr(dept, key, value)
+    db.add(AdminLog(admin_id=current_user.id, action="UPDATE_DEPARTMENT", details=f"Department ID: {dept_id}"))
+    db.commit()
+    return {"message": "Department updated"}
+
+@router.delete("/departments/{dept_id}")
+def delete_department(dept_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    dept = db.query(Department).filter(Department.id == dept_id).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+    db.delete(dept)
+    db.add(AdminLog(admin_id=current_user.id, action="DELETE_DEPARTMENT", details=f"Department ID: {dept_id}"))
+    db.commit()
+    return {"message": "Department deleted"}
+
 # --- Users Management ---
 @router.get("/users")
 def list_users(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
@@ -98,6 +119,28 @@ def block_user(user_id: int, db: Session = Depends(get_db), current_user: User =
 def user_login_history(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     return db.query(LoginHistory).filter(LoginHistory.user_id == user_id).order_by(LoginHistory.created_at.desc()).limit(50).all()
 
+@router.put("/users/{user_id}/unblock")
+def unblock_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = True
+    db.add(AdminLog(admin_id=current_user.id, action="UNBLOCK_USER", details=f"User ID: {user_id}"))
+    db.commit()
+    return {"message": "User unblocked"}
+
+@router.delete("/users/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    if current_user.id == user_id:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.add(AdminLog(admin_id=current_user.id, action="DELETE_USER", details=f"User ID: {user_id}"))
+    db.commit()
+    return {"message": "User deleted"}
+
 # --- Analytics ---
 @router.get("/analytics")
 def get_analytics(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
@@ -108,11 +151,29 @@ def get_analytics(db: Session = Depends(get_db), current_user: User = Depends(re
     today = datetime.utcnow().date()
     today_queries = db.query(func.count(ConversationHistory.id)).filter(func.date(ConversationHistory.created_at) == today).scalar()
     
+    total_uploads = db.query(func.count(Upload.id)).scalar()
+    active_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar()
+    
+    recent_logs = db.query(AdminLog).order_by(AdminLog.created_at.desc()).limit(10).all()
+    recent_activity = []
+    for log in recent_logs:
+        admin_user = db.query(User).filter(User.id == log.admin_id).first()
+        recent_activity.append({
+            "id": log.id,
+            "action": log.action,
+            "details": log.details,
+            "admin_name": admin_user.username if admin_user else "Unknown",
+            "created_at": log.created_at
+        })
+    
     return {
         "total_books": total_books,
         "total_users": total_users,
         "total_departments": total_departments,
-        "today_queries": today_queries
+        "today_queries": today_queries,
+        "total_uploads": total_uploads,
+        "active_users": active_users,
+        "recent_activity": recent_activity
     }
 
 @router.get("/logs")

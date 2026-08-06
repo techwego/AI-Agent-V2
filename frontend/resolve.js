@@ -1,0 +1,1 @@
+const fs = require('fs'); const { SourceMapConsumer } = require('source-map'); const mapFile = fs.readdirSync('./dist/assets').find(f => f.endsWith('.js.map')); const rawMap = fs.readFileSync('./dist/assets/' + mapFile, 'utf8'); SourceMapConsumer.with(rawMap, null, consumer => { console.log('Ready to resolve'); }).catch(console.error);

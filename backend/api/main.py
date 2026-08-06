@@ -20,6 +20,8 @@ import time
 import psutil
 import threading
 from typing import Optional
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from backend.config import Config
 from backend.database.db import init_db, SessionLocal, get_db
@@ -28,7 +30,7 @@ from backend.auth.auth_service import hash_password
 from backend.auth.auth_routes import router as auth_router
 from backend.api.admin_routes import router as admin_router
 from backend.api.upload_routes import router as upload_router
-from backend.auth.auth_middleware import require_auth
+from backend.auth.auth_middleware import require_auth, require_admin
 
 app = FastAPI()
 
@@ -117,6 +119,40 @@ def health_check():
         "uptime": round(time.time() - START_TIME, 2),
     }
 
+@app.get('/api/admin/system-status')
+def get_system_status(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    try:
+        db.execute(text('SELECT 1'))
+        db_status = 'online'
+    except Exception:
+        db_status = 'offline'
+
+    try:
+        if rag_engine.ready and hasattr(rag_engine, 'collection'):
+            chunks_count = rag_engine.collection.count()
+            vector_status = 'online'
+        else:
+            chunks_count = 0
+            vector_status = 'offline'
+    except Exception:
+        chunks_count = 0
+        vector_status = 'offline'
+
+    rag_state = getattr(rag_engine, 'state', 'UNKNOWN')
+    uptime_seconds = int(time.time() - START_TIME)
+    
+    mem = psutil.virtual_memory()
+    ram_mb = round(mem.used / (1024 * 1024), 2)
+    
+    return {
+        "database": {"status": db_status, "label": "SQLite Database"},
+        "vector_db": {"status": vector_status, "label": "ChromaDB", "chunks": chunks_count},
+        "rag_engine": {"status": rag_state, "label": "RAG Engine"},
+        "voice_api": {"status": "online", "label": "Voice API"},
+        "uptime_seconds": uptime_seconds,
+        "ram_mb": ram_mb
+    }
+
 @app.get("/diagnostics")
 def diagnostics():
     mem = psutil.virtual_memory()
@@ -155,6 +191,7 @@ async def search_books(request: SearchRequest, current_user: User = Depends(requ
 class ChatRequest(BaseModel):
     message: str
     test: Optional[str] = None
+    history: list[dict] = []
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
@@ -165,7 +202,7 @@ async def chat(request: ChatRequest):
         return JSONResponse(status_code=503, content={"status": "initializing", "state": state_val})
     
     def generate():
-        for chunk in rag.query_stream(request.message):
+        for chunk in rag.query_stream(request.message, history=request.history):
             yield chunk
 
     return StreamingResponse(generate(), media_type="text/plain")
@@ -197,6 +234,37 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         if os.path.exists(temp_audio_path):
             os.remove(temp_audio_path)
 
+import edge_tts
+import uuid
+
+class TTSRequest(BaseModel):
+    text: str
+
+@app.post("/api/tts")
+async def generate_tts(request: TTSRequest, background_tasks: BackgroundTasks):
+    if not request.text:
+        raise HTTPException(status_code=400, detail="No text provided")
+        
+    temp_filename = f"temp_tts_{uuid.uuid4().hex}.mp3"
+    temp_path = os.path.join(tempfile.gettempdir(), temp_filename)
+    
+    try:
+        communicate = edge_tts.Communicate(request.text, "en-US-AriaNeural")
+        await communicate.save(temp_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
+    def cleanup():
+        try:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+        except:
+            pass
+            
+    background_tasks.add_task(cleanup)
+    # Return file and ensure it is cleaned up afterwards
+    return FileResponse(temp_path, media_type="audio/mpeg", background=background_tasks)
+
 frontend_dist = os.path.join(BASE_DIR, "frontend", "dist")
 if os.path.isdir(frontend_dist):
     # Serve static assets (JS, CSS, images) from the dist/assets folder
@@ -207,12 +275,26 @@ if os.path.isdir(frontend_dist):
     # Catch-all: serve index.html for any non-API route (React SPA routing)
     @app.get("/{full_path:path}")
     async def serve_react(full_path: str):
-        # If it's a real file in dist, serve it
-        file_path = os.path.join(frontend_dist, full_path)
-        if full_path and os.path.isfile(file_path):
-            return FileResponse(file_path)
-        # Otherwise serve index.html for React Router
-        return FileResponse(os.path.join(frontend_dist, "index.html"))
+        # If requesting a specific file extension (js, css, map, etc.) that doesn't exist, return 404
+        # This prevents serving index.html for stale cached asset requests after a new build
+        if full_path and '.' in full_path.split('/')[-1]:
+            file_path = os.path.join(frontend_dist, full_path)
+            if os.path.isfile(file_path):
+                return FileResponse(file_path)
+            # Stale asset request — return 404 so browser knows to reload
+            raise HTTPException(status_code=404, detail="Asset not found")
+        
+        # For all other routes, serve index.html with no-cache headers
+        # This ensures the browser always gets the latest index.html pointing to the latest JS/CSS bundles
+        index_path = os.path.join(frontend_dist, "index.html")
+        return FileResponse(
+            index_path, 
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
 else:
     @app.get("/")
     def read_index():

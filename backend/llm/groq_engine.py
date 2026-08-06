@@ -47,7 +47,10 @@ class GroqEngine(LLMEngine):
             print(f"Duration: {duration:.2f}s")
             print(f"Tokens: {token_count}")
             print(f"Error: {e}")
-            traceback.print_exc()
+            if "getaddrinfo failed" not in str(e) and "Connection error" not in str(e):
+                traceback.print_exc()
+            else:
+                print("Note: Network connection to Groq API failed. Please check your internet connection.")
             print("=" * 60)
             
             error_str = str(e)
@@ -58,3 +61,27 @@ class GroqEngine(LLMEngine):
             else:
                 yield "I'm sorry, my language module encountered an error connecting to Groq."
             Config.record_llm_error()
+
+    def generate_sync(self, prompt: str, json_mode: bool = False) -> str:
+        """Synchronous version for internal tasks like query rewriting."""
+        if not self.client:
+            return ""
+        
+        try:
+            kwargs = {
+                "model": Config.GROQ_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": False,
+                "temperature": 0.1,
+            }
+            if json_mode:
+                kwargs["response_format"] = {"type": "json_object"}
+                
+            response = self.client.chat.completions.create(**kwargs)
+            
+            if response.choices and response.choices[0].message.content:
+                return response.choices[0].message.content
+            return ""
+        except Exception as e:
+            print(f"Sync generation error: {e}")
+            return ""

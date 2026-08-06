@@ -9,6 +9,7 @@ import VoiceOrb from '../components/VoiceOrb';
 import StatusIndicator from '../components/StatusIndicator';
 import ChatBubble from '../components/ChatBubble';
 import Waveform from '../components/Waveform';
+import BookSearch from '../components/BookSearch';
 import { useToast } from '../components/Toast';
 import { sendChat } from '../api/client';
 
@@ -16,7 +17,7 @@ import stateManager, { State } from '../voice/ConversationStateManager';
 import ttsManager from '../voice/SpeechSynthesisManager';
 import sttManager from '../voice/SpeechRecognitionManager';
 
-const INTRO_TEXT = "Hello! I'm your AI Library Assistant. I can help you find books, navigate to library sections, and answer questions about the university. Just tap the orb or type below!";
+// INTRO inlined to fix Vite minifier bug
 
 const VoiceAssistant = () => {
   const { user, logoutUser } = useAuth();
@@ -25,12 +26,12 @@ const VoiceAssistant = () => {
   
   const [conversationState, setConversationState] = useState(State.IDLE);
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: INTRO_TEXT, timestamp: Date.now() }
+    { role: 'assistant', content: "Hello! I'm your AI Library Assistant. I can help you find books, navigate to library sections, and answer questions about the university. Just tap the orb or type below!", timestamp: Date.now() }
   ]);
   const [input, setInput] = useState('');
   const [routeTo, setRouteTo] = useState(null);
   const [hasIntroduced, setHasIntroduced] = useState(false);
-  const [showMap, setShowMap] = useState(false); // Controls if map is showing in right panel
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat', 'map', or 'search'
   
   const messagesEndRef = useRef(null);
   const analyserRef = useRef(null);
@@ -49,7 +50,7 @@ const VoiceAssistant = () => {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, showMap]);
+  }, [messages, activeTab]);
 
   useEffect(() => {
     sttManager.onTranscription((text) => {
@@ -93,7 +94,11 @@ const VoiceAssistant = () => {
 
   const handleOrbClick = useCallback(() => {
     const currentState = stateManager.getState();
-    if (currentState === State.SPEAKING || currentState === State.INTRODUCING) { handleInterrupt(); return; }
+    if (currentState === State.SPEAKING || currentState === State.INTRODUCING) { 
+      handleInterrupt(); 
+      startListening();
+      return; 
+    }
     if (currentState === State.LISTENING) { sttManager.stopListening(); stateManager.setState(State.IDLE); return; }
     if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) return;
     if (!hasIntroduced) { startIntroduction(); } else { startListening(); }
@@ -107,11 +112,14 @@ const VoiceAssistant = () => {
 
   const startIntroduction = useCallback(() => {
     if (!stateManager.setState(State.INTRODUCING)) return;
-    ttsManager.speak(INTRO_TEXT, () => {
-      setHasIntroduced(true);
-      setTimeout(() => {
-        if (stateManager.getState() === State.INTRODUCING) startListening();
-      }, 400);
+    
+    setHasIntroduced(true);
+    const introText = "Hello! I'm your AI Library Assistant. I can help you find books, navigate to library sections, and answer questions about the university. Just tap the orb or type below!";
+    
+    ttsManager.speak(introText, () => {
+      if (stateManager.getState() === State.INTRODUCING) {
+        startListening();
+      }
     });
   }, []);
 
@@ -126,11 +134,14 @@ const VoiceAssistant = () => {
 
   const handleVoiceInput = useCallback(async (text) => {
     stateManager.setState(State.PROCESSING);
-    setMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
-    setTimeout(() => {
-      stateManager.setState(State.RETRIEVING);
-      streamAIResponse(text);
-    }, 300);
+    setMessages(prev => {
+      const history = [...prev];
+      setTimeout(() => {
+        stateManager.setState(State.RETRIEVING);
+        streamAIResponse(text, history);
+      }, 0);
+      return [...prev, { role: 'user', content: text, timestamp: Date.now() }];
+    });
   }, []);
 
   const handleSpeakAgain = useCallback((text) => {
@@ -141,9 +152,10 @@ const VoiceAssistant = () => {
     });
   }, [handleInterrupt]);
 
-  const streamAIResponse = useCallback(async (queryText) => {
+  const streamAIResponse = useCallback(async (queryText, history = [], isTextOnly = false) => {
     try {
-      const response = await sendChat({ message: queryText });
+      const recentHistory = history.slice(-5).map(m => ({ role: m.role, content: m.content }));
+      const response = await sendChat({ message: queryText, history: recentHistory });
       if (!response.ok) {
         throw new Error(`API Error: ${response.status}`);
       }
@@ -181,16 +193,20 @@ const VoiceAssistant = () => {
           return newMessages;
         });
         showToast(`Routing to Rack ${rackCode}`, 'success');
-        setShowMap(true); // Automatically show map on route
+        setActiveTab('map'); // Automatically show map on route
       }
 
       if (fullResponse.trim()) {
-        stateManager.setState(State.SPEAKING);
-        ttsManager.speak(fullResponse, () => {
-          setTimeout(() => {
-            if (stateManager.getState() === State.SPEAKING) startListening();
-          }, 400);
-        });
+        if (!isTextOnly) {
+          stateManager.setState(State.SPEAKING);
+          ttsManager.speak(fullResponse, () => {
+            setTimeout(() => {
+              if (stateManager.getState() === State.SPEAKING) startListening();
+            }, 400);
+          });
+        } else {
+          stateManager.reset();
+        }
       } else {
         stateManager.reset();
       }
@@ -210,20 +226,29 @@ const VoiceAssistant = () => {
     if (!text) return;
     handleInterrupt();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
-    stateManager.setState(State.RETRIEVING);
-    // Switch to chat view to see the message being typed
-    setShowMap(false);
-    await streamAIResponse(text);
+    setMessages(prev => {
+      const history = [...prev];
+      setTimeout(async () => {
+        stateManager.setState(State.RETRIEVING);
+        setActiveTab('chat');
+        await streamAIResponse(text, history, true);
+      }, 0);
+      return [...prev, { role: 'user', content: text, timestamp: Date.now() }];
+    });
   };
 
   const handleRackClick = useCallback((rackCode) => {
     const text = `Route to Rack ${rackCode}`;
-    setMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
-    stateManager.setState(State.RETRIEVING);
-    setShowMap(false);
-    streamAIResponse(text);
-  }, []);
+    setMessages(prev => {
+      const history = [...prev];
+      setTimeout(() => {
+        stateManager.setState(State.RETRIEVING);
+        setActiveTab('chat');
+        streamAIResponse(text, history, true);
+      }, 0);
+      return [...prev, { role: 'user', content: text, timestamp: Date.now() }];
+    });
+  }, [streamAIResponse]);
 
   const isActive = conversationState !== State.IDLE;
   const isListeningState = conversationState === State.LISTENING;
@@ -276,20 +301,26 @@ const VoiceAssistant = () => {
           >
             {/* Panel Header toggles */}
             <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between bg-black/20 backdrop-blur-md">
-              <UniversityHeader isRouting={showMap && routeTo !== null} />
+              <UniversityHeader isRouting={activeTab === 'map' && routeTo !== null} />
               
               <div className="flex bg-white/5 rounded-xl p-1 border border-white/10 shadow-inner">
                 <button 
-                  onClick={() => setShowMap(false)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${!showMap ? 'bg-blue-600/30 text-blue-300 shadow-md' : 'text-gray-400 hover:text-gray-200'}`}
+                  onClick={() => setActiveTab('chat')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'chat' ? 'bg-blue-600/30 text-blue-300 shadow-md' : 'text-gray-400 hover:text-gray-200'}`}
                 >
                   <MessageSquare size={14} /> Chat
                 </button>
                 <button 
-                  onClick={() => setShowMap(true)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${showMap ? 'bg-purple-600/30 text-purple-300 shadow-md' : 'text-gray-400 hover:text-gray-200'}`}
+                  onClick={() => setActiveTab('map')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'map' ? 'bg-purple-600/30 text-purple-300 shadow-md' : 'text-gray-400 hover:text-gray-200'}`}
                 >
                   <Map size={14} /> Map
+                </button>
+                <button 
+                  onClick={() => setActiveTab('search')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'search' ? 'bg-emerald-600/30 text-emerald-300 shadow-md' : 'text-gray-400 hover:text-gray-200'}`}
+                >
+                  <Search size={14} /> Search
                 </button>
               </div>
             </div>
@@ -298,11 +329,11 @@ const VoiceAssistant = () => {
             <div className="flex-1 relative overflow-hidden">
               
               {/* CHAT VIEW */}
-              <div className={`absolute inset-0 flex flex-col transition-all duration-500 transform ${showMap ? 'translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}`}>
+              <div className={`absolute inset-0 flex flex-col transition-opacity duration-300 ${activeTab !== 'chat' ? 'opacity-0 pointer-events-none z-0' : 'opacity-100 z-10'}`}>
                 <div 
                   className="flex-1 overflow-y-auto p-5 scroll-smooth overscroll-contain" 
                   role="log"
-                  style={{ willChange: 'scroll-position' }}
+                  style={{ willChange: 'scroll-position', transform: 'translateZ(0)' }}
                 >
                   {messages.map((msg, idx) => (
                     <ChatBubble 
@@ -310,13 +341,14 @@ const VoiceAssistant = () => {
                       message={msg} 
                       onSpeak={msg.role === 'assistant' ? handleSpeakAgain : undefined}
                       hasRoute={msg.hasRoute}
+                      isSpeaking={conversationState === State.SPEAKING || conversationState === State.INTRODUCING}
                     />
                   ))}
                   <div ref={messagesEndRef} />
                 </div>
                 
                 {/* Search Input inside Chat */}
-                <div className="p-4 bg-gradient-to-t from-black/80 to-transparent">
+                <div className="p-4 bg-gradient-to-t from-black/80 to-transparent relative z-20">
                   <form onSubmit={handleTextSend} className="flex gap-2">
                     <div className="relative flex-1 group">
                       <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
@@ -325,7 +357,7 @@ const VoiceAssistant = () => {
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Ask about books or locations..."
+                        placeholder="Talk to assistant..."
                         className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:bg-white/10 focus:border-blue-500/50 transition-all shadow-inner"
                       />
                     </div>
@@ -341,7 +373,7 @@ const VoiceAssistant = () => {
               </div>
 
               {/* MAP VIEW */}
-              <div className={`absolute inset-0 flex flex-col bg-black/40 transition-all duration-500 transform ${!showMap ? '-translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}`}>
+              <div className={`absolute inset-0 flex flex-col bg-black/40 transition-opacity duration-300 ${activeTab !== 'map' ? 'opacity-0 pointer-events-none z-0' : 'opacity-100 z-10'}`}>
                 <div className="flex-1 relative">
                   <LibraryWayfinder 
                     ref={wayfindRef}
@@ -352,7 +384,7 @@ const VoiceAssistant = () => {
                   
                   {/* Close Map button floating over map */}
                   <button 
-                    onClick={() => setShowMap(false)}
+                    onClick={() => setActiveTab('chat')}
                     className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-gray-300 hover:bg-white/10 hover:text-white backdrop-blur-md transition-all shadow-xl"
                   >
                     <X size={16} />
@@ -364,6 +396,15 @@ const VoiceAssistant = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* SEARCH VIEW */}
+              <div className={`absolute inset-0 flex flex-col transition-opacity duration-300 ${activeTab !== 'search' ? 'opacity-0 pointer-events-none z-0' : 'opacity-100 z-10'}`}>
+                <BookSearch onShowOnMap={(rack) => {
+                  setRouteTo(rack);
+                  setActiveTab('map');
+                  showToast(`Showing Rack ${rack} on map`, 'success');
+                }} />
               </div>
 
             </div>

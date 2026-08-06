@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, Sparkles, Copy, Check, Volume2, MapPin } from 'lucide-react';
 
-const ChatBubble = ({ message, onSpeak, hasRoute }) => {
+const ChatBubble = ({ message, onSpeak, hasRoute, isSpeaking }) => {
   const isUser = message.role === 'user';
   const { content, timestamp } = message;
   const [copied, setCopied] = useState(false);
@@ -55,8 +55,9 @@ const ChatBubble = ({ message, onSpeak, hasRoute }) => {
                 {onSpeak && (
                   <button 
                     onClick={() => onSpeak(content)}
-                    className="p-1 rounded hover:bg-white/10 transition-colors text-gray-500 hover:text-gray-300"
-                    title="Speak Again"
+                    disabled={isSpeaking}
+                    className={`p-1 rounded transition-colors ${isSpeaking ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white/10 text-gray-500 hover:text-gray-300'}`}
+                    title={isSpeaking ? "Agent is currently speaking" : "Speak Again"}
                   >
                     <Volume2 size={12} />
                   </button>

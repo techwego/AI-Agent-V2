@@ -16,6 +16,33 @@ import Analytics from './pages/admin/Analytics';
 import Logs from './pages/admin/Logs';
 import Settings from './pages/admin/Settings';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-screen w-screen flex flex-col items-center justify-center bg-gray-950 text-white gap-4">
+          <h2 className="text-xl font-bold text-red-400">Something went wrong</h2>
+          <p className="text-gray-400 text-sm max-w-md text-center">{this.state.error?.message}</p>
+          <button 
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return <div className="h-screen w-screen flex items-center justify-center bg-gray-950 text-white">Loading...</div>;
@@ -39,6 +66,7 @@ const App = () => {
   }
 
   return (
+    <ErrorBoundary>
     <Router>
       <Routes>
         <Route 
@@ -81,6 +109,7 @@ const App = () => {
         </Route>
       </Routes>
     </Router>
+    </ErrorBoundary>
   );
 };
 

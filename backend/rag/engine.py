@@ -567,18 +567,37 @@ class LibraryRAG:
     # Query Pipeline
     # ------------------------------------------------------------------
 
-    def _expand_query(self, query: str) -> str:
-        """Simple internal query expansion to catch common synonyms."""
-        q = query.lower()
-        expanded = [q]
-        if "python" in q: expanded.extend(["python programming", "python language", "python guide"])
-        if "ai" in q or "artificial intelligence" in q: expanded.extend(["artificial intelligence", "machine learning", "ML"])
-        if "policy" in q or "rules" in q: expanded.extend(["guidelines", "regulations", "policies"])
-        # Fuzzy intent hints
-        if "where" in q: expanded.append("rack shelf location")
-        return " ".join(expanded)
+    def _expand_query(self, query: str, history: list[dict] = None) -> str:
+        # Fast query expansion without LLM latency
+        import re
+        
+        # Normalize concatenated or spaced IDs (e.g., 'com9842' or 'com 3' -> 'com-9842', 'com-3')
+        query = re.sub(r'\b([a-z]{3})\s*(\d{1,4})\b', r'\1-\2', query, flags=re.IGNORECASE)
+        
+        if not history:
+            return query
+            
+        # Check if current query is likely a follow-up
+        lower_query = " " + query.lower() + " "
+        follow_up_keywords = [" it ", " this ", " that ", " these ", " those ", " copies ", " copy ", " author ", " he ", " she ", " his ", " her ", " they ", " them "]
+        
+        is_follow_up = any(kw in lower_query for kw in follow_up_keywords)
+        
+        expanded = query
+        if is_follow_up:
+            recent_context = []
+            for msg in history[-2:]:
+                if "Hello! I'm your AI Library Assistant" not in msg['content']:
+                    recent_context.append(msg['content'])
+            expanded = " ".join(recent_context) + " " + query
+            
+        # Add 'rack shelf location' if they ask 'where'
+        if "where" in query.lower():
+            expanded += " rack shelf location"
+            
+        return expanded
 
-    def query_stream(self, user_input: str):
+    def query_stream(self, user_input: str, history: list[dict] = None):
         if not self.ready or not self.llm_engine:
             yield "I am still setting up. Please try again in a moment."
             return
@@ -588,43 +607,67 @@ class LibraryRAG:
         
         try:
             t_embed = time.time()
-            expanded_query = self._expand_query(user_input)
+            expanded_query = self._expand_query(user_input, history)
             print(f"Expanded Query: {expanded_query}")
             
             print("Vector search...")
-            vector_hits = self._vector_search(expanded_query, top_k=50)
+            vector_hits = self._vector_search(expanded_query, top_k=200)
             print(f"Vector search executed successfully. Number of vector results: {len(vector_hits)}")
 
             print("BM25 search...")
-            bm25_hits = self._bm25_search(expanded_query, top_k=50)
+            bm25_hits = self._bm25_search(expanded_query, top_k=200)
             print(f"BM25 results count: {len(bm25_hits)}")
 
             # 2. Merge with RRF and return top chunks directly (OOM fix: bypassing heavy cross encoder)
             merged = self._reciprocal_rank_fusion(vector_hits, bm25_hits)
             print(f"RRF results count: {len(merged)}")
             
-            # Pass top chunks directly to LLM
-            top_chunks = self._rerank(user_input, merged[:100], top_k=5)
+            # Retrieve 15 chunks (which contains up to 375 books) to ensure we cast a wide net
+            top_chunks = self._rerank(user_input, merged[:100], top_k=15)
             print(f"Final retrieved chunks: {len(top_chunks)}")
 
+            import re
+            # Extract query tokens for scoring
+            query_terms = set(re.findall(r'[a-z0-9]+', user_input.lower()))
+            
             context_blocks = []
-            for i, chunk in enumerate(top_chunks):
+            catalog_lines = []
+            
+            for chunk in top_chunks:
                 meta = chunk.get("metadata", {})
-                
-                # Check if it's a structural book record or a text chunk
-                if meta.get("section") == "book_record":
-                    # For books, the chunk text is already perfectly formatted with all metadata
-                    context_blocks.append(f"[Book Record {i+1}]\n{chunk['text']}")
+                if meta.get("section") == "Catalog" or meta.get("section") == "book_record":
+                    for line in chunk["text"].split("\n"):
+                        line = line.strip()
+                        if not line: continue
+                        
+                        line_terms = set(re.findall(r'[a-z0-9]+', line.lower()))
+                        overlap = len(query_terms.intersection(line_terms))
+                        
+                        # Massive boost if the exact normalized ID matches
+                        line_clean = line.lower().replace("-", "")
+                        for q in query_terms:
+                            if re.match(r'^[a-z]{3}\d{1,4}$', q) and q in line_clean:
+                                overlap += 100
+                                
+                        catalog_lines.append((overlap, line))
                 else:
                     source = meta.get("source", "Library Database")
                     section = meta.get("section", "")
                     sec_str = f" - Section: {section}" if section else ""
                     context_blocks.append(f"[Source: {source}{sec_str}]\n{chunk['text']}")
+                    
+            if catalog_lines:
+                # Sort descending by score
+                catalog_lines.sort(key=lambda x: x[0], reverse=True)
+                # Pass only the 10 most relevant individual books to prevent LLM hallucination and rate limits!
+                best_books = [line for score, line in catalog_lines[:10]]
+                context_blocks.append("[Library Catalog Results]\n" + "\n".join(best_books))
+                
             context = "\n\n".join(context_blocks)
             
-            # HARD LIMIT: Ensure context doesn't exceed ~16000 characters to stay within reasonable limits
-            if len(context) > 16000:
-                context = context[:16000] + "\n...[CONTENT TRUNCATED DUE TO SIZE LIMITS]..."
+            # HARD LIMIT: Ensure context doesn't exceed limits to stay within reasonable limits
+            if len(context) > 120000:
+                context = context[:120000] + "\n...[CONTENT TRUNCATED DUE TO SIZE LIMITS]..."
 
             system_prompt = (
                 "You are Sam, a virtual library assistant for the University Library. "
@@ -638,7 +681,15 @@ class LibraryRAG:
                 "CRITICAL: The user is speaking through a speech-to-text engine that often mistranscribes rack codes (e.g., 'Rack C1' might become 'Raximon', 'Rack see one', etc. or 'Rack B4' might become 'Before'). If the user asks for a path, route, or directions to a specific rack or bay, you MUST deduce the intended rack code (A-D followed by 1-16) and append exactly `<ROUTE_TO:X>` to the VERY END of your answer, replacing X with the rack code (e.g. `<ROUTE_TO:C1>`). DO NOT say you don't know the location. Simply say 'I have mapped the route on your screen.' and append the tag."
             )
 
-            prompt = f"{system_prompt}\n\nCONTEXT:\n{context}\n\nUSER QUESTION:\n{user_input}\n\nANSWER:"
+            history_text = ""
+            if history:
+                history_text = "CONVERSATION HISTORY:\n"
+                for m in history:
+                    role = "User" if m["role"] == "user" else "Assistant"
+                    history_text += f"{role}: {m['content']}\n"
+                history_text += "\n"
+
+            prompt = f"{system_prompt}\n\nCONTEXT:\n{context}\n\n{history_text}USER QUESTION:\n{user_input}\n\nANSWER:"
             
             print("\n[STATE] -> GENERATING")
             print(f"Prompt preview (first 500 characters):\n{prompt[:500]}...")

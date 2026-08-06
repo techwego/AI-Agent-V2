@@ -1,0 +1,1 @@
+const fs = require('fs'); const files = fs.readdirSync('./frontend/dist/assets').filter(f => f.endsWith('.js')); const code = fs.readFileSync('./frontend/dist/assets/' + files[0], 'utf8'); const matches = code.match(/.{0,50}(?:class|const|let|var)\s+T(?:\s*=|[\s{]).{0,100}/g); console.log(matches);

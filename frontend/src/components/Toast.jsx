@@ -42,12 +42,13 @@ export const ToastProvider = ({ children }) => {
 const ToastItem = ({ toast, onDismiss }) => {
   const { type, message } = toast;
 
-  const config = {
+  const configs = {
     info: { icon: Info, color: 'text-blue-400', border: 'border-l-blue-500' },
     success: { icon: CheckCircle, color: 'text-green-400', border: 'border-l-green-500' },
     warning: { icon: AlertTriangle, color: 'text-amber-400', border: 'border-l-amber-500' },
     error: { icon: AlertCircle, color: 'text-red-400', border: 'border-l-red-500' },
-  }[type] || config.info;
+  };
+  const config = configs[type] || configs.info;
 
   const Icon = config.icon;
 
