@@ -11,6 +11,7 @@ class SpeechRecognitionManager {
     
     this.silenceTimer = null;
     this.maxSilenceTimer = null;
+    this.maxListeningTimer = null;
     this.checkSilenceInterval = null;
     
     this.hasSpoken = false;
@@ -48,11 +49,16 @@ class SpeechRecognitionManager {
       }
       
       // Setup Web Audio API for VAD (Voice Activity Detection)
-      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      this.analyser = this.audioContext.createAnalyser();
-      this.analyser.fftSize = this.FFT_SIZE;
-      this.microphone = this.audioContext.createMediaStreamSource(this.stream);
-      this.microphone.connect(this.analyser);
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = this.FFT_SIZE;
+        this.microphone = this.audioContext.createMediaStreamSource(this.stream);
+        this.microphone.connect(this.analyser);
+      } else if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+
 
       // Setup MediaRecorder
       this.audioChunks = [];
@@ -81,6 +87,14 @@ class SpeechRecognitionManager {
       this.hasSpoken = false;
 
       this.startSilenceDetection();
+      
+      // Safety timeout: 15 seconds max listening
+      this.maxListeningTimer = setTimeout(() => {
+        if (this.listening) {
+          console.warn('Safety timeout: microphone was listening for too long. Force stopping.');
+          this.stopListening();
+        }
+      }, 15000);
       
     } catch (err) {
       console.error('Error starting microphone:', err);
@@ -138,26 +152,32 @@ class SpeechRecognitionManager {
       clearInterval(this.checkSilenceInterval);
       this.checkSilenceInterval = null;
     }
+    
+    if (this.maxListeningTimer) {
+      clearTimeout(this.maxListeningTimer);
+      this.maxListeningTimer = null;
+    }
 
     // Stop recording
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
     }
 
-    // Stop audio context (we keep stream alive for instant reuse)
-    // if (this.audioContext && this.audioContext.state !== 'closed') {
-    //   this.audioContext.close();
-    // }
-
-    // Stop tracks to release microphone hardware - REMOVED TO FIX DELAY
-    // if (this.stream) {
-    //   this.stream.getTracks().forEach(track => track.stop());
-    // }
+    // Suspend audio context (we keep stream alive for instant reuse)
+    if (this.audioContext && this.audioContext.state === 'running') {
+      this.audioContext.suspend();
+    }
 
     // Reset volume
     if (this.volumeCallback) {
       this.volumeCallback(0);
     }
+  }
+
+  forceReset() {
+    this.stopListening();
+    this.audioChunks = [];
+    this.hasSpoken = false;
   }
 
   async sendForTranscription(blob) {

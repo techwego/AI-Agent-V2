@@ -70,6 +70,51 @@ def reset_stuck_uploads(db: Session = Depends(get_db), current_user: User = Depe
     db.commit()
     return {"message": f"Reset {len(stuck)} stuck uploads"}
 
+@router.delete("/uploads/delete-all")
+def delete_all_data(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    from backend.api.main import rag_engine
+    from backend.database.models import Book, EmbeddingRecord
+    
+    db.query(Book).delete()
+    db.query(Upload).delete()
+    db.query(EmbeddingRecord).delete()
+    
+    if hasattr(rag_engine, "chroma_client"):
+        try:
+            rag_engine.chroma_client.delete_collection("library_data_v2")
+            rag_engine.collection = rag_engine.chroma_client.get_or_create_collection(
+                "library_data_v2",
+                metadata={"hnsw:space": "cosine"},
+            )
+        except Exception:
+            pass
+            
+    persist_dir = getattr(rag_engine, "persist_dir", "./chroma_db")
+    bm25_path = os.path.join(persist_dir, "bm25_cache.pkl")
+    sqlite_path = os.path.join(persist_dir, "book_index.db")
+    
+    if os.path.exists(bm25_path):
+        os.remove(bm25_path)
+    if os.path.exists(sqlite_path):
+        try:
+            os.remove(sqlite_path)
+        except Exception:
+            pass
+        
+    rag_engine.bm25_index = None
+    rag_engine.bm25_doc_map = []
+    if hasattr(rag_engine, "sqlite_conn") and rag_engine.sqlite_conn:
+        try:
+            rag_engine.sqlite_conn.close()
+        except:
+            pass
+        rag_engine.sqlite_conn = None
+        
+    db.add(AdminLog(admin_id=current_user.id, action="DELETE_ALL", details="Cleared all uploads, books, embeddings, and vector DB"))
+    db.commit()
+    
+    return {"message": "All data deleted successfully"}
+
 @router.delete("/uploads/{upload_id}")
 def delete_upload(upload_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     upload = db.query(Upload).filter(Upload.id == upload_id).first()

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "doc_1_0",
+    "text": "Anna University AI Library Agent - Knowledge\n Base\nUniversity Name: Anna University\nLocation: Chennai, Tamil Nadu, India\nOverview: Anna University is a leading public technical university in Chennai offering engineering,\ntechnology, architecture, management, science, and related programs through multiple\ndepartments.\nDepartments:\nThe university has more than 20 departments. Example departments include:\n\u007f Computer Science and Engineering\n\u007f Information Technology\n\u007f Artificial Intelligence and Data Science\n\u007f Electronics and Communication Engineering\n\u007f Electrical and Electronics Engineering\n\u007f Mechanical Engineering\n\u007f Civil Engineering\n\u007f Chemical Engineering\n\u007f Biotechnology\n\u007f Biomedical Engineering\n\u007f Industrial Engineering\n\u007f Production Engineering\n\u007f Manufacturing Engineering\n\u007f Aeronautical Engineering\n\u007f Automobile Engineering\n\u007f Mining Engineering\n\u007f Printing Technology\n\u007f Textile Technology\n\u007f Architecture\n\u007f Planning\n\u007f Management Studies\n\u007f Mathematics\n\u007f Physics\n\u007f Chemistry\n\u007f English\n\u007f Geology\n\u007f Environmental Engineering\nAI Agent Default Responses\nQ: Who developed the agent?\nA: I was developed by Arun.\nQ: Which company built you?\nA: I was built by Tech We Go Solution.\nSample FAQs\nWhere is Anna University located?\nAnna University is located in Chennai, Tamil Nadu, India.\nHow many departments are available?\nThe university has more than 20 academic departments across various disciplines.",
+    "metadata": {
+      "source": "Anna_University_AI_Agent_Knowledge_Base.pdf",
+      "document_type": "pdf",
+      "page": 1
+    }
+  },
+  {
+    "id": "doc_1_1",
+    "text": "What courses are offered?\nEngineering, Technology, Architecture, Management, Science, and related programs.\nWho developed this AI agent?\nI was developed by Arun.\nWhich organization built this AI agent?\nTech We Go Solution built this AI agent.",
+    "metadata": {
+      "source": "Anna_University_AI_Agent_Knowledge_Base.pdf",
+      "document_type": "pdf",
+      "page": 2
+    }
+  }
+]

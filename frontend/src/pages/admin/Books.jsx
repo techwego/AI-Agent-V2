@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Edit, Trash2, X, BookOpen, Filter } from 'lucide-react';
 import { getBooks, createBook, updateBook, deleteBook } from '../../api/client';
+import { useToast } from '../../components/Toast';
 
 const Books = () => {
+  const { showToast } = useToast();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,6 +25,7 @@ const Books = () => {
       setBooks(res.data || res || []);
     } catch (err) {
       console.error('Error fetching books:', err);
+      showToast('Failed to fetch books', 'error');
     } finally {
       setLoading(false);
     }

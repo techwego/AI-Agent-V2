@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, Building, UploadCloud, Users, Database, Server, Mic, HardDrive, Activity, RefreshCw, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getAnalytics, getLogs, getSystemStatus } from '../../api/client';
+import { useToast } from '../../components/Toast';
 
 const StatCard = ({ title, value, icon: Icon, colorClass, subtitle, isLoading }) => (
   <div className="glass-card p-6 rounded-2xl flex items-start justify-between border border-gray-800">
@@ -66,6 +67,7 @@ const getActivityIcon = (action) => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [analytics, setAnalytics] = useState(null);
   const [systemStatus, setSystemStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -81,6 +83,7 @@ const Dashboard = () => {
       setSystemStatus(statusRes.data);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
+      showToast('Failed to fetch dashboard data', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);

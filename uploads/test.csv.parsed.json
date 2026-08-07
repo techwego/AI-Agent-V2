@@ -1,0 +1,16 @@
+[
+    {
+        "id": "upload_1_0",
+        "text": "Title: Test\nKeywords: test",
+        "metadata": {
+            "source": "test.csv",
+            "document_type": "csv",
+            "id": "1",
+            "title": "Test",
+            "book_id": "1",
+            "normalized_title": "test",
+            "normalized_author": "unknown author",
+            "section": "Catalog"
+        }
+    }
+]

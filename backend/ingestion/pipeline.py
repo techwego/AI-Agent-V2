@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import re
 from typing import List, Dict, Any
 from backend.database.db import SessionLocal
 from backend.database.models import Upload, Book, EmbeddingRecord
@@ -10,6 +11,50 @@ import chromadb
 from fastembed import TextEmbedding
 
 logger = logging.getLogger(__name__)
+
+def normalize_text(text: str) -> str:
+    """Normalize text by removing special chars, extra spaces, lowercasing."""
+    if not text:
+        return ""
+    text = re.sub(r'[,\.\(\)\[\]\{\}]', ' ', text)
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip().lower()
+
+def build_rich_text(record: dict) -> str:
+    """Build a rich vertical text block from a parsed record for high-quality embeddings."""
+    lines = []
+    meta = record.get("metadata", {})
+    text = record.get("text", "")
+    
+    # Try to extract structured fields from metadata
+    title = meta.get("title") or meta.get("book name") or meta.get("book_name") or ""
+    author = meta.get("author") or ""
+    subject = meta.get("subject") or ""
+    call_number = meta.get("call_number") or meta.get("call number") or ""
+    location = meta.get("location") or meta.get("rack") or ""
+    copies = meta.get("copies") or meta.get("available") or ""
+    
+    if title:
+        lines.append(f"Title: {title}")
+    if author:
+        lines.append(f"Author: {author}")
+    if subject:
+        lines.append(f"Subject: {subject}")
+    if call_number:
+        lines.append(f"Call Number: {call_number}")
+    if location:
+        lines.append(f"Rack: {location}")
+    if copies:
+        lines.append(f"Available Copies: {copies}")
+    
+    # Add normalized keywords for better search
+    if title:
+        lines.append(f"Keywords: {normalize_text(title)}")
+    
+    # If we built structured lines, use them; otherwise fall back to original text
+    if lines:
+        return "\n".join(lines)
+    return text
 
 def map_fields(record: Dict[str, Any]) -> Dict[str, Any]:
     mapped = {}
@@ -77,10 +122,9 @@ def run_pipeline(upload_id: int):
         upload.message = f"Found {len(chunks)} records. Normalizing..."
         db.commit()
         
-        # 2. Normalize and insert books
+        # 2. Normalize, validate, and build rich text for each record
         books_to_embed = []
         
-        # Import chunker to break large pages/documents into smaller, focused semantic chunks
         from backend.rag.engine import TokenChunker
         chunker = TokenChunker(target_tokens=256, overlap_tokens=40)
         
@@ -93,21 +137,38 @@ def run_pipeline(upload_id: int):
                 text_content = chunk.get("text", "")
                 metadata = chunk.get("metadata", {})
                 
-                # Try to map fields for the SQL database (Book records)
+                # Map fields for SQL database (Book records)
                 mapped = map_fields(metadata)
                 
-                # Only insert into SQL if it has a real title (structured data)
+                # Insert into SQL if it has a real title (structured data)
                 if mapped.get("title") != "Unknown Title":
                     new_book = Book(**mapped)
                     db.add(new_book)
-                    db.flush() # get ID
+                    db.flush()
                     metadata["book_id"] = new_book.id
                     
-                    # For structured book records, we keep them as one chunk
+                    # Build rich text block for high-quality embedding
+                    rich_text = build_rich_text(chunk)
+                    
+                    # Inject all fields into metadata for ChromaDB filtering
+                    enriched_meta = {**metadata}
+                    for k, v in metadata.items():
+                        val = str(v).strip() if v else ""
+                        if val:
+                            enriched_meta[str(k).lower().replace(" ", "_")] = val
+                    
+                    # Add normalized fields for SQLite fuzzy matching
+                    if mapped.get("title"):
+                        enriched_meta["normalized_title"] = normalize_text(mapped["title"])
+                    if mapped.get("author"):
+                        enriched_meta["normalized_author"] = normalize_text(mapped["author"])
+                    
+                    enriched_meta["section"] = "Catalog"
+                    
                     books_to_embed.append({
                         "id": f"upload_{upload_id}_{len(books_to_embed)}",
-                        "text": text_content,
-                        "metadata": metadata
+                        "text": rich_text,
+                        "metadata": enriched_meta
                     })
                 else:
                     # For unstructured documents (PDFs, TXT), break into smaller chunks
@@ -121,7 +182,7 @@ def run_pipeline(upload_id: int):
         
         db.commit()
         
-        # 4. Save to JSON file as requested
+        # 3. Save to JSON file
         upload.message = "Converting and saving to JSON..."
         db.commit()
         json_path = os.path.join("./uploads", f"{upload.filename}.parsed.json")
@@ -131,7 +192,7 @@ def run_pipeline(upload_id: int):
         except Exception as je:
             logger.warning(f"Could not save JSON file: {je}")
         
-        # 5. Generate embeddings and Upsert in Batches
+        # 4. Generate embeddings and upsert in batches
         upload.message = "Generating embeddings..."
         db.commit()
         
@@ -140,7 +201,6 @@ def run_pipeline(upload_id: int):
         
         collection = rag_engine.collection
         
-        # Process in batches to prevent OOM/crashing on large files
         BATCH_SIZE = 250
         total_chunks = len(books_to_embed)
         
@@ -150,11 +210,9 @@ def run_pipeline(upload_id: int):
             batch_ids = [b.get("id", f"upload_{upload_id}_{i+j}") for j, b in enumerate(batch)]
             batch_metadatas = [b.get("metadata", {}) for b in batch]
             
-            # Embed batch
             batch_embeddings = list(embedding_model.embed(batch_texts))
             batch_embeddings_list = [e.tolist() for e in batch_embeddings]
             
-            # Upsert batch
             collection.upsert(
                 documents=batch_texts,
                 embeddings=batch_embeddings_list,
@@ -162,19 +220,21 @@ def run_pipeline(upload_id: int):
                 ids=batch_ids
             )
             
-            # Update progress
             upload.message = f"Embedded {min(i + BATCH_SIZE, total_chunks)} of {total_chunks} chunks..."
             db.commit()
         
         # Log embedding record
         db.add(EmbeddingRecord(upload_id=upload_id, chunk_count=total_chunks, status="success"))
         
-        # 8. Update upload status
+        # 5. Rebuild BM25 and SQLite indexes with the new data
+        upload.message = "Rebuilding search indexes..."
+        db.commit()
+        
         upload.status = "completed"
         upload.message = "Successfully ingested and indexed."
         db.commit()
         
-        # 9. Reload RAG index
+        # 6. Reload RAG index (rebuilds BM25 + SQLite)
         from backend.api.main import rag_engine
         rag_engine.reload_index()
         

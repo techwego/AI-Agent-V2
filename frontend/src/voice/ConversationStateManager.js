@@ -9,7 +9,7 @@ export const State = {
 };
 
 const VALID_TRANSITIONS = {
-  [State.IDLE]: [State.INTRODUCING, State.LISTENING],
+  [State.IDLE]: [State.INTRODUCING, State.LISTENING, State.PROCESSING, State.RETRIEVING, State.GENERATING, State.SPEAKING],
   [State.INTRODUCING]: [State.IDLE, State.LISTENING],
   [State.LISTENING]: [State.PROCESSING, State.IDLE],
   [State.PROCESSING]: [State.RETRIEVING, State.IDLE],

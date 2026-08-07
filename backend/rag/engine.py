@@ -185,23 +185,39 @@ class DocumentReader:
     def _read_csv(filepath: str, base_meta: dict) -> list[dict]:
         import csv
         results = []
-        rows_per_chunk = 25
-        current_rows = []
         
         with open(filepath, mode="r", encoding="utf-8", errors="ignore") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                formatted_parts = [f"{k}: {v}" for k, v in row.items() if v]
-                current_rows.append(" | ".join(formatted_parts))
-                if len(current_rows) >= rows_per_chunk:
-                    text_block = "\n".join(current_rows)
-                    results.append({"text": text_block, "metadata": {**base_meta, "section": "Catalog"}})
-                    current_rows = []
+                lines = []
+                meta = {**base_meta, "section": "Catalog"}
+                
+                # Extract and map standard fields
+                title = row.get("Book Name") or row.get("Title") or row.get("Book_Name")
+                author = row.get("Author")
+                rack = row.get("Rack") or row.get("Location")
+                shelf = row.get("Shelf")
+                copies = row.get("Copies") or row.get("Available")
+                
+                if title: lines.append(f"Title: {title}")
+                if author: lines.append(f"Author: {author}")
+                if rack: lines.append(f"Rack: {rack}")
+                if shelf: lines.append(f"Shelf: {shelf}")
+                if copies: lines.append(f"Available Copies: {copies}")
+                
+                # Add all valid fields to metadata for ChromaDB filtering
+                for k, v in row.items():
+                    val = str(v).strip() if v else ""
+                    if val:
+                        meta[str(k).lower().replace(" ", "_")] = val
+                        # Add any non-standard fields to text block as well
+                        if k not in ["Book Name", "Title", "Book_Name", "Author", "Rack", "Location", "Shelf", "Copies", "Available"]:
+                            lines.append(f"{k}: {val}")
+                            
+                text_block = "\n".join(lines)
+                if text_block.strip():
+                    results.append({"text": text_block, "metadata": meta})
                     
-        if current_rows:
-            text_block = "\n".join(current_rows)
-            results.append({"text": text_block, "metadata": {**base_meta, "section": "Catalog"}})
-            
         return results
 
     @staticmethod
@@ -360,6 +376,8 @@ class LibraryRAG:
             self._build_or_load_bm25_index()
             self.diagnostics["bm25_time"] = round(time.time() - t_bm25, 3)
 
+            self._build_or_load_sqlite_index()
+
             if api_key and api_key != "dummy_key_for_local_db_generation":
                 from backend.llm.groq_engine import GroqEngine
                 self.llm_engine = GroqEngine()
@@ -391,6 +409,138 @@ class LibraryRAG:
             print(f"[ERROR] RAG Initialization Failed: {e}")
 
     # ------------------------------------------------------------------
+
+    def _build_or_load_sqlite_index(self):
+        import sqlite3
+        db_path = os.path.join(self.persist_dir, "book_index.db")
+        self.sqlite_conn = sqlite3.connect(db_path, check_same_thread=False)
+        cursor = self.sqlite_conn.cursor()
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS book_index (
+                id TEXT PRIMARY KEY,
+                title TEXT,
+                author TEXT,
+                subject TEXT,
+                call_number TEXT,
+                location TEXT,
+                copies TEXT,
+                normalized_title TEXT,
+                normalized_author TEXT,
+                chroma_id TEXT
+            )
+        ''')
+        
+        cursor.execute("SELECT COUNT(*) FROM book_index")
+        count = cursor.fetchone()[0]
+        
+        if count == 0 and self.collection:
+            print("SQLite: Populating from ChromaDB...")
+            results = self.collection.get(include=["metadatas"])
+            if results and results["metadatas"]:
+                for i, meta in enumerate(results["metadatas"]):
+                    chroma_id = results["ids"][i] if "ids" in results and results["ids"] else str(i)
+                    title = meta.get("title", "")
+                    author = meta.get("author", "")
+                    subject = meta.get("subject", "")
+                    call_number = meta.get("call_number", "")
+                    location = meta.get("location", "")
+                    copies = meta.get("copies", "")
+                    
+                    norm_title = str(title).lower().strip()
+                    norm_author = str(author).lower().strip()
+                    
+                    cursor.execute('''
+                        INSERT INTO book_index (id, title, author, subject, call_number, location, copies, normalized_title, normalized_author, chroma_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (str(i), str(title), str(author), str(subject), str(call_number), str(location), str(copies), norm_title, norm_author, chroma_id))
+                self.sqlite_conn.commit()
+                print(f"SQLite: Populated {len(results['metadatas'])} records.")
+
+    def _rebuild_sqlite_index(self):
+        """Drops and recreates the SQLite index from ChromaDB."""
+        if not hasattr(self, 'sqlite_conn') or not self.sqlite_conn:
+            import sqlite3
+            db_path = os.path.join(self.persist_dir, "book_index.db")
+            self.sqlite_conn = sqlite3.connect(db_path, check_same_thread=False)
+        
+        cursor = self.sqlite_conn.cursor()
+        cursor.execute("DROP TABLE IF EXISTS book_index")
+        self.sqlite_conn.commit()
+        
+        # Now call the original builder to recreate it
+        self._build_or_load_sqlite_index()
+
+    def _metadata_lookup(self, query: str, field: str = None) -> list[dict]:
+        if not hasattr(self, 'sqlite_conn') or not self.sqlite_conn:
+            return []
+            
+        cursor = self.sqlite_conn.cursor()
+        query_norm = query.lower().strip()
+        words = query_norm.split()
+        
+        if not words:
+            return []
+        
+        if field == "author":
+            conditions = " AND ".join(["normalized_author LIKE ?"] * len(words))
+            params = tuple(f'%{w}%' for w in words)
+            cursor.execute(f"SELECT title, author, subject, call_number, location, copies FROM book_index WHERE {conditions}", params)
+        elif field == "location":
+            cursor.execute("SELECT title, author, subject, call_number, location, copies FROM book_index WHERE location LIKE ?", (f'%{query_norm}%',))
+        elif field == "call_number":
+            cursor.execute("SELECT title, author, subject, call_number, location, copies FROM book_index WHERE call_number LIKE ?", (f'%{query_norm}%',))
+        elif field == "title":
+            conditions = " AND ".join(["normalized_title LIKE ?"] * len(words))
+            params = tuple(f'%{w}%' for w in words)
+            cursor.execute(f"SELECT title, author, subject, call_number, location, copies FROM book_index WHERE {conditions}", params)
+        else:
+            return []
+            
+        rows = cursor.fetchall()
+        results = []
+        for row in rows:
+            text = f"Title: {row[0]}\nAuthor: {row[1]}\nSubject: {row[2]}\nCall Number: {row[3]}\nRack: {row[4]}\nAvailable Copies: {row[5]}"
+            results.append({
+                "text": text,
+                "metadata": {
+                    "title": row[0],
+                    "author": row[1],
+                    "subject": row[2],
+                    "call_number": row[3],
+                    "location": row[4],
+                    "copies": row[5]
+                },
+                "score": 1.0
+            })
+        return results
+
+    def _validate_record(self, query: str, record: dict) -> bool:
+        title = record.get("metadata", {}).get("title", "")
+        if not title:
+            import re
+            m = re.search(r'Title:\s*(.*)', record.get("text", ""))
+            if m:
+                title = m.group(1)
+                
+        if not title:
+            return True
+            
+        import re
+        query_words = set(re.findall(r'\w+', query.lower()))
+        title_words = set(re.findall(r'\w+', title.lower()))
+        
+        if not query_words or not title_words:
+            return True
+            
+        overlap = len(query_words.intersection(title_words))
+        ratio = max(overlap / len(query_words), overlap / len(title_words))
+        
+        if ratio < 0.3:
+            print(f"Validator: Rejected record '{title}' (overlap ratio: {ratio:.2f})")
+            return False
+            
+        return True
 
     # ------------------------------------------------------------------
     # BM25 Index
@@ -426,6 +576,7 @@ class LibraryRAG:
             metadata={"hnsw:space": "cosine"},
         )
         self.rebuild_bm25_index()
+        self._rebuild_sqlite_index()
         print("RAG reload complete.", flush=True)
 
     def rebuild_bm25_index(self):
@@ -579,17 +730,56 @@ class LibraryRAG:
             
         # Check if current query is likely a follow-up
         lower_query = " " + query.lower() + " "
-        follow_up_keywords = [" it ", " this ", " that ", " these ", " those ", " copies ", " copy ", " author ", " he ", " she ", " his ", " her ", " they ", " them "]
+        follow_up_keywords = [" it ", " this ", " that ", " these ", " those ", " copies ", " copy ", " author ", " he ", " she ", " his ", " her ", " they ", " them ", " where ", " which ", " how many "]
         
         is_follow_up = any(kw in lower_query for kw in follow_up_keywords)
         
         expanded = query
         if is_follow_up:
-            recent_context = []
-            for msg in history[-2:]:
-                if "Hello! I'm your AI Library Assistant" not in msg['content']:
-                    recent_context.append(msg['content'])
-            expanded = " ".join(recent_context) + " " + query
+            current_book = ""
+            current_author = ""
+            current_rack = ""
+            current_copies = ""
+            
+            for msg in reversed(history):
+                if msg["role"] == "assistant":
+                    # Simple heuristic extraction of the current book being discussed
+                    match1 = re.search(r'The (.*?) book is', msg['content'], re.IGNORECASE)
+                    match2 = re.search(r'book titled "(.*?)"', msg['content'], re.IGNORECASE)
+                    match3 = re.search(r'book "(.*?)"', msg['content'], re.IGNORECASE)
+                    match4 = re.search(r'author of the book "(.*?)"', msg['content'], re.IGNORECASE)
+                    if match1: current_book = match1.group(1)
+                    elif match2: current_book = match2.group(1)
+                    elif match3: current_book = match3.group(1)
+                    elif match4: current_book = match4.group(1)
+                    
+                    author_match = re.search(r'author is ([^,\.]+)', msg['content'], re.IGNORECASE)
+                    if author_match: current_author = author_match.group(1)
+                    
+                    rack_match = re.search(r'<ROUTE_TO:(.*?)>', msg['content'])
+                    if not rack_match:
+                        rack_match = re.search(r'Rack ([A-Z0-9\-]+)', msg['content'], re.IGNORECASE)
+                    if rack_match: current_rack = rack_match.group(1)
+                    
+                    copies_match = re.search(r'(\d+) (?:available )?copies', msg['content'], re.IGNORECASE)
+                    if copies_match: current_copies = copies_match.group(1)
+                    
+                    if current_book:
+                        break
+            
+            if current_book:
+                print(f"Conversation Memory: Detected current book '{current_book}'")
+                context_parts = []
+                if current_author: context_parts.append(f"Author: {current_author}")
+                if current_rack: context_parts.append(f"Rack: {current_rack}")
+                if current_copies: context_parts.append(f"Copies: {current_copies}")
+                expanded = f"{current_book} {' '.join(context_parts)} {query}"
+            else:
+                recent_context = []
+                for msg in history[-2:]:
+                    if "Hello! I'm your AI Library Assistant" not in msg['content']:
+                        recent_context.append(msg['content'])
+                expanded = " ".join(recent_context) + " " + query
             
         # Add 'rack shelf location' if they ask 'where'
         if "where" in query.lower():
@@ -610,58 +800,68 @@ class LibraryRAG:
             expanded_query = self._expand_query(user_input, history)
             print(f"Expanded Query: {expanded_query}")
             
-            print("Vector search...")
-            vector_hits = self._vector_search(expanded_query, top_k=200)
-            print(f"Vector search executed successfully. Number of vector results: {len(vector_hits)}")
-
-            print("BM25 search...")
-            bm25_hits = self._bm25_search(expanded_query, top_k=200)
-            print(f"BM25 results count: {len(bm25_hits)}")
-
-            # 2. Merge with RRF and return top chunks directly (OOM fix: bypassing heavy cross encoder)
-            merged = self._reciprocal_rank_fusion(vector_hits, bm25_hits)
-            print(f"RRF results count: {len(merged)}")
+            # --- INTENT ROUTER ---
+            lower_query = expanded_query.lower()
+            metadata_results = []
             
-            # Retrieve 15 chunks (which contains up to 375 books) to ensure we cast a wide net
-            top_chunks = self._rerank(user_input, merged[:100], top_k=15)
+            if "books by" in lower_query or "author" in lower_query or "written by" in lower_query:
+                author_name = user_input.lower().replace("author", "").replace("written by", "").replace("books by", "").replace("?", "").strip()
+                if author_name:
+                    print(f"Intent Router: Author search detected for '{author_name}'")
+                    metadata_results = self._metadata_lookup(author_name, field="author")
+            elif "rack" in lower_query or "where is" in lower_query:
+                import re
+                rack_match = re.search(r'rack\s+([a-z0-9\-]+)', lower_query)
+                if rack_match:
+                    print(f"Intent Router: Location search detected for '{rack_match.group(1)}'")
+                    metadata_results = self._metadata_lookup(rack_match.group(1), field="location")
+            elif "book id" in lower_query or "call number" in lower_query:
+                import re
+                id_match = re.search(r'(?:book id|call number)\s+([a-z0-9\-]+)', lower_query)
+                if id_match:
+                    print(f"Intent Router: Call number search detected for '{id_match.group(1)}'")
+                    metadata_results = self._metadata_lookup(id_match.group(1), field="call_number")
+            else:
+                # Fallback to exact title search before RAG
+                title_results = self._metadata_lookup(user_input, field="title")
+                if title_results:
+                    print(f"Intent Router: Exact title match found for '{user_input}'")
+                    metadata_results = title_results
+            
+            if metadata_results:
+                top_chunks = metadata_results[:15]
+                print(f"Intent Router: Routed to metadata lookup, found {len(top_chunks)} exact results.")
+            else:
+                print("Vector search...")
+                vector_hits = self._vector_search(expanded_query, top_k=200)
+
+                print("BM25 search...")
+                bm25_hits = self._bm25_search(expanded_query, top_k=200)
+
+                merged = self._reciprocal_rank_fusion(vector_hits, bm25_hits)
+                print(f"RRF results count: {len(merged)}")
+                
+                # Filter with Record Validator
+                valid_chunks = []
+                for chunk in merged[:100]:
+                    if self._validate_record(user_input, chunk):
+                        valid_chunks.append(chunk)
+                
+                top_chunks = self._rerank(user_input, valid_chunks, top_k=15)
+                
             print(f"Final retrieved chunks: {len(top_chunks)}")
 
-            import re
-            # Extract query tokens for scoring
-            query_terms = set(re.findall(r'[a-z0-9]+', user_input.lower()))
-            
             context_blocks = []
-            catalog_lines = []
             
             for chunk in top_chunks:
                 meta = chunk.get("metadata", {})
-                if meta.get("section") == "Catalog" or meta.get("section") == "book_record":
-                    for line in chunk["text"].split("\n"):
-                        line = line.strip()
-                        if not line: continue
-                        
-                        line_terms = set(re.findall(r'[a-z0-9]+', line.lower()))
-                        overlap = len(query_terms.intersection(line_terms))
-                        
-                        # Massive boost if the exact normalized ID matches
-                        line_clean = line.lower().replace("-", "")
-                        for q in query_terms:
-                            if re.match(r'^[a-z]{3}\d{1,4}$', q) and q in line_clean:
-                                overlap += 100
-                                
-                        catalog_lines.append((overlap, line))
-                else:
-                    source = meta.get("source", "Library Database")
-                    section = meta.get("section", "")
-                    sec_str = f" - Section: {section}" if section else ""
-                    context_blocks.append(f"[Source: {source}{sec_str}]\n{chunk['text']}")
-                    
-            if catalog_lines:
-                # Sort descending by score
-                catalog_lines.sort(key=lambda x: x[0], reverse=True)
-                # Pass only the 10 most relevant individual books to prevent LLM hallucination and rate limits!
-                best_books = [line for score, line in catalog_lines[:10]]
-                context_blocks.append("[Library Catalog Results]\n" + "\n".join(best_books))
+                source = meta.get("source", "Library Database")
+                section = meta.get("section", "")
+                sec_str = f" - Section: {section}" if section else ""
+                context_blocks.append(f"[Source: {source}{sec_str}]\n{chunk['text']}")
+                
+            if not context_blocks:
+                context_blocks.append("No relevant information found in the library catalog.")
                 
             context = "\n\n".join(context_blocks)
             
@@ -671,14 +871,17 @@ class LibraryRAG:
 
             system_prompt = (
                 "You are Sam, a virtual library assistant for the University Library. "
-                "Use ONLY the provided context documents to answer the user's question. "
+                "You MUST answer ONLY from the retrieved context records below. Never guess or invent metadata. "
+                "If the retrieved records do not match the user's question, say 'I could not find an exact match for that book.' "
+                "Never combine the author of one book with the title of another. "
+                "If there are multiple books or versions with the same title, you MUST list them and specify their differing authors or racks. "
+                "When providing book details, always quote the EXACT Title, Author, Rack, and Copies from the records. "
                 "Answer the user naturally and directly. DO NOT mention file names, document names, source files, page numbers, or book record numbers in your response. Just provide the answer. "
-                "If you don't know the answer from the context, say you don't know. Do not guess. "
                 "Adopt a professional, calm, friendly, confident, and efficient female persona. "
                 "Use clear, neutral Indian English or international English. "
                 "Keep it concise but natural — provide a smooth, fluid answer in one to three sentences. "
-                "Answer naturally with a warm, helpful tone. "
-                "CRITICAL: The user is speaking through a speech-to-text engine that often mistranscribes rack codes (e.g., 'Rack C1' might become 'Raximon', 'Rack see one', etc. or 'Rack B4' might become 'Before'). If the user asks for a path, route, or directions to a specific rack or bay, you MUST deduce the intended rack code (A-D followed by 1-16) and append exactly `<ROUTE_TO:X>` to the VERY END of your answer, replacing X with the rack code (e.g. `<ROUTE_TO:C1>`). DO NOT say you don't know the location. Simply say 'I have mapped the route on your screen.' and append the tag."
+                "CRITICAL: The user is speaking through a speech-to-text engine. If their spoken words are slightly different from a book title in the context (e.g. 'Food' instead of 'Port'), gracefully assume they meant the book in the context. DO NOT point out the typo or say you couldn't find their exact words. Just seamlessly answer about the matched book. "
+                "CRITICAL: If the user asks for a path, route, or directions to a specific book, or if you provide the location of a book, you MUST append exactly `<ROUTE_TO:X>` to the VERY END of your answer, replacing X with the exact Rack ID found in the database for that book (e.g. `<ROUTE_TO:LIT-7>`, `<ROUTE_TO:COM-3>`). Always use the exact Rack code specified in the provided context."
             )
 
             history_text = ""

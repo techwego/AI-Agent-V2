@@ -1,0 +1,38 @@
+[
+  {
+    "id": "doc_5_0",
+    "text": "Library Opening Hours\n=====================",
+    "metadata": {
+      "source": "library_hours.txt",
+      "document_type": "txt",
+      "paragraph_index": 0
+    }
+  },
+  {
+    "id": "doc_5_1",
+    "text": "Monday: 8:00 AM - 10:00 PM\nTuesday: 8:00 AM - 10:00 PM\nWednesday: 8:00 AM - 10:00 PM\nThursday: 8:00 AM - 10:00 PM\nFriday: 8:00 AM - 8:00 PM\nSaturday: 10:00 AM - 6:00 PM\nSunday: 12:00 PM - 8:00 PM",
+    "metadata": {
+      "source": "library_hours.txt",
+      "document_type": "txt",
+      "paragraph_index": 1
+    }
+  },
+  {
+    "id": "doc_5_2",
+    "text": "Holiday Hours:\n- Public Holidays: Closed\n- University Breaks: 9:00 AM - 5:00 PM (Monday to Friday only)",
+    "metadata": {
+      "source": "library_hours.txt",
+      "document_type": "txt",
+      "paragraph_index": 2
+    }
+  },
+  {
+    "id": "doc_5_3",
+    "text": "Special Service Desks:\n- IT Help Desk: Available Mon-Fri, 9:00 AM to 5:00 PM\n- Reference Desk: Available Mon-Sat, 10:00 AM to 4:00 PM\n- Special Collections: By appointment only (Mon-Thu).",
+    "metadata": {
+      "source": "library_hours.txt",
+      "document_type": "txt",
+      "paragraph_index": 3
+    }
+  }
+]

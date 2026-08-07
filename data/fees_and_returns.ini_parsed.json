@@ -1,0 +1,20 @@
+[
+  {
+    "id": "doc_3_0",
+    "text": "[Fees Structure]\nLate Return Fine (Books) = $0.50 per day\nLate Return Fine (Laptops/Electronics) = $5.00 per day\nLost Book Replacement = Original cost + $15 processing fee\nPrinting = $0.10 per B&W page, $0.25 per Color page",
+    "metadata": {
+      "source": "fees_and_returns.ini",
+      "document_type": "txt",
+      "paragraph_index": 0
+    }
+  },
+  {
+    "id": "doc_3_1",
+    "text": "[Return Policies]\nStandard Books = Must be returned within 21 days.\nReference Books = Cannot be checked out, must be used in the library.\nElectronics = Must be returned by closing time on the same day.\nDrop Box = Available 24/7 outside the main entrance. Items dropped after midnight are counted as returned the following day.",
+    "metadata": {
+      "source": "fees_and_returns.ini",
+      "document_type": "txt",
+      "paragraph_index": 1
+    }
+  }
+]

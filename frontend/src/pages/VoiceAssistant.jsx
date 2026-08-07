@@ -34,6 +34,10 @@ const VoiceAssistant = () => {
   const [activeTab, setActiveTab] = useState('chat'); // 'chat', 'map', or 'search'
   
   const messagesEndRef = useRef(null);
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
   const analyserRef = useRef(null);
   const wayfindRef = useRef(null);
   const inputRef = useRef(null);
@@ -68,6 +72,8 @@ const VoiceAssistant = () => {
     });
 
     return () => {
+      sttManager.onTranscription(() => {});
+      sttManager.onError(() => {});
       ttsManager.cancel();
       sttManager.stopListening();
       stateManager.reset();
@@ -76,7 +82,7 @@ const VoiceAssistant = () => {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
       if (e.code === 'Space') { e.preventDefault(); handleOrbClick(); }
       else if (e.code === 'Escape') { e.preventDefault(); handleInterrupt(); }
     };
@@ -96,7 +102,6 @@ const VoiceAssistant = () => {
     const currentState = stateManager.getState();
     if (currentState === State.SPEAKING || currentState === State.INTRODUCING) { 
       handleInterrupt(); 
-      startListening();
       return; 
     }
     if (currentState === State.LISTENING) { sttManager.stopListening(); stateManager.setState(State.IDLE); return; }
@@ -114,11 +119,11 @@ const VoiceAssistant = () => {
     if (!stateManager.setState(State.INTRODUCING)) return;
     
     setHasIntroduced(true);
-    const introText = "Hello! I'm your AI Library Assistant. I can help you find books, navigate to library sections, and answer questions about the university. Just tap the orb or type below!";
+    const introText = "Hello! I'm Sam, your AI Assistant. Tap the orb to ask a question.";
     
     ttsManager.speak(introText, () => {
       if (stateManager.getState() === State.INTRODUCING) {
-        startListening();
+        stateManager.setState(State.IDLE);
       }
     });
   }, []);
@@ -134,14 +139,12 @@ const VoiceAssistant = () => {
 
   const handleVoiceInput = useCallback(async (text) => {
     stateManager.setState(State.PROCESSING);
-    setMessages(prev => {
-      const history = [...prev];
-      setTimeout(() => {
-        stateManager.setState(State.RETRIEVING);
-        streamAIResponse(text, history);
-      }, 0);
-      return [...prev, { role: 'user', content: text, timestamp: Date.now() }];
-    });
+    const history = [...messagesRef.current];
+    setMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
+    setTimeout(() => {
+      stateManager.setState(State.RETRIEVING);
+      streamAIResponse(text, history);
+    }, 0);
   }, []);
 
   const handleSpeakAgain = useCallback((text) => {
@@ -200,9 +203,7 @@ const VoiceAssistant = () => {
         if (!isTextOnly) {
           stateManager.setState(State.SPEAKING);
           ttsManager.speak(fullResponse, () => {
-            setTimeout(() => {
-              if (stateManager.getState() === State.SPEAKING) startListening();
-            }, 400);
+            stateManager.reset(); // Go to IDLE, user must tap orb to speak again
           });
         } else {
           stateManager.reset();
@@ -226,28 +227,24 @@ const VoiceAssistant = () => {
     if (!text) return;
     handleInterrupt();
     setInput('');
-    setMessages(prev => {
-      const history = [...prev];
-      setTimeout(async () => {
-        stateManager.setState(State.RETRIEVING);
-        setActiveTab('chat');
-        await streamAIResponse(text, history, true);
-      }, 0);
-      return [...prev, { role: 'user', content: text, timestamp: Date.now() }];
-    });
+    const history = [...messagesRef.current];
+    setMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
+    setTimeout(async () => {
+      stateManager.setState(State.RETRIEVING);
+      setActiveTab('chat');
+      await streamAIResponse(text, history, true);
+    }, 0);
   };
 
   const handleRackClick = useCallback((rackCode) => {
     const text = `Route to Rack ${rackCode}`;
-    setMessages(prev => {
-      const history = [...prev];
-      setTimeout(() => {
-        stateManager.setState(State.RETRIEVING);
-        setActiveTab('chat');
-        streamAIResponse(text, history, true);
-      }, 0);
-      return [...prev, { role: 'user', content: text, timestamp: Date.now() }];
-    });
+    const history = [...messagesRef.current];
+    setMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
+    setTimeout(() => {
+      stateManager.setState(State.RETRIEVING);
+      setActiveTab('chat');
+      streamAIResponse(text, history, true);
+    }, 0);
   }, [streamAIResponse]);
 
   const isActive = conversationState !== State.IDLE;

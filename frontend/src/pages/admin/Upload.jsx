@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { UploadCloud, FileType, CheckCircle, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
-import { uploadFile, getUploads, deleteUpload, resetStuckUploads } from '../../api/client';
+import { UploadCloud, FileType, CheckCircle, AlertCircle, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { uploadFile, getUploads, deleteUpload, resetStuckUploads, deleteAllData } from '../../api/client';
 import { useToast } from '../../components/Toast';
 
 const Upload = () => {
@@ -169,6 +169,18 @@ const Upload = () => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (window.confirm("Are you sure you want to delete all database data? This action cannot be undone.")) {
+      try {
+        await deleteAllData();
+        showToast("All data deleted successfully", "success");
+        fetchUploads();
+      } catch (err) {
+        showToast("Failed to delete all data", "error");
+      }
+    }
+  };
+
   const isCompleteOrFailed = (status) => status === 'completed' || status === 'failed';
 
   // Determine active pipeline step based on the most recent processing file
@@ -328,6 +340,18 @@ const Upload = () => {
             <p className="text-xs text-gray-400 mb-4">If a file has been stuck in processing for more than 10 minutes, you can reset the queue.</p>
             <button onClick={handleResetQueue} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg border border-gray-700 transition-colors">
               <RefreshCw size={14} /> Reset Queue
+            </button>
+          </div>
+
+          <div className="glass-card rounded-2xl border border-red-900/50 p-6 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
+            <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
+              <Trash2 size={16} className="text-red-500" />
+              Danger Zone
+            </h3>
+            <p className="text-xs text-gray-400 mb-4">Permanently delete all uploaded files, books, and vector embeddings from the database.</p>
+            <button onClick={handleDeleteAll} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 text-sm font-medium rounded-lg border border-red-900/50 transition-colors">
+              <Trash2 size={14} /> Delete All Database Data
             </button>
           </div>
         </div>

@@ -1,0 +1,80 @@
+[
+  {
+    "id": "doc_4_0",
+    "text": "Event: Book Fair 2025\nDate: 2025-08-10\nTime: 10:00 AM - 5:00 PM\nVenue: Floor 1 Atrium\nDescription: Annual book fair with discounts on academic titles",
+    "metadata": {
+      "source": "library_data.xlsx",
+      "document_type": "excel",
+      "event": "Book Fair 2025",
+      "date": "2025-08-10",
+      "time": "10:00 AM - 5:00 PM",
+      "venue": "Floor 1 Atrium",
+      "description": "Annual book fair with discounts on academic titles"
+    }
+  },
+  {
+    "id": "doc_4_1",
+    "text": "Event: Research Methodology Workshop\nDate: 2025-08-15\nTime: 2:00 PM - 4:00 PM\nVenue: Study Room 2B\nDescription: Workshop on using IEEE Xplore and ScienceDirect for research",
+    "metadata": {
+      "source": "library_data.xlsx",
+      "document_type": "excel",
+      "event": "Research Methodology Workshop",
+      "date": "2025-08-15",
+      "time": "2:00 PM - 4:00 PM",
+      "venue": "Study Room 2B",
+      "description": "Workshop on using IEEE Xplore and ScienceDirect for research"
+    }
+  },
+  {
+    "id": "doc_4_2",
+    "text": "Event: Tamil Literature Reading Circle\nDate: 2025-08-22\nTime: 5:00 PM - 6:30 PM\nVenue: Floor 3 Reading Lounge\nDescription: Monthly Tamil literature discussion group - all welcome",
+    "metadata": {
+      "source": "library_data.xlsx",
+      "document_type": "excel",
+      "event": "Tamil Literature Reading Circle",
+      "date": "2025-08-22",
+      "time": "5:00 PM - 6:30 PM",
+      "venue": "Floor 3 Reading Lounge",
+      "description": "Monthly Tamil literature discussion group - all welcome"
+    }
+  },
+  {
+    "id": "doc_4_3",
+    "text": "Event: Library Orientation for New Students\nDate: 2025-09-01\nTime: 11:00 AM - 12:00 PM\nVenue: Seminar Hall Floor 1\nDescription: Orientation for first-year students on library services",
+    "metadata": {
+      "source": "library_data.xlsx",
+      "document_type": "excel",
+      "event": "Library Orientation for New Students",
+      "date": "2025-09-01",
+      "time": "11:00 AM - 12:00 PM",
+      "venue": "Seminar Hall Floor 1",
+      "description": "Orientation for first-year students on library services"
+    }
+  },
+  {
+    "id": "doc_4_4",
+    "text": "Event: AI in Academia Seminar\nDate: 2025-09-12\nTime: 3:00 PM - 5:00 PM\nVenue: Auditorium Floor 2\nDescription: Guest lecture on using AI tools ethically in research",
+    "metadata": {
+      "source": "library_data.xlsx",
+      "document_type": "excel",
+      "event": "AI in Academia Seminar",
+      "date": "2025-09-12",
+      "time": "3:00 PM - 5:00 PM",
+      "venue": "Auditorium Floor 2",
+      "description": "Guest lecture on using AI tools ethically in research"
+    }
+  },
+  {
+    "id": "doc_4_5",
+    "text": "Event: Journal Club - Science Edition\nDate: 2025-09-19\nTime: 4:00 PM - 5:30 PM\nVenue: Study Room 4A\nDescription: Discuss recent papers from Nature Energy and ACS",
+    "metadata": {
+      "source": "library_data.xlsx",
+      "document_type": "excel",
+      "event": "Journal Club - Science Edition",
+      "date": "2025-09-19",
+      "time": "4:00 PM - 5:30 PM",
+      "venue": "Study Room 4A",
+      "description": "Discuss recent papers from Nature Energy and ACS"
+    }
+  }
+]

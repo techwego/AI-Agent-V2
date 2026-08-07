@@ -32,18 +32,24 @@ export const changePassword = (data) => api.put('/auth/change-password', data);
 
 // Voice / Chat endpoints
 // Chat uses streaming fetch usually, but this is for non-streaming or if we wrap fetch
-export const sendChat = (data) => fetch('/api/chat', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${localStorage.getItem('token')}`
-  },
-  body: JSON.stringify(data)
-});
+export const sendChat = async (data) => {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.dispatchEvent(new Event('auth-change'));
+  }
+  return response;
+};
 
-export const transcribeAudio = (formData) => api.post('/transcribe', formData, {
-  headers: { 'Content-Type': 'multipart/form-data' }
-});
+export const transcribeAudio = (formData) => api.post('/transcribe', formData);
 
 export const searchBooks = (data) => api.post('/search', data);
 
@@ -61,12 +67,11 @@ export const deleteDepartment = (id) => api.delete(`/admin/departments/${id}`);
 export const getUsers = () => api.get('/admin/users');
 export const deleteUser = (id) => api.delete(`/admin/users/${id}`);
 
-export const uploadFile = (formData) => api.post('/admin/upload', formData, {
-  headers: { 'Content-Type': 'multipart/form-data' }
-});
+export const uploadFile = (formData) => api.post('/admin/upload', formData);
 export const getUploads = () => api.get('/admin/uploads');
 export const deleteUpload = (id) => api.delete(`/admin/uploads/${id}`);
 export const resetStuckUploads = () => api.post('/admin/uploads/reset-stuck');
+export const deleteAllData = () => api.delete('/admin/uploads/delete-all');
 
 export const getAnalytics = () => api.get('/admin/analytics');
 export const getLogs = () => api.get('/admin/logs');
