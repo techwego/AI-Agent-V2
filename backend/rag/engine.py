@@ -361,10 +361,11 @@ class LibraryRAG:
             )
 
             if self.collection.count() == 0:
-                print("ChromaDB is empty. Please run index_books.py first.")
-                raise ValueError("ChromaDB is empty.")
+                print("ChromaDB is empty. Waiting for admin data upload.")
+                chunk_count = 0
+            else:
+                chunk_count = self.collection.count()
 
-            chunk_count = self.collection.count()
             self.diagnostics["total_chunks"] = chunk_count
             self.diagnostics["db_time"] = round(time.time() - t_db, 3)
                 
