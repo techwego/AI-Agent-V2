@@ -142,7 +142,7 @@ function makeLabel(text, opts = {}) {
 /* ============================================================
    REACT COMPONENT
    ============================================================ */
-const LibraryWayfinder = forwardRef(({ routeTo, onRackClick, onRouteComplete, activeFloor = 'both' }, ref) => {
+const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackClick, onRouteComplete, activeFloor = 'both' }, ref) => {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
   const rendererRef = useRef(null);
@@ -573,13 +573,20 @@ const LibraryWayfinder = forwardRef(({ routeTo, onRackClick, onRouteComplete, ac
 
   // Handle routeTo prop changes
   useEffect(() => {
-    if (routeTo && routeTo !== lastRouteRef.current) {
-      lastRouteRef.current = routeTo;
+    if (routeTo) {
       // Normalize the rack code (handle both "C3" and "C 3" and "c3")
-      const normalized = routeTo.toUpperCase().replace(/\s+/g, '');
-      drawRoute(normalized);
+      const normalizedTo = routeTo.toUpperCase().replace(/\s+/g, '');
+      let normalizedFrom = 'entrance';
+      if (routeFrom) {
+         const f = String(routeFrom).toLowerCase();
+         if (f.includes('floor 1') || f === 'stairs1') normalizedFrom = 'stairs1';
+         else if (f.includes('floor 2') || f === 'stairs2') normalizedFrom = 'stairs2';
+         else if (f === 'entrance') normalizedFrom = 'entrance';
+         else normalizedFrom = f; // fallback
+      }
+      drawRoute(normalizedTo, normalizedFrom);
     }
-  }, [routeTo, drawRoute]);
+  }, [routeTo, routeFrom, drawRoute]);
 
   // Handle floor changes
   useEffect(() => {

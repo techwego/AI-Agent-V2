@@ -29,6 +29,7 @@ const VoiceAssistant = () => {
     { role: 'assistant', content: "Hello! I'm your AI Library Assistant. I can help you find books, navigate to library sections, and answer questions about the university. Just tap the orb or type below!", timestamp: Date.now() }
   ]);
   const [input, setInput] = useState('');
+  const [routeFrom, setRouteFrom] = useState('entrance');
   const [routeTo, setRouteTo] = useState(null);
   const [hasIntroduced, setHasIntroduced] = useState(false);
   const [activeTab, setActiveTab] = useState('chat'); // 'chat', 'map', or 'search'
@@ -177,19 +178,27 @@ const VoiceAssistant = () => {
         if (value) {
           const chunk = decoder.decode(value, { stream: true });
           fullResponse += chunk;
+          const displayResponse = fullResponse.replace(/<ROUTE_[^>]*>?/gi, '');
           setMessages(prev => {
             const newMessages = [...prev];
-            newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], content: fullResponse };
+            newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], content: displayResponse };
             return newMessages;
           });
         }
       }
 
-      const routeMatch = fullResponse.match(/<ROUTE_TO:([A-Z0-9]+)>/i);
-      if (routeMatch) {
-        const rackCode = routeMatch[1];
-        setRouteTo(rackCode);
-        fullResponse = fullResponse.replace(/<ROUTE_TO:[A-Z0-9]+>/ig, '').trim();
+      const routeMatch = fullResponse.match(/<ROUTE_FROM:([A-Za-z0-9_]+)_TO:([A-Z0-9]+)>/i);
+      const fallbackRouteMatch = fullResponse.match(/<ROUTE_TO:([A-Z0-9]+)>/i);
+
+      if (routeMatch || fallbackRouteMatch) {
+        if (routeMatch) {
+          setRouteFrom(routeMatch[1]);
+          setRouteTo(routeMatch[2]);
+        } else {
+          setRouteTo(fallbackRouteMatch[1]);
+        }
+        
+        fullResponse = fullResponse.replace(/<ROUTE_[^>]+>/ig, '').trim();
         setMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], content: fullResponse, hasRoute: true };
@@ -374,6 +383,7 @@ const VoiceAssistant = () => {
                 <div className="flex-1 relative">
                   <LibraryWayfinder 
                     ref={wayfindRef}
+                    routeFrom={routeFrom}
                     routeTo={routeTo} 
                     onRackClick={handleRackClick}
                     activeFloor="both" // Hardcoded to both floors since we removed floor controls

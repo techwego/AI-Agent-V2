@@ -1,0 +1,410 @@
+[
+    {
+        "id": "upload_3_0",
+        "text": "Title: Harry Potter\nAuthor: J.K. Rowling\nSubject: Story Book\nRack: A1\nAvailable Copies: 5\nKeywords: harry potter",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Harry Potter",
+            "author": "J.K. Rowling",
+            "rack": "A1",
+            "copies": "5",
+            "subject": "Story Book",
+            "book_id": "10002",
+            "normalized_title": "harry potter",
+            "normalized_author": "j k rowling",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_1",
+        "text": "Title: The Hobbit\nAuthor: J.R.R. Tolkien\nSubject: Story Book\nRack: A2\nAvailable Copies: 1\nKeywords: the hobbit",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "The Hobbit",
+            "author": "J.R.R. Tolkien",
+            "rack": "A2",
+            "copies": "1",
+            "subject": "Story Book",
+            "book_id": "10003",
+            "normalized_title": "the hobbit",
+            "normalized_author": "j r r tolkien",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_2",
+        "text": "Title: Alice in Wonderland\nAuthor: Lewis Carroll\nSubject: Story Book\nRack: A3\nAvailable Copies: 4\nKeywords: alice in wonderland",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Alice in Wonderland",
+            "author": "Lewis Carroll",
+            "rack": "A3",
+            "copies": "4",
+            "subject": "Story Book",
+            "book_id": "10004",
+            "normalized_title": "alice in wonderland",
+            "normalized_author": "lewis carroll",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_3",
+        "text": "Title: Peter Pan\nAuthor: J.M. Barrie\nSubject: Story Book\nRack: A4\nAvailable Copies: 4\nKeywords: peter pan",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Peter Pan",
+            "author": "J.M. Barrie",
+            "rack": "A4",
+            "copies": "4",
+            "subject": "Story Book",
+            "book_id": "10005",
+            "normalized_title": "peter pan",
+            "normalized_author": "j m barrie",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_4",
+        "text": "Title: The Lion, the Witch and the Wardrobe\nAuthor: C.S. Lewis\nSubject: Story Book\nRack: A5\nAvailable Copies: 1\nKeywords: the lion the witch and the wardrobe",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "The Lion, the Witch and the Wardrobe",
+            "author": "C.S. Lewis",
+            "rack": "A5",
+            "copies": "1",
+            "subject": "Story Book",
+            "book_id": "10006",
+            "normalized_title": "the lion the witch and the wardrobe",
+            "normalized_author": "c s lewis",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_5",
+        "text": "Title: Charlie and the Chocolate Factory\nAuthor: Roald Dahl\nSubject: Story Book\nRack: A6\nAvailable Copies: 4\nKeywords: charlie and the chocolate factory",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Charlie and the Chocolate Factory",
+            "author": "Roald Dahl",
+            "rack": "A6",
+            "copies": "4",
+            "subject": "Story Book",
+            "book_id": "10007",
+            "normalized_title": "charlie and the chocolate factory",
+            "normalized_author": "roald dahl",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_6",
+        "text": "Title: Matilda\nAuthor: Roald Dahl\nSubject: Story Book\nRack: B1\nAvailable Copies: 5\nKeywords: matilda",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Matilda",
+            "author": "Roald Dahl",
+            "rack": "B1",
+            "copies": "5",
+            "subject": "Story Book",
+            "book_id": "10008",
+            "normalized_title": "matilda",
+            "normalized_author": "roald dahl",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_7",
+        "text": "Title: Winnie the Pooh\nAuthor: A.A. Milne\nSubject: Story Book\nRack: B2\nAvailable Copies: 3\nKeywords: winnie the pooh",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Winnie the Pooh",
+            "author": "A.A. Milne",
+            "rack": "B2",
+            "copies": "3",
+            "subject": "Story Book",
+            "book_id": "10009",
+            "normalized_title": "winnie the pooh",
+            "normalized_author": "a a milne",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_8",
+        "text": "Title: The Wind in the Willows\nAuthor: Kenneth Grahame\nSubject: Story Book\nRack: B3\nAvailable Copies: 4\nKeywords: the wind in the willows",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "The Wind in the Willows",
+            "author": "Kenneth Grahame",
+            "rack": "B3",
+            "copies": "4",
+            "subject": "Story Book",
+            "book_id": "10010",
+            "normalized_title": "the wind in the willows",
+            "normalized_author": "kenneth grahame",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_9",
+        "text": "Title: Charlottes Web\nAuthor: E.B. White\nSubject: Story Book\nRack: B4\nAvailable Copies: 5\nKeywords: charlottes web",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Charlottes Web",
+            "author": "E.B. White",
+            "rack": "B4",
+            "copies": "5",
+            "subject": "Story Book",
+            "book_id": "10011",
+            "normalized_title": "charlottes web",
+            "normalized_author": "e b white",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_10",
+        "text": "Title: A Wrinkle in Time\nAuthor: Madeleine LEngle\nSubject: Story Book\nRack: B5\nAvailable Copies: 3\nKeywords: a wrinkle in time",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "A Wrinkle in Time",
+            "author": "Madeleine LEngle",
+            "rack": "B5",
+            "copies": "3",
+            "subject": "Story Book",
+            "book_id": "10012",
+            "normalized_title": "a wrinkle in time",
+            "normalized_author": "madeleine lengle",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_11",
+        "text": "Title: The Secret Garden\nAuthor: Frances Hodgson Burnett\nSubject: Story Book\nRack: B6\nAvailable Copies: 1\nKeywords: the secret garden",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "The Secret Garden",
+            "author": "Frances Hodgson Burnett",
+            "rack": "B6",
+            "copies": "1",
+            "subject": "Story Book",
+            "book_id": "10013",
+            "normalized_title": "the secret garden",
+            "normalized_author": "frances hodgson burnett",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_12",
+        "text": "Title: Where the Wild Things Are\nAuthor: Maurice Sendak\nSubject: Story Book\nRack: C1\nAvailable Copies: 3\nKeywords: where the wild things are",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Where the Wild Things Are",
+            "author": "Maurice Sendak",
+            "rack": "C1",
+            "copies": "3",
+            "subject": "Story Book",
+            "book_id": "10014",
+            "normalized_title": "where the wild things are",
+            "normalized_author": "maurice sendak",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_13",
+        "text": "Title: The Little Prince\nAuthor: Antoine de Saint-Exupery\nSubject: Story Book\nRack: C2\nAvailable Copies: 5\nKeywords: the little prince",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "The Little Prince",
+            "author": "Antoine de Saint-Exupery",
+            "rack": "C2",
+            "copies": "5",
+            "subject": "Story Book",
+            "book_id": "10015",
+            "normalized_title": "the little prince",
+            "normalized_author": "antoine de saint-exupery",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_14",
+        "text": "Title: The Tale of Peter Rabbit\nAuthor: Beatrix Potter\nSubject: Story Book\nRack: C3\nAvailable Copies: 3\nKeywords: the tale of peter rabbit",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "The Tale of Peter Rabbit",
+            "author": "Beatrix Potter",
+            "rack": "C3",
+            "copies": "3",
+            "subject": "Story Book",
+            "book_id": "10016",
+            "normalized_title": "the tale of peter rabbit",
+            "normalized_author": "beatrix potter",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_15",
+        "text": "Title: Green Eggs and Ham\nAuthor: Dr. Seuss\nSubject: Story Book\nRack: C4\nAvailable Copies: 2\nKeywords: green eggs and ham",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Green Eggs and Ham",
+            "author": "Dr. Seuss",
+            "rack": "C4",
+            "copies": "2",
+            "subject": "Story Book",
+            "book_id": "10017",
+            "normalized_title": "green eggs and ham",
+            "normalized_author": "dr seuss",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_16",
+        "text": "Title: The Cat in the Hat\nAuthor: Dr. Seuss\nSubject: Story Book\nRack: C5\nAvailable Copies: 2\nKeywords: the cat in the hat",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "The Cat in the Hat",
+            "author": "Dr. Seuss",
+            "rack": "C5",
+            "copies": "2",
+            "subject": "Story Book",
+            "book_id": "10018",
+            "normalized_title": "the cat in the hat",
+            "normalized_author": "dr seuss",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_17",
+        "text": "Title: Goodnight Moon\nAuthor: Margaret Wise Brown\nSubject: Story Book\nRack: C6\nAvailable Copies: 2\nKeywords: goodnight moon",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Goodnight Moon",
+            "author": "Margaret Wise Brown",
+            "rack": "C6",
+            "copies": "2",
+            "subject": "Story Book",
+            "book_id": "10019",
+            "normalized_title": "goodnight moon",
+            "normalized_author": "margaret wise brown",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_18",
+        "text": "Title: The Very Hungry Caterpillar\nAuthor: Eric Carle\nSubject: Story Book\nRack: D1\nAvailable Copies: 5\nKeywords: the very hungry caterpillar",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "The Very Hungry Caterpillar",
+            "author": "Eric Carle",
+            "rack": "D1",
+            "copies": "5",
+            "subject": "Story Book",
+            "book_id": "10020",
+            "normalized_title": "the very hungry caterpillar",
+            "normalized_author": "eric carle",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_19",
+        "text": "Title: The Giving Tree\nAuthor: Shel Silverstein\nSubject: Story Book\nRack: D2\nAvailable Copies: 2\nKeywords: the giving tree",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "The Giving Tree",
+            "author": "Shel Silverstein",
+            "rack": "D2",
+            "copies": "2",
+            "subject": "Story Book",
+            "book_id": "10021",
+            "normalized_title": "the giving tree",
+            "normalized_author": "shel silverstein",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_20",
+        "text": "Title: Corduroy\nAuthor: Don Freeman\nSubject: Story Book\nRack: D3\nAvailable Copies: 4\nKeywords: corduroy",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Corduroy",
+            "author": "Don Freeman",
+            "rack": "D3",
+            "copies": "4",
+            "subject": "Story Book",
+            "book_id": "10022",
+            "normalized_title": "corduroy",
+            "normalized_author": "don freeman",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_21",
+        "text": "Title: Madeline\nAuthor: Ludwig Bemelmans\nSubject: Story Book\nRack: D4\nAvailable Copies: 5\nKeywords: madeline",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Madeline",
+            "author": "Ludwig Bemelmans",
+            "rack": "D4",
+            "copies": "5",
+            "subject": "Story Book",
+            "book_id": "10023",
+            "normalized_title": "madeline",
+            "normalized_author": "ludwig bemelmans",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_22",
+        "text": "Title: The Snowy Day\nAuthor: Ezra Jack Keats\nSubject: Story Book\nRack: D5\nAvailable Copies: 3\nKeywords: the snowy day",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "The Snowy Day",
+            "author": "Ezra Jack Keats",
+            "rack": "D5",
+            "copies": "3",
+            "subject": "Story Book",
+            "book_id": "10024",
+            "normalized_title": "the snowy day",
+            "normalized_author": "ezra jack keats",
+            "section": "Catalog"
+        }
+    },
+    {
+        "id": "upload_3_23",
+        "text": "Title: Make Way for Ducklings\nAuthor: Robert McCloskey\nSubject: Story Book\nRack: D6\nAvailable Copies: 2\nKeywords: make way for ducklings",
+        "metadata": {
+            "source": "story_books_catalog.csv",
+            "document_type": "csv",
+            "title": "Make Way for Ducklings",
+            "author": "Robert McCloskey",
+            "rack": "D6",
+            "copies": "2",
+            "subject": "Story Book",
+            "book_id": "10025",
+            "normalized_title": "make way for ducklings",
+            "normalized_author": "robert mccloskey",
+            "section": "Catalog"
+        }
+    }
+]
