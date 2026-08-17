@@ -286,7 +286,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     function animate() {
       const t = Math.min(1, (clock.getElapsedTime() - startT) / duration);
-      const drawCount = Math.floor(tubeGeo.index.count * t);
+      const maxCount = tubeGeo.index ? tubeGeo.index.count : tubeGeo.attributes.position.count;
+      const drawCount = Math.floor(maxCount * t);
       routeTube.geometry.setDrawRange(0, drawCount);
       const p = curve.getPointAt(t);
       cometGroup.position.copy(p);
@@ -582,7 +583,14 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
          if (f.includes('floor 1') || f === 'stairs1') normalizedFrom = 'stairs1';
          else if (f.includes('floor 2') || f === 'stairs2') normalizedFrom = 'stairs2';
          else if (f === 'entrance') normalizedFrom = 'entrance';
-         else normalizedFrom = f; // fallback
+         else {
+            let rackMatch = f.match(/r?([a-d])\s*(\d)/);
+            if (rackMatch) {
+               normalizedFrom = 'r' + rackMatch[1].toUpperCase() + rackMatch[2];
+            } else {
+               normalizedFrom = String(routeFrom);
+            }
+         }
       }
       drawRoute(normalizedTo, normalizedFrom);
     }
