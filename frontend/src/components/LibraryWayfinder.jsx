@@ -232,7 +232,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     clearRoute();
 
     const endNode = 'r' + destCode;
-    if (!nodes[endNode]) return;
+    if (!nodes[endNode] || !nodes[fromId]) return;
 
     const result = dijkstra(nodes, fromId, endNode);
     if (!result) return;
