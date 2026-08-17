@@ -187,8 +187,8 @@ const VoiceAssistant = () => {
         }
       }
 
-      const routeMatch = fullResponse.match(/<ROUTE_FROM:([A-Za-z0-9_]+)_TO:([A-Z0-9]+)>/i);
-      const fallbackRouteMatch = fullResponse.match(/<ROUTE_TO:([A-Z0-9]+)>/i);
+      const routeMatch = fullResponse.match(/<ROUTE_FROM:([A-Za-z0-9_\-]+)_TO:([A-Za-z0-9_\-]+)>/i);
+      const fallbackRouteMatch = fullResponse.match(/<ROUTE_TO:([A-Za-z0-9_\-]+)>/i);
 
       if (routeMatch || fallbackRouteMatch) {
         let currentRackCode = '';
