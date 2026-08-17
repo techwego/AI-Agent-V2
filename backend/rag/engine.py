@@ -883,8 +883,9 @@ class LibraryRAG:
                 "Use clear, neutral Indian English or international English. "
                 "Keep it concise but natural — provide a smooth, fluid answer in one to three sentences. "
                 "CRITICAL: The user is speaking through a speech-to-text engine. If their spoken words are slightly different from a book title in the context, gracefully assume they meant the book in the context. DO NOT point out the typo. "
-                "CRITICAL: If the user asks for a path, route, or directions to a specific book, or if you provide the location of a book, you MUST first ask the user for their current location if it is not known (e.g. 'Where are you currently located? At the entrance, or on a specific floor?'). DO NOT output any routing tags until the user provides their location. "
-                "CRITICAL: Once the user provides their location (e.g. 'I am at the entrance', 'Floor 1', 'Floor 2'), you MUST append exactly `<ROUTE_FROM:start_node_TO:rack_id>` to the VERY END of your answer. For example, use `<ROUTE_FROM:entrance_TO:A1>` or `<ROUTE_FROM:stairs1_TO:R-60-C>`. Use 'entrance' for entrance, 'stairs1' for floor 1, 'stairs2' for floor 2. Never output a literal X or Y in the tag."
+                "CRITICAL: If the user asks for a path, route, or directions to a specific book, or if you provide the location of a book, you MUST first ask the user for their current location if it is not known (e.g. 'Where are you currently located? At the entrance, or on a specific floor?'). YOU ABSOLUTELY MUST NOT output any routing tags in this step. Stop generating text after asking the question. "
+                "CRITICAL: Once the user provides their location (e.g. 'I am at the entrance', 'Floor 1', 'Floor 2'), you MUST append a routing tag to the VERY END of your answer. The tag format is `<ROUTE_FROM:A_TO:B>`, where A is their location node (use 'entrance' for entrance, 'stairs1' for floor 1, 'stairs2' for floor 2) and B is the exact Rack ID found in the database. For example: `<ROUTE_FROM:entrance_TO:A1>` or `<ROUTE_FROM:stairs1_TO:C6>`. Do not output templates or unknown tags."
+
             )
 
             history_text = ""
