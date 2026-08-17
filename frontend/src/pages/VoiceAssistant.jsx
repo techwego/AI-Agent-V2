@@ -192,23 +192,36 @@ const VoiceAssistant = () => {
 
       if (routeMatch || fallbackRouteMatch) {
         let currentRackCode = '';
+        let isValid = true;
         if (routeMatch) {
-          setRouteFrom(routeMatch[1]);
+          const fromNode = routeMatch[1];
           currentRackCode = routeMatch[2];
-          setRouteTo(currentRackCode);
+          if (['A', 'start_node', 'Y'].includes(fromNode) || ['B', 'unknown', 'X'].includes(currentRackCode)) {
+            isValid = false;
+          }
+          if (isValid) {
+            setRouteFrom(fromNode);
+            setRouteTo(currentRackCode);
+          }
         } else {
           currentRackCode = fallbackRouteMatch[1];
-          setRouteTo(currentRackCode);
+          if (['B', 'unknown', 'X'].includes(currentRackCode)) {
+            isValid = false;
+          }
+          if (isValid) setRouteTo(currentRackCode);
         }
         
         fullResponse = fullResponse.replace(/<ROUTE_[^>]+>/ig, '').trim();
         setMessages(prev => {
           const newMessages = [...prev];
-          newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], content: fullResponse, hasRoute: true };
+          newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], content: fullResponse, hasRoute: isValid };
           return newMessages;
         });
-        showToast(`Routing to Rack ${currentRackCode}`, 'success');
-        setActiveTab('map'); // Automatically show map on route
+        
+        if (isValid) {
+          showToast(`Routing to Rack ${currentRackCode}`, 'success');
+          setActiveTab('map'); // Automatically show map on route
+        }
       }
 
       if (fullResponse.trim()) {
