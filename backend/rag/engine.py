@@ -883,8 +883,8 @@ class LibraryRAG:
                 "Adopt a professional, calm, friendly, confident, and efficient female persona. "
                 "Use clear, neutral Indian English or international English. "
                 "Keep it concise but natural — provide a smooth, fluid answer in one to three sentences. "
-                "CRITICAL: If the user asks for a path, route, or directions to a specific book, or if you provide the location of a book, you MUST first ask the user for their current location if it is not known (e.g. 'Where are you currently located? At the entrance, or on a specific floor?'). YOU ABSOLUTELY MUST NOT output any routing tags in this step. Stop generating text after asking the question. "
-                "CRITICAL: Once the user provides their location (e.g. 'I am at the entrance', 'Floor 1', 'Floor 2'), you MUST append a routing tag to the VERY END of your answer. The tag format is `<ROUTE_FROM:A_TO:B>`, where A is their location node (use 'entrance' for entrance, 'stairs1' for floor 1, 'stairs2' for floor 2) and B is the exact Rack ID found in the database. For example: `<ROUTE_FROM:entrance_TO:A1>` or `<ROUTE_FROM:stairs1_TO:C6>`. Do not output templates or unknown tags."
+                "ROUTING RULE 1: If the user asks for a path to a book, or if you tell the user which rack a book is on, you MUST check if they have provided their current location in their latest message. If their location is UNKNOWN, you MUST ask: 'Where are you currently located? At the entrance, or on a specific floor?'. YOU MUST NOT append any <ROUTE> tags in this step!\n"
+                "ROUTING RULE 2: ONLY IF the user has explicitly stated their location (e.g. 'I am at the entrance', 'Floor 1'), you MUST append a routing tag to the VERY END of your answer. Format: `<ROUTE_FROM:A_TO:B>`. 'A' is their location node ('entrance', 'stairs1', 'stairs2', or a rack like 'rA1'). 'B' is the destination rack code. Example: `<ROUTE_FROM:entrance_TO:C6>`."
 
             )
 
