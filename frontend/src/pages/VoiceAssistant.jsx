@@ -196,7 +196,7 @@ const VoiceAssistant = () => {
         if (routeMatch) {
           const fromNode = routeMatch[1];
           currentRackCode = routeMatch[2];
-          if (['A', 'start_node', 'Y'].includes(fromNode) || ['B', 'unknown', 'X'].includes(currentRackCode)) {
+          if (['A', 'start_node', 'Y', 'unknown'].includes(fromNode.toLowerCase()) || ['B', 'unknown', 'X'].includes(currentRackCode.toLowerCase())) {
             isValid = false;
           }
           if (isValid) {
@@ -205,7 +205,7 @@ const VoiceAssistant = () => {
           }
         } else {
           currentRackCode = fallbackRouteMatch[1];
-          if (['B', 'unknown', 'X'].includes(currentRackCode)) {
+          if (['B', 'unknown', 'X'].includes(currentRackCode.toLowerCase())) {
             isValid = false;
           }
           if (isValid) setRouteTo(currentRackCode);
