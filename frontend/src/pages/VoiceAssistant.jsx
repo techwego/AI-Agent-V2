@@ -191,11 +191,14 @@ const VoiceAssistant = () => {
       const fallbackRouteMatch = fullResponse.match(/<ROUTE_TO:([A-Z0-9]+)>/i);
 
       if (routeMatch || fallbackRouteMatch) {
+        let currentRackCode = '';
         if (routeMatch) {
           setRouteFrom(routeMatch[1]);
-          setRouteTo(routeMatch[2]);
+          currentRackCode = routeMatch[2];
+          setRouteTo(currentRackCode);
         } else {
-          setRouteTo(fallbackRouteMatch[1]);
+          currentRackCode = fallbackRouteMatch[1];
+          setRouteTo(currentRackCode);
         }
         
         fullResponse = fullResponse.replace(/<ROUTE_[^>]+>/ig, '').trim();
@@ -204,7 +207,7 @@ const VoiceAssistant = () => {
           newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], content: fullResponse, hasRoute: true };
           return newMessages;
         });
-        showToast(`Routing to Rack ${rackCode}`, 'success');
+        showToast(`Routing to Rack ${currentRackCode}`, 'success');
         setActiveTab('map'); // Automatically show map on route
       }
 
