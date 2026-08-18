@@ -444,94 +444,90 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     rackGroupsRef.current = rackGroups;
     scene.add(rackGroups[1], rackGroups[2]);
 
+    const { nodes, floorHeights, COLS_X, rowZOffsets } = graphData;
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    // Clear old racks
+    rackGroupsRef.current = {};
+    for(let f=0; f<config.floors; f++) {
+        const floorGroup = new THREE.Group();
+        scene.add(floorGroup);
+        rackGroupsRef.current[f+1] = floorGroup;
+    }
+
+    const slabGeo = new THREE.BoxGeometry(40, 0.4, 30);
+    for(let f=0; f<config.floors; f++) {
+        const fy = floorHeights[f];
+        const slabMat = new THREE.MeshStandardMaterial({ 
+          color: f === 0 ? 0x1a2639 : 0x2a3649,
+          transparent: true, opacity: 0.9, roughness: 0.8
+        });
+        const slab = new THREE.Mesh(slabGeo, slabMat);
+        slab.position.set(0, fy - 0.2, 0);
+        slab.receiveShadow = true;
+        rackGroupsRef.current[f+1].add(slab);
+    }
+
+    const rackGeo = new THREE.BoxGeometry(2.4, 4.8, 1.2);
+    const rackMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.6 });
+    let rackCodeIndex = 0;
+
+    for(let f=0; f<config.floors; f++) {
+        const fy = floorHeights[f];
+        for(let r=0; r<config.rows_per_floor; r++) {
+            const rz = rowZOffsets[r];
+            const rowLetter = alphabet[rackCodeIndex % alphabet.length];
+            rackCodeIndex++;
+            for(let c=0; c<config.cols_per_row; c++) {
+               const cx = COLS_X[c];
+               const rackMesh = new THREE.Mesh(rackGeo, rackMat.clone());
+               rackMesh.position.set(cx, fy + 2.4, rz);
+               rackMesh.castShadow = true;
+               rackMesh.receiveShadow = true;
+               rackMesh.userData = { id: 'r' + rowLetter + (c+1), code: rowLetter + (c+1), type: 'rack' };
+               
+               const lbl = makeLabel(rowLetter + (c+1), { bg: '#2563eb', fg: '#ffffff', scale: 0.8 });
+               lbl.position.set(0, 3.2, 0);
+               rackMesh.add(lbl);
+
+               const code = rowLetter + (c+1);
+               rackMeshByCodeRef.current[code] = rackMesh;
+               const topFloorY = floorHeights && floorHeights.length > 0 ? floorHeights[floorHeights.length - 1] : 6.4;
+    const buildingHeight = topFloorY + 4; // Add ceiling buffer
     // Glass envelope
     const shellMat = new THREE.MeshPhongMaterial({ color: 0x9fd7ff, transparent: true, opacity: 0.045, side: THREE.DoubleSide, shininess: 80 });
-    const shellGeo = new THREE.BoxGeometry(43, 10.6, 30.5);
+    const shellGeo = new THREE.BoxGeometry(43, buildingHeight + 2, 30.5);
     const shell = new THREE.Mesh(shellGeo, shellMat);
-    shell.position.set(0, FLOOR2_Y / 2 + 2, 0);
+    shell.position.set(0, buildingHeight / 2, 0);
     scene.add(shell);
     const edges = new THREE.LineSegments(new THREE.EdgesGeometry(shellGeo), new THREE.LineBasicMaterial({ color: 0x3a4a70, transparent: true, opacity: 0.5 }));
     edges.position.copy(shell.position);
     scene.add(edges);
-
-    // Floor slabs
-    function buildFloorSlab(y, colorHex) {
-      const geo = new THREE.BoxGeometry(41, 0.4, 28.5);
-      const mat = new THREE.MeshPhongMaterial({ color: colorHex, shininess: 15 });
-      const slab = new THREE.Mesh(geo, mat);
-      slab.position.set(0, y - 0.25, 0);
-      slab.receiveShadow = true;
-      scene.add(slab);
-      const grid = new THREE.GridHelper(40, 20, 0x24314d, 0x1a2338);
-      grid.position.set(0, y - 0.02, 0);
-      scene.add(grid);
-    }
-    buildFloorSlab(FLOOR1_Y, 0x131c30);
-    buildFloorSlab(FLOOR2_Y, 0x121b2c);
-
-    // Floor labels
-    function addFloorLabel(text, y) {
-      const s = makeLabel(text, { bg: '#111a2e', fg: '#f2a93b', scale: 1.3 });
-      s.position.set(-18.5, y + 2.2, -13.6);
-      scene.add(s);
-    }
-    addFloorLabel('FLOOR 1', FLOOR1_Y);
-    addFloorLabel('FLOOR 2', FLOOR2_Y);
-
-    // Build racks
-    function buildRack(code, x, z, y, floorNum) {
-      const group = new THREE.Group();
-      const bodyColor = floorNum === 1 ? 0xa9743f : 0x3f8f94;
-      const geo = new THREE.BoxGeometry(3.3, 2.5, 1.1);
-      const mat = new THREE.MeshPhongMaterial({ color: bodyColor, shininess: 25 });
-      const body = new THREE.Mesh(geo, mat);
-      body.position.y = 1.25;
-      body.castShadow = true; body.receiveShadow = true;
-      group.add(body);
-      // Shelf lines
-      const edgeMat = new THREE.LineBasicMaterial({ color: 0x1a120a, transparent: true, opacity: 0.35 });
-      for (let i = 1; i < 4; i++) {
-        const shelfGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(3.15, 1.0));
-        const shelf = new THREE.LineSegments(shelfGeo, edgeMat);
-        shelf.rotation.x = Math.PI / 2;
-        shelf.position.set(0, i * 0.6, 0);
-        group.add(shelf);
-      }
-      const label = makeLabel(code, { bg: floorNum === 1 ? '#f2a93b' : '#5fd6c9', fg: '#151109', scale: 0.9 });
-      label.position.set(0, 3.05, 0);
-      group.add(label);
-      group.position.set(x, y, z);
-      group.userData = { rackCode: code, floor: floorNum, baseColor: bodyColor };
-      rackGroups[floorNum].add(group);
-      rackMeshByCodeRef.current[code] = group;
-      return group;
+               rackGroupsRef.current[f+1].add(rackMesh);
+            }
+        }
     }
 
-    COLS_X.forEach((x, i) => {
-      buildRack('A' + (i + 1), x, -6, FLOOR1_Y, 1);
-      buildRack('B' + (i + 1), x, 6, FLOOR1_Y, 1);
-      buildRack('C' + (i + 1), x, -6, FLOOR2_Y, 2);
-      buildRack('D' + (i + 1), x, 6, FLOOR2_Y, 2);
-    });
-
-    // Entrance pin
-    const pinGroup = new THREE.Group();
-    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.1, 16), new THREE.MeshPhongMaterial({ color: 0x5fe3a0, emissive: 0x5fe3a0, emissiveIntensity: 0.35 }));
-    cone.position.y = 0.55;
-    pinGroup.add(cone);
-    const pinLabel = makeLabel('ENTRANCE', { bg: '#111a2e', fg: '#eae6da', scale: 0.65 });
-    pinLabel.position.y = 1.5;
-    pinGroup.add(pinLabel);
-    pinGroup.position.set(0, FLOOR1_Y, -13.2);
-    scene.add(pinGroup);
-
-    // Staircase
-    const stairMat = new THREE.MeshPhongMaterial({ color: 0x6b7590, shininess: 40 });
-    for (let i = 0; i < 8; i++) {
-      const step = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.22, 0.9), stairMat);
-      step.position.set(13, FLOOR1_Y + (i + 1) * (FLOOR2_Y / 8), -2.6 + i * 0.72);
-      step.castShadow = true;
-      scene.add(step);
+    // Render POIs
+    if (graphData.nodes) {
+       const entGeo = new THREE.ConeGeometry(0.5, 2, 8);
+       const entMat = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+       const stairGeo = new THREE.BoxGeometry(2, 6.4, 3);
+       const stairMat = new THREE.MeshLambertMaterial({ color: 0x555555, transparent: true, opacity: 0.8 });
+       
+       Object.keys(graphData.nodes).forEach(k => {
+           const n = graphData.nodes[k];
+           if (n.type === 'entrance') {
+               const mesh = new THREE.Mesh(entGeo, entMat);
+               mesh.position.set(n.x, n.y + 1, n.z);
+               mesh.rotation.x = Math.PI;
+               scene.add(mesh);
+           } else if (n.type === 'stairs' && !k.endsWith('_dest')) {
+               const mesh = new THREE.Mesh(stairGeo, stairMat);
+               mesh.position.set(n.x, n.y + 3.2, n.z);
+               scene.add(mesh);
+           }
+       });
     }
 
     // Camera orbit controls
