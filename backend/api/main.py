@@ -254,8 +254,19 @@ async def generate_tts(request: TTSRequest, background_tasks: BackgroundTasks):
     temp_path = os.path.join(tempfile.gettempdir(), temp_filename)
     
     try:
-        communicate = edge_tts.Communicate(request.text, "en-US-AriaNeural")
-        await communicate.save(temp_path)
+        # Add retry loop for intermittent edge-tts connection issues
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                communicate = edge_tts.Communicate(request.text, "en-US-AriaNeural")
+                await communicate.save(temp_path)
+                break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    print(f"[TTS ERROR] Failed after {max_retries} attempts: {e}")
+                    raise e
+                import asyncio
+                await asyncio.sleep(1)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
         
