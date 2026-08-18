@@ -53,7 +53,10 @@ function buildDynamicGraph(config) {
               const rackId = 'r' + rowLetter + (c+1);
               const aisleId = 'aisle_f' + (f+1) + '_r' + r + '_c' + c;
               
-              addNode(rackId, cx, fy, rz, 'Rack ' + rowLetter + (c+1), 'rack', f+1, rowLetter + (c+1));
+              const code = rowLetter + (c+1);
+              const customName = config.custom_racks && config.custom_racks[code] ? config.custom_racks[code] : 'Rack ' + code;
+              
+              addNode(rackId, cx, fy, rz, customName, 'rack', f+1, code);
               
               const aisleZ = rz < 0 ? rz + 1.7 : rz - 1.7;
               addNode(aisleId, cx, fy, aisleZ, 'Aisle', 'corridor', f+1);
@@ -521,7 +524,9 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
                }
 
                // Label
-               const lbl = makeLabel(code, { bg: labelBg, fg: '#151109', scale: 0.9 });
+               const customName = config.custom_racks && config.custom_racks[code] ? config.custom_racks[code] : code;
+               const lblScale = customName.length > 5 ? 0.6 : 0.9;
+               const lbl = makeLabel(customName, { bg: labelBg, fg: '#151109', scale: lblScale });
                lbl.position.set(0, 3.05, 0);
                rackGroup.add(lbl);
 

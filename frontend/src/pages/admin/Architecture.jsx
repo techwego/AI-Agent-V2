@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Save, RefreshCw, Plus, Trash2, MapPin } from 'lucide-react';
+import { Layers, Save, RefreshCw, Plus, Trash2, MapPin, Tag } from 'lucide-react';
 import LibraryWayfinder from '../../components/LibraryWayfinder';
 
 const Architecture = () => {
@@ -8,7 +8,8 @@ const Architecture = () => {
     rows_per_floor: 2,
     cols_per_row: 6,
     shelves_per_rack: 4,
-    pois: []
+    pois: [],
+    custom_racks: {}
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -20,6 +21,10 @@ const Architecture = () => {
   const [poiAnchor, setPoiAnchor] = useState('A1');
   const [poiOffset, setPoiOffset] = useState('left');
   const [poiConnectsTo, setPoiConnectsTo] = useState(2);
+
+  // Custom Rack Form state
+  const [customRackCode, setCustomRackCode] = useState('A1');
+  const [customRackName, setCustomRackName] = useState('');
 
   // We use this to force Wayfinder to re-render and re-fetch from API
   const [mapKey, setMapKey] = useState(0);
@@ -37,6 +42,7 @@ const Architecture = () => {
       if (response.ok) {
         const data = await response.json();
         if(!data.pois) data.pois = [];
+        if(!data.custom_racks) data.custom_racks = {};
         setConfig(data);
       }
     } catch (error) {
@@ -90,6 +96,37 @@ const Architecture = () => {
     newPois.splice(index, 1);
     setConfig({ ...config, pois: newPois });
   };
+
+  const handleAddCustomRack = () => {
+    if (!customRackName.trim() || !customRackCode.trim()) return;
+    setConfig({
+      ...config,
+      custom_racks: {
+        ...config.custom_racks,
+        [customRackCode.toUpperCase()]: customRackName.trim()
+      }
+    });
+    setCustomRackName('');
+  };
+
+  const handleRemoveCustomRack = (code) => {
+    const newCustomRacks = { ...config.custom_racks };
+    delete newCustomRacks[code];
+    setConfig({ ...config, custom_racks: newCustomRacks });
+  };
+
+  const generatedRacks = [];
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let codeIndex = 0;
+  for(let f=0; f<config.floors; f++) {
+    for(let r=0; r<config.rows_per_floor; r++) {
+      const rowLetter = alphabet[codeIndex % alphabet.length];
+      codeIndex++;
+      for(let c=0; c<config.cols_per_row; c++) {
+        generatedRacks.push(rowLetter + (c+1));
+      }
+    }
+  }
 
   if (loading) return <div className="p-8 text-gray-400">Loading Enterprise Layout...</div>;
 
@@ -155,6 +192,43 @@ const Architecture = () => {
               </label>
               <input type="range" min="1" max="8" value={config.shelves_per_rack} onChange={e => setConfig({...config, shelves_per_rack: parseInt(e.target.value)})} className="w-full accent-blue-500" />
             </div>
+          </div>
+
+          <div className="glass rounded-2xl border border-gray-800 p-6 space-y-4">
+             <h2 className="text-lg font-semibold text-white mb-4">Rack Labels</h2>
+             <p className="text-xs text-gray-400 mb-2">Assign custom names to racks (e.g. Science Fiction). This will be displayed on the map.</p>
+             
+             <div className="space-y-3 bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                <div className="flex gap-2">
+                  <select value={customRackCode} onChange={e => setCustomRackCode(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2">
+                    {generatedRacks.map(rack => <option key={rack} value={rack}>Rack {rack}</option>)}
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <input type="text" placeholder="Custom Name (e.g. Sci-Fi)" value={customRackName} onChange={e => setCustomRackName(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2" />
+                </div>
+                <button onClick={handleAddCustomRack} className="w-full bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 rounded-lg py-2 text-sm flex items-center justify-center gap-2">
+                  <Plus size={16} /> Assign Name
+                </button>
+             </div>
+
+             <div className="space-y-2 mt-4">
+                {Object.entries(config.custom_racks).map(([code, name]) => (
+                  <div key={code} className="flex items-center justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-800">
+                    <div className="flex items-center gap-3">
+                      <Tag size={16} className="text-blue-400" />
+                      <div className="text-sm">
+                        <p className="text-white font-medium">{name}</p>
+                        <p className="text-gray-400 text-xs">Rack {code}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => handleRemoveCustomRack(code)} className="text-red-400 hover:text-red-300 p-1">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                {Object.keys(config.custom_racks).length === 0 && <p className="text-xs text-gray-500 italic text-center">No custom labels.</p>}
+             </div>
           </div>
 
           <div className="glass rounded-2xl border border-gray-800 p-6 space-y-4">
@@ -232,3 +306,4 @@ const Architecture = () => {
 };
 
 export default Architecture;
+

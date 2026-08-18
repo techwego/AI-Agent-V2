@@ -115,4 +115,5 @@ class LibraryConfig(Base):
     cols_per_row = Column(Integer, default=6) # e.g. 1 to 6
     shelves_per_rack = Column(Integer, default=4)
     pois = Column(JSON, default=list)
+    custom_racks = Column(JSON, default=dict)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
