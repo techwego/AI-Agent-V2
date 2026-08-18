@@ -94,136 +94,139 @@ const Architecture = () => {
   if (loading) return <div className="p-8 text-gray-400">Loading Enterprise Layout...</div>;
 
   return (
-    <div className="fixed inset-0 w-full h-full bg-[#05080f] overflow-hidden">
-      
-      {/* Background 3D Map */}
-      <div className="absolute inset-0 z-0">
-        <LibraryWayfinder key={mapKey} routeFrom={null} routeTo={null} />
-      </div>
-
-      {/* Floating Top Bar */}
-      <div className="absolute top-4 left-4 right-4 z-10 flex items-start justify-between pointer-events-none">
-        <div className="wayfinder-glass px-5 py-3 pointer-events-auto flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
-            <Layers className="text-blue-400" size={18} />
+    <div className="p-8 h-full flex flex-col gap-6 overflow-hidden">
+      <div className="flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+            <Layers className="text-blue-400" size={24} />
           </div>
           <div>
-            <div className="wayfinder-eyebrow mb-1">Enterprise Configuration</div>
-            <h1 className="text-base font-bold text-white tracking-tight">Library Architecture</h1>
+            <h1 className="text-2xl font-bold text-white">Enterprise Architecture</h1>
+            <p className="text-sm text-gray-400">Configure Grid & Points of Interest</p>
           </div>
         </div>
-
-        <div className="wayfinder-glass px-3 py-2 pointer-events-auto flex items-center gap-3">
+        <div className="flex items-center gap-3">
           {message && (
-            <span className={`text-xs px-2 py-1 rounded-md font-medium ${message.includes('success') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+            <span className={`text-sm px-3 py-1 rounded-full ${message.includes('success') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
               {message}
             </span>
           )}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/30 text-xs border border-white/5 shadow-inner mr-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Live Preview
-          </div>
-          <button onClick={fetchConfig} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors border border-transparent hover:border-white/10" title="Discard Changes">
-            <RefreshCw size={16} />
+          <button onClick={fetchConfig} className="px-4 py-2 text-gray-400 bg-gray-900/50 hover:bg-gray-800 hover:text-white rounded-lg transition-colors text-sm border border-gray-700 flex items-center gap-2">
+            <RefreshCw size={16} /> Discard Changes
           </button>
-          <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-xs flex items-center gap-2 shadow-lg">
-            <Save size={14} /> Apply Map
+          <button onClick={handleSave} disabled={saving} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm flex items-center gap-2">
+            <Save size={16} /> Save & Apply Map
           </button>
         </div>
       </div>
 
-      {/* Floating Config Panel */}
-      <div className="absolute left-4 top-24 bottom-4 w-[340px] flex flex-col gap-4 pointer-events-none z-10">
+      <div className="grid grid-cols-3 gap-6 flex-1 min-h-0">
         
-        <div className="wayfinder-glass p-5 space-y-4 pointer-events-auto overflow-y-auto custom-scrollbar flex-1">
-          <div className="wayfinder-eyebrow border-b border-gray-700/50 pb-2 mb-4">Grid Setup</div>
+        {/* Left Col: Config */}
+        <div className="col-span-1 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar pb-10">
           
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-400 flex justify-between">
-              <span>Floors</span> <span className="text-blue-400">{config.floors}</span>
-            </label>
-            <input type="range" min="1" max="10" value={config.floors} onChange={e => setConfig({...config, floors: parseInt(e.target.value)})} className="w-full accent-blue-500 h-1" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-400 flex justify-between">
-              <span>Rows per Floor</span> <span className="text-blue-400">{config.rows_per_floor}</span>
-            </label>
-            <input type="range" min="1" max="10" value={config.rows_per_floor} onChange={e => setConfig({...config, rows_per_floor: parseInt(e.target.value)})} className="w-full accent-blue-500 h-1" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-400 flex justify-between">
-              <span>Columns per Row</span> <span className="text-blue-400">{config.cols_per_row}</span>
-            </label>
-            <input type="range" min="1" max="20" value={config.cols_per_row} onChange={e => setConfig({...config, cols_per_row: parseInt(e.target.value)})} className="w-full accent-blue-500 h-1" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-400 flex justify-between">
-              <span>Shelves per Rack</span> <span className="text-blue-400">{config.shelves_per_rack}</span>
-            </label>
-            <input type="range" min="1" max="8" value={config.shelves_per_rack} onChange={e => setConfig({...config, shelves_per_rack: parseInt(e.target.value)})} className="w-full accent-blue-500 h-1" />
-          </div>
-
-          <div className="wayfinder-eyebrow border-b border-gray-700/50 pb-2 mt-6 mb-4">Points of Interest</div>
-          
-          <div className="space-y-2 bg-[#0a0e1a]/50 p-3 rounded-xl border border-gray-700/50">
-            <div className="flex gap-2">
-              <select value={poiType} onChange={e => setPoiType(e.target.value)} className="bg-[#111a2e] border border-[#24314d] text-white text-xs rounded-lg flex-1 p-2 outline-none focus:border-blue-500 transition-colors">
-                <option value="entrance">Entrance</option>
-                <option value="stairs">Stairs</option>
-              </select>
-              <select value={poiFloor} onChange={e => setPoiFloor(e.target.value)} className="bg-[#111a2e] border border-[#24314d] text-white text-xs rounded-lg flex-1 p-2 outline-none focus:border-blue-500 transition-colors">
-                {[...Array(config.floors)].map((_, i) => <option key={i} value={i+1}>Floor {i+1}</option>)}
-              </select>
+          <div className="glass rounded-2xl border border-gray-800 p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-white mb-4">Base Grid Configuration</h2>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-400 flex justify-between">
+                <span>Floors</span> <span className="text-blue-400">{config.floors}</span>
+              </label>
+              <input type="range" min="1" max="10" value={config.floors} onChange={e => setConfig({...config, floors: parseInt(e.target.value)})} className="w-full accent-blue-500" />
             </div>
 
-            <div className="flex gap-2">
-              <input type="text" placeholder="Anchor (e.g. A1)" value={poiAnchor} onChange={e => setPoiAnchor(e.target.value)} className="bg-[#111a2e] border border-[#24314d] text-white text-xs rounded-lg w-1/2 p-2 uppercase outline-none focus:border-blue-500 transition-colors" />
-              <select value={poiOffset} onChange={e => setPoiOffset(e.target.value)} className="bg-[#111a2e] border border-[#24314d] text-white text-xs rounded-lg w-1/2 p-2 outline-none focus:border-blue-500 transition-colors">
-                <option value="left">Left</option>
-                <option value="right">Right</option>
-                <option value="front">Front</option>
-                <option value="back">Back</option>
-              </select>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-400 flex justify-between">
+                <span>Rows per Floor</span> <span className="text-blue-400">{config.rows_per_floor}</span>
+              </label>
+              <input type="range" min="1" max="10" value={config.rows_per_floor} onChange={e => setConfig({...config, rows_per_floor: parseInt(e.target.value)})} className="w-full accent-blue-500" />
             </div>
 
-            {poiType === 'stairs' && (
-              <div className="flex gap-2 items-center px-1">
-                <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Connects to:</span>
-                <select value={poiConnectsTo} onChange={e => setPoiConnectsTo(e.target.value)} className="bg-[#111a2e] border border-[#24314d] text-white text-xs rounded-lg flex-1 p-1.5 outline-none focus:border-blue-500 transition-colors">
-                  {[...Array(config.floors)].map((_, i) => <option key={i} value={i+1}>Floor {i+1}</option>)}
-                </select>
-              </div>
-            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-400 flex justify-between">
+                <span>Columns per Row</span> <span className="text-blue-400">{config.cols_per_row}</span>
+              </label>
+              <input type="range" min="1" max="20" value={config.cols_per_row} onChange={e => setConfig({...config, cols_per_row: parseInt(e.target.value)})} className="w-full accent-blue-500" />
+            </div>
 
-            <button onClick={handleAddPoi} className="w-full bg-[#24314d] hover:bg-blue-600 text-white rounded-lg py-2 mt-1 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors">
-              <Plus size={14} /> Add Marker
-            </button>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-400 flex justify-between">
+                <span>Shelves per Rack</span> <span className="text-blue-400">{config.shelves_per_rack}</span>
+              </label>
+              <input type="range" min="1" max="8" value={config.shelves_per_rack} onChange={e => setConfig({...config, shelves_per_rack: parseInt(e.target.value)})} className="w-full accent-blue-500" />
+            </div>
           </div>
 
-          <div className="space-y-1.5 mt-4">
-            {config.pois.map((poi, idx) => (
-              <div key={idx} className="flex items-center justify-between bg-[#0a0e1a]/40 p-2.5 rounded-lg border border-[#24314d]/50 group hover:border-[#24314d] transition-colors">
-                <div className="flex items-center gap-2.5">
-                  <div className={`p-1.5 rounded-md ${poi.type === 'entrance' ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}>
-                    <MapPin size={14} />
-                  </div>
-                  <div>
-                    <p className="text-gray-200 text-xs font-medium capitalize leading-none mb-1">{poi.type} <span className="text-gray-500">· Fl {poi.floor}</span></p>
-                    <p className="text-gray-500 text-[10px] uppercase tracking-wider">{poi.offset} of {poi.anchorRack}</p>
-                  </div>
+          <div className="glass rounded-2xl border border-gray-800 p-6 space-y-4">
+             <h2 className="text-lg font-semibold text-white mb-4">Points of Interest</h2>
+             
+             <div className="space-y-3 bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                <div className="flex gap-2">
+                  <select value={poiType} onChange={e => setPoiType(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2">
+                    <option value="entrance">Entrance</option>
+                    <option value="stairs">Stairs</option>
+                  </select>
+                  <select value={poiFloor} onChange={e => setPoiFloor(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2">
+                    {[...Array(config.floors)].map((_, i) => <option key={i} value={i+1}>Floor {i+1}</option>)}
+                  </select>
                 </div>
-                <button onClick={() => handleRemovePoi(idx)} className="text-gray-600 hover:text-red-400 p-1 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
-                  <Trash2 size={14} />
+
+                <div className="flex gap-2">
+                  <input type="text" placeholder="Anchor Rack (e.g. A1)" value={poiAnchor} onChange={e => setPoiAnchor(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2 uppercase" />
+                  <select value={poiOffset} onChange={e => setPoiOffset(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2">
+                    <option value="left">Left</option>
+                    <option value="right">Right</option>
+                    <option value="front">Front</option>
+                    <option value="back">Back</option>
+                  </select>
+                </div>
+
+                {poiType === 'stairs' && (
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm text-gray-400">Connects to:</span>
+                    <select value={poiConnectsTo} onChange={e => setPoiConnectsTo(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2">
+                      {[...Array(config.floors)].map((_, i) => <option key={i} value={i+1}>Floor {i+1}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                <button onClick={handleAddPoi} className="w-full bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 rounded-lg py-2 text-sm flex items-center justify-center gap-2">
+                  <Plus size={16} /> Add POI
                 </button>
-              </div>
-            ))}
-            {config.pois.length === 0 && <p className="text-xs text-gray-600 italic text-center py-2">No markers placed.</p>}
+             </div>
+
+             <div className="space-y-2 mt-4">
+                {config.pois.map((poi, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-800">
+                    <div className="flex items-center gap-3">
+                      <MapPin size={16} className={poi.type === 'entrance' ? 'text-red-400' : 'text-orange-400'} />
+                      <div className="text-sm">
+                        <p className="text-white font-medium capitalize">{poi.type} (Floor {poi.floor})</p>
+                        <p className="text-gray-400 text-xs">{poi.offset} of {poi.anchorRack}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => handleRemovePoi(idx)} className="text-red-400 hover:text-red-300 p-1">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                {config.pois.length === 0 && <p className="text-xs text-gray-500 italic text-center">No custom POIs added.</p>}
+             </div>
           </div>
         </div>
-      </div>
 
+        {/* Right Col: Live 3D Map Preview */}
+        <div className="col-span-2 glass rounded-2xl border border-gray-800 overflow-hidden relative shadow-inner">
+           <div className="absolute top-4 left-4 z-10 bg-gray-950/80 backdrop-blur border border-gray-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-lg flex items-center gap-2">
+             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Live Architecture Preview
+           </div>
+           
+           <div className="h-full w-full bg-[#05080f]">
+              <LibraryWayfinder key={mapKey} routeFrom={null} routeTo={null} />
+           </div>
+        </div>
+
+      </div>
     </div>
   );
 };
