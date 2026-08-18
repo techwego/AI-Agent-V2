@@ -825,8 +825,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       let normalizedFrom = 'entrance';
       if (routeFrom) {
          const f = String(routeFrom).toLowerCase();
-         if (f.includes('floor 1') || f === 'stairs1') normalizedFrom = 'stairs1';
-         else if (f.includes('floor 2') || f === 'stairs2') normalizedFrom = 'stairs2';
+         const floorMatch = f.match(/floor\s*(\d+)/) || f.match(/stairs(\d+)/);
+         if (floorMatch) normalizedFrom = 'stairs' + floorMatch[1];
          else if (f === 'entrance') normalizedFrom = 'entrance';
          else {
             let rackMatch = f.match(/r?([a-d])\s*(\d)/);

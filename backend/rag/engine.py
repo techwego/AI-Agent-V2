@@ -919,8 +919,10 @@ class LibraryRAG:
             import re
             user_loc = "entrance" # Default to entrance
             lower_input = user_input.lower()
-            if "floor 1" in lower_input or "first floor" in lower_input: user_loc = "stairs1"
-            elif "floor 2" in lower_input or "second floor" in lower_input: user_loc = "stairs2"
+            floor_match = re.search(r'floor\s+(\d+)', lower_input)
+            if floor_match: user_loc = f"stairs{floor_match.group(1)}"
+            elif "first floor" in lower_input: user_loc = "stairs1"
+            elif "second floor" in lower_input: user_loc = "stairs2"
             elif "entrance" in lower_input: user_loc = "entrance"
             else:
                 m = re.search(r'rack\s+([a-z0-9\-]+)', lower_input)
@@ -939,7 +941,7 @@ class LibraryRAG:
                             dest_rack = rack_match.group(1).upper()
                             break
                             
-            if dest_rack and not re.search(r'<ROUTE', full_output):
+            if dest_rack and not re.search(r'<ROUTE', full_output) and "where are you" not in full_output.lower() and "currently located" not in full_output.lower():
                 print(f"Injecting programmatic route tag: <ROUTE_FROM:{user_loc}_TO:{dest_rack}>")
                 yield f" <ROUTE_FROM:{user_loc}_TO:{dest_rack}>"
             
