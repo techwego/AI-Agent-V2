@@ -914,6 +914,7 @@ class LibraryRAG:
             print("Streaming completed.")
             
             # Programmatically inject route tag if location and rack are known
+            import re
             user_loc = None
             lower_input = user_input.lower()
             if "floor 1" in lower_input or "first floor" in lower_input: user_loc = "stairs1"
