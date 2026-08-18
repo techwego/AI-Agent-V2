@@ -5,8 +5,9 @@ An enterprise-grade, speech-enabled conversational AI for library management. Th
 ## 🚀 Tech Stack
 
 ### Frontend (Client-Side)
-* **HTML/CSS/JS (Vanilla)**: A lightweight, ultra-fast user interface.
-* **Speech-to-Text (STT)**: HTML5 `MediaRecorder` API combined with the Web Audio API (`AnalyserNode`) to automatically detect when a user starts and stops speaking.
+* **React & Vite**: Modern, component-based UI framework built with Vite for lightning-fast HMR.
+* **TailwindCSS**: Utility-first CSS framework for responsive styling.
+* **Speech-to-Text (STT)**: HTML5 `MediaRecorder` API combined with the Web Audio API to automatically detect speech, sending audio blobs to the backend. Also utilizes native browser `SpeechRecognition` as a fallback.
 * **Text-to-Speech (TTS)**: Browser native Web Speech API (`speechSynthesis`) configured with natural-sounding female voices.
 
 ### Backend (Server-Side)
@@ -14,7 +15,7 @@ An enterprise-grade, speech-enabled conversational AI for library management. Th
 * **Groq SDK**: Connects to Groq's specialized inference hardware for blazing-fast AI execution.
 
 ### Artificial Intelligence & RAG
-* **LLM (Language Model)**: `llama-3.1-8b-instant` (via Groq API)
+* **LLM (Language Model)**: `qwen/qwen3.6-27b` (via Groq API) - Highly capable reasoning model.
 * **Transcription (STT)**: `whisper-large-v3-turbo` (via Groq API) - Used to transcribe user voice blobs robustly.
 * **Vector Database**: ChromaDB (Persistent Local Storage)
 * **Dense Embedding Model**: `BAAI/bge-small-en-v1.5` (via `fastembed` for fast CPU execution)
@@ -42,7 +43,7 @@ The data ingestion pipeline handles massive datasets (tested up to 10,000+ items
 1. **Hybrid Search**: The backend searches the query against ChromaDB (Semantic) and BM25 (Keyword). 
 2. **Reciprocal Rank Fusion (RRF)**: It merges the results, taking the Top 20 best hits.
 3. **Reranking**: The `TextCrossEncoder` aggressively reranks the top 20 hits against the user's exact query, keeping only the Top 5 most relevant documents.
-4. **Generation**: The Top 5 documents are formatted as structured context and sent to the `llama-3.1-8b-instant` model alongside the system prompt.
+4. **Generation**: The Top 5 documents are formatted as structured context and sent to the `qwen/qwen3.6-27b` model alongside the system prompt.
 5. **Streaming**: The LLM streams its answer back to the frontend, which is then spoken aloud by the browser's TTS engine.
 
 ---
