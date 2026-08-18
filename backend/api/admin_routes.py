@@ -186,6 +186,7 @@ class LibraryConfigUpdate(BaseModel):
     rows_per_floor: int
     cols_per_row: int
     shelves_per_rack: int
+    pois: list = []
 
 @router.get("/architecture")
 def get_architecture(db: Session = Depends(get_db)):
@@ -208,6 +209,7 @@ def update_architecture(config_update: LibraryConfigUpdate, db: Session = Depend
     config.rows_per_floor = config_update.rows_per_floor
     config.cols_per_row = config_update.cols_per_row
     config.shelves_per_rack = config_update.shelves_per_rack
+    config.pois = config_update.pois
     
     # Log the action
     admin_log = AdminLog(admin_id=current_user.id, action="Update Architecture", details=f"Floors: {config.floors}, Rows: {config.rows_per_floor}, Cols: {config.cols_per_row}")

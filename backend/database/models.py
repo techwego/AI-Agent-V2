@@ -114,5 +114,5 @@ class LibraryConfig(Base):
     rows_per_floor = Column(Integer, default=2) # e.g. A and B on floor 1
     cols_per_row = Column(Integer, default=6) # e.g. 1 to 6
     shelves_per_rack = Column(Integer, default=4)
+    pois = Column(JSON, default=list)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
