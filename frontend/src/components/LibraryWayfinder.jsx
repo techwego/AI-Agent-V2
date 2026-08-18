@@ -299,7 +299,19 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     let resolvedFrom = fromId;
     if (!nodes[resolvedFrom]) {
       // Try matching by prefix or by type
-      const entranceKey = Object.keys(nodes).find(k => k.startsWith(resolvedFrom) || (resolvedFrom === 'entrance' && nodes[k].type === 'entrance'));
+      let entranceKey = Object.keys(nodes).find(k => k.startsWith(resolvedFrom) || (resolvedFrom === 'entrance' && nodes[k].type === 'entrance'));
+      
+      // If a non-existent floor stairs was requested (e.g. stairs4 on a 2 floor map), fallback to highest stairs or entrance
+      if (!entranceKey && resolvedFrom.startsWith('stairs')) {
+         const allStairs = Object.keys(nodes).filter(k => k.startsWith('stairs') && !k.endsWith('_dest'));
+         if (allStairs.length > 0) {
+             allStairs.sort();
+             entranceKey = allStairs[allStairs.length - 1];
+         } else {
+             entranceKey = Object.keys(nodes).find(k => k.type === 'entrance');
+         }
+      }
+
       if (entranceKey) resolvedFrom = entranceKey;
       else return; // no valid start node
     }
