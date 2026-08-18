@@ -906,16 +906,18 @@ class LibraryRAG:
 
             print("Groq request started...")
             first_token = True
+            full_output = ""
             for chunk in self.llm_engine.generate_stream(prompt):
                 if first_token:
                     print("First streamed token received.")
                     first_token = False
+                full_output += chunk
                 yield chunk
             print("Streaming completed.")
             
             # Programmatically inject route tag if location and rack are known
             import re
-            user_loc = None
+            user_loc = "entrance" # Default to entrance
             lower_input = user_input.lower()
             if "floor 1" in lower_input or "first floor" in lower_input: user_loc = "stairs1"
             elif "floor 2" in lower_input or "second floor" in lower_input: user_loc = "stairs2"
@@ -925,15 +927,19 @@ class LibraryRAG:
                 if m: user_loc = f"r{m.group(1).upper()}"
                 
             dest_rack = ""
-            if history:
+            # Check current output first
+            rack_match = re.search(r'Rack ([A-Z0-9]+)', full_output, re.IGNORECASE)
+            if rack_match:
+                dest_rack = rack_match.group(1).upper()
+            elif history:
                 for msg in reversed(history):
                     if msg["role"] == "assistant":
-                        rack_match = re.search(r'Rack ([A-Z0-9\-]+)', msg['content'], re.IGNORECASE)
+                        rack_match = re.search(r'Rack ([A-Z0-9]+)', msg['content'], re.IGNORECASE)
                         if rack_match: 
                             dest_rack = rack_match.group(1).upper()
                             break
                             
-            if user_loc and dest_rack:
+            if dest_rack and not re.search(r'<ROUTE', full_output):
                 print(f"Injecting programmatic route tag: <ROUTE_FROM:{user_loc}_TO:{dest_rack}>")
                 yield f" <ROUTE_FROM:{user_loc}_TO:{dest_rack}>"
             

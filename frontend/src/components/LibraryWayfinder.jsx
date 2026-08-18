@@ -694,6 +694,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       } else {
         drag.dragging = true;
       }
+      drag.startX = e.clientX; drag.startY = e.clientY;
       drag.lastX = e.clientX; drag.lastY = e.clientY;
       canvas.setPointerCapture(e.pointerId);
     };
@@ -742,7 +743,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     const onClick = (e) => {
-      if (Math.abs(e.clientX - drag.lastX) > 4 || Math.abs(e.clientY - drag.lastY) > 4) return;
+      if (Math.abs(e.clientX - drag.startX) > 4 || Math.abs(e.clientY - drag.startY) > 4) return;
       const rect = container.getBoundingClientRect();
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
