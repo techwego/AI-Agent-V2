@@ -806,8 +806,12 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   // Handle routeTo prop changes
   useEffect(() => {
     if (routeTo) {
-      // Normalize the rack code (handle both "C3" and "C 3" and "c3")
-      const normalizedTo = routeTo.toUpperCase().replace(/\s+/g, '');
+      // Normalize the rack code (handle both "C3" and "C 3" and "c3", as well as "Rack_C3" or "RACK C3")
+      let normalizedTo = routeTo.toUpperCase().replace(/[\s_]+/g, '');
+      const toMatch = normalizedTo.match(/^(?:RACK|R)?([A-Z][0-9]+)$/);
+      if (toMatch) {
+        normalizedTo = toMatch[1];
+      }
       let normalizedFrom = 'entrance';
       if (routeFrom) {
          const f = String(routeFrom).toLowerCase();
