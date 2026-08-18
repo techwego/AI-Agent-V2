@@ -2,111 +2,148 @@ import React, { useEffect, useRef, useCallback, useState, useImperativeHandle, f
 import * as THREE from 'three';
 
 /* ============================================================
-   WAYFINDING GRAPH DATA
+   DYNAMIC WAYFINDING GRAPH DATA
    ============================================================ */
-const FLOOR1_Y = 0;
-const FLOOR2_Y = 6.4;
-const COLS_X = [-13, -7.8, -2.6, 2.6, 7.8, 13];
 
-function buildGraph() {
+function buildDynamicGraph(config) {
   const nodes = {};
-  function addNode(id, x, y, z, label) {
-    nodes[id] = { x, y: y + 0.15, z, label: label || id, edges: [] };
+  function addNode(id, x, y, z, label, type, floor, code) {
+    nodes[id] = { x, y: y + 0.15, z, label: label || id, type, floor, code, edges: [] };
   }
   function addEdge(a, b, w) {
+    if(!nodes[a] || !nodes[b]) return;
     const wt = w ?? Math.hypot(nodes[a].x - nodes[b].x, nodes[a].y - nodes[b].y, nodes[a].z - nodes[b].z);
     nodes[a].edges.push({ to: b, w: wt });
     nodes[b].edges.push({ to: a, w: wt });
   }
 
-  addNode('entrance', 0, FLOOR1_Y, -13.2, 'Entrance');
-  addNode('stairs1', 13, FLOOR1_Y, 0, 'Staircase · Floor 1');
-  addNode('stairs2', 13, FLOOR2_Y, 0, 'Staircase · Floor 2');
+  const floorHeights = [];
+  for(let i=0; i<config.floors; i++) floorHeights.push(i * 6.4);
 
-  COLS_X.forEach((x, i) => {
-    addNode('cs1_' + i, x, FLOOR1_Y, -3, 'Aisle F1 col' + i);
-    addNode('cn1_' + i, x, FLOOR1_Y, 3, 'Aisle F1 col' + i);
-    addNode('cs2_' + i, x, FLOOR2_Y, -3, 'Aisle F2 col' + i);
-    addNode('cn2_' + i, x, FLOOR2_Y, 3, 'Aisle F2 col' + i);
-    addNode('rA' + (i + 1), x, FLOOR1_Y, -4.7, 'Rack A' + (i + 1));
-    addNode('rB' + (i + 1), x, FLOOR1_Y, 4.7, 'Rack B' + (i + 1));
-    addNode('rC' + (i + 1), x, FLOOR2_Y, -4.7, 'Rack C' + (i + 1));
-    addNode('rD' + (i + 1), x, FLOOR2_Y, 4.7, 'Rack D' + (i + 1));
-  });
+  const COLS_X = [];
+  const colSpacing = 5.2;
+  const startX = -((config.cols_per_row - 1) * colSpacing) / 2;
+  for(let c=0; c<config.cols_per_row; c++) COLS_X.push(startX + (c * colSpacing));
 
-  for (let i = 0; i < COLS_X.length; i++) {
-    addEdge('rA' + (i + 1), 'cs1_' + i);
-    addEdge('rB' + (i + 1), 'cn1_' + i);
-    addEdge('rC' + (i + 1), 'cs2_' + i);
-    addEdge('rD' + (i + 1), 'cn2_' + i);
-    addEdge('cs1_' + i, 'cn1_' + i);
-    addEdge('cs2_' + i, 'cn2_' + i);
-    if (i > 0) {
-      addEdge('cs1_' + (i - 1), 'cs1_' + i);
-      addEdge('cn1_' + (i - 1), 'cn1_' + i);
-      addEdge('cs2_' + (i - 1), 'cs2_' + i);
-      addEdge('cn2_' + (i - 1), 'cn2_' + i);
-    }
+  const rowZOffsets = [];
+  const rowSpacing = 9.4;
+  if(config.rows_per_floor === 1) {
+      rowZOffsets.push(0);
+  } else {
+      const startZ = -((config.rows_per_floor - 1) * rowSpacing) / 2;
+      for(let r=0; r<config.rows_per_floor; r++) {
+          rowZOffsets.push(startZ + (r * rowSpacing));
+      }
   }
-  addEdge('entrance', 'cs1_2');
-  addEdge('entrance', 'cs1_3');
-  addEdge('stairs1', 'cs1_5');
-  addEdge('stairs1', 'cn1_5');
-  addEdge('stairs2', 'cs2_5');
-  addEdge('stairs2', 'cn2_5');
-  addEdge('stairs1', 'stairs2', 9);
 
-  return nodes;
-}
+  const generatedRacks = {};
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let rackCodeIndex = 0;
 
-function dijkstra(nodes, start, end) {
-  const dist_ = {}, prev = {}, visited = new Set();
-  Object.keys(nodes).forEach(k => dist_[k] = Infinity);
-  dist_[start] = 0;
-  const pq = [[0, start]];
-  while (pq.length) {
-    pq.sort((a, b) => a[0] - b[0]);
-    const [d, u] = pq.shift();
-    if (visited.has(u)) continue;
-    visited.add(u);
-    if (u === end) break;
-    nodes[u].edges.forEach(({ to, w }) => {
-      const nd = d + w;
-      if (nd < dist_[to]) { dist_[to] = nd; prev[to] = u; pq.push([nd, to]); }
-    });
+  for(let f=0; f<config.floors; f++) {
+      const fy = floorHeights[f];
+      
+      for(let r=0; r<config.rows_per_floor; r++) {
+          const rz = rowZOffsets[r];
+          const rowLetter = alphabet[rackCodeIndex % alphabet.length];
+          rackCodeIndex++;
+          
+          for(let c=0; c<config.cols_per_row; c++) {
+              const cx = COLS_X[c];
+              const rackId = 'r' + rowLetter + (c+1);
+              const aisleId = 'aisle_f' + (f+1) + '_r' + r + '_c' + c;
+              
+              addNode(rackId, cx, fy, rz, 'Rack ' + rowLetter + (c+1), 'rack', f+1, rowLetter + (c+1));
+              
+              const aisleZ = rz < 0 ? rz + 1.7 : rz - 1.7;
+              addNode(aisleId, cx, fy, aisleZ, 'Aisle', 'corridor', f+1);
+              
+              generatedRacks[rowLetter + (c+1)] = { x: cx, y: fy, z: rz, aisleId };
+              
+              addEdge(rackId, aisleId);
+              
+              if(c > 0) {
+                 addEdge(aisleId, 'aisle_f' + (f+1) + '_r' + r + '_c' + (c-1));
+              }
+              if(r > 0) {
+                 addEdge(aisleId, 'aisle_f' + (f+1) + '_r' + (r-1) + '_c' + c);
+              }
+          }
+      }
   }
-  if (dist_[end] === Infinity) return null;
-  const path = [end]; let cur = end;
-  while (cur !== start) { cur = prev[cur]; path.unshift(cur); }
-  return { path, distance: dist_[end] };
+
+  if (config.pois && Array.isArray(config.pois) && config.pois.length > 0) {
+      config.pois.forEach((poi, index) => {
+          const anchor = generatedRacks[poi.anchorRack];
+          if (!anchor) return;
+
+          let px = anchor.x;
+          let pz = anchor.z;
+          
+          if (poi.offset === 'left') px -= 3;
+          if (poi.offset === 'right') px += 3;
+          if (poi.offset === 'front') pz = pz < 0 ? pz + 3 : pz - 3;
+          if (poi.offset === 'back') pz = pz < 0 ? pz - 3 : pz + 3;
+
+          const poiId = poi.type + '_' + index;
+          addNode(poiId, px, anchor.y, pz, poi.type === 'entrance' ? 'Entrance' : 'Stairs Floor ' + poi.floor, poi.type, poi.floor);
+          
+          addEdge(poiId, anchor.aisleId);
+
+          if (poi.type === 'stairs' && poi.connectsToFloor) {
+              const destY = floorHeights[poi.connectsToFloor - 1];
+              const destId = poiId + '_dest';
+              addNode(destId, px, destY, pz, 'Stairs Floor ' + poi.connectsToFloor, 'stairs', poi.connectsToFloor);
+              addEdge(poiId, destId, 9);
+              
+              const destFloorAisles = Object.keys(nodes).filter(k => nodes[k].floor === poi.connectsToFloor && nodes[k].type === 'corridor');
+              let closestAisle = null;
+              let minD = 999999;
+              destFloorAisles.forEach(aId => {
+                  const d = Math.hypot(nodes[aId].x - px, nodes[aId].z - pz);
+                  if (d < minD) { minD = d; closestAisle = aId; }
+              });
+              if (closestAisle) addEdge(destId, closestAisle);
+          }
+      });
+  } else {
+      addNode('entrance_0', 0, 0, -13.2, 'Entrance', 'entrance', 1);
+      if(config.cols_per_row > 1) {
+          addEdge('entrance_0', 'aisle_f1_r0_c' + Math.floor(config.cols_per_row/2));
+      }
+      for(let f=0; f<config.floors; f++) {
+          const sid = 'stairs_def_' + f;
+          addNode(sid, COLS_X[COLS_X.length-1] + 3, floorHeights[f], 0, 'Staircase Floor ' + (f+1), 'stairs', f+1);
+          if (f > 0) addEdge('stairs_def_' + (f-1), sid, 9);
+          
+          const aisleKeys = Object.keys(nodes).filter(k => nodes[k].floor === (f+1) && nodes[k].type === 'corridor');
+          if (aisleKeys.length > 0) addEdge(sid, aisleKeys[aisleKeys.length-1]);
+      }
+  }
+
+  return { nodes, floorHeights, COLS_X, rowZOffsets };
 }
 
-function classify(id) {
-  if (id === 'entrance') return { type: 'entrance' };
-  if (id === 'stairs1') return { type: 'stairs', floor: 1 };
-  if (id === 'stairs2') return { type: 'stairs', floor: 2 };
-  const m = id.match(/^r([ABCD])(\d)$/);
-  if (m) return { type: 'rack', code: m[1] + m[2] };
-  return { type: 'corridor' };
-}
-
-function generateDirections(path) {
+function generateDirections(path, nodes) {
   const steps = [];
   let prevType = null;
   for (let i = 0; i < path.length; i++) {
-    const cl = classify(path[i]);
-    if (cl.type === 'entrance') { steps.push('Enter through the main Entrance.'); }
-    else if (cl.type === 'rack' && i === path.length - 1) { steps.push(`Arrive at Rack ${cl.code}, Floor ${cl.code >= 'C' ? 2 : 1}.`); }
-    else if (cl.type === 'stairs') {
-      if (prevType !== 'stairs') steps.push(`Take the staircase ${cl.floor === 2 ? 'up to Floor 2' : 'down to Floor 1'}.`);
+    const n = nodes[path[i]];
+    if (!n) continue;
+    
+    if (n.type === 'entrance') { steps.push('Enter through the Entrance.'); }
+    else if (n.type === 'rack' && i === path.length - 1) { steps.push(`Arrive at ${n.label}, Floor ${n.floor}.`); }
+    else if (n.type === 'stairs') {
+      if (prevType !== 'stairs') steps.push(`Take the stairs to Floor ${n.floor}.`);
     }
-    else if (cl.type === 'corridor') {
+    else if (n.type === 'corridor') {
       if (prevType !== 'corridor') steps.push('Walk through the aisle.');
     }
-    prevType = cl.type;
+    prevType = n.type;
   }
   return steps;
 }
+
 
 /* ============================================================
    LABEL SPRITES
@@ -151,7 +188,6 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   const orbitRef = useRef({ theta: Math.PI * 0.28, phi: 1.02, radius: 46, target: new THREE.Vector3(0, 4, 0), minPhi: 0.35, maxPhi: 1.45, minR: 14, maxR: 80 });
   const rackMeshByCodeRef = useRef({});
   const rackGroupsRef = useRef({});
-  const nodesRef = useRef(null);
   const routeObjsRef = useRef({ tube: null, comet: null, ring: null, animId: null });
   const lastRouteRef = useRef(null);
   const dragRef = useRef({ dragging: false, lastX: 0, lastY: 0 });
@@ -159,6 +195,19 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
   const [directions, setDirections] = useState(null);
   const [routeInfo, setRouteInfo] = useState(null);
+  const [config, setConfig] = useState(null);
+  const [graphData, setGraphData] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/admin/architecture', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+      .then(res => res.json())
+      .then(data => {
+         setConfig(data);
+         setGraphData(buildDynamicGraph(data));
+      })
+      .catch(err => console.error("Failed to fetch layout config", err));
+  }, []);
+
 
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
@@ -225,7 +274,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   // Draw route
   const drawRoute = useCallback((destCode, fromId = 'entrance') => {
     const scene = sceneRef.current;
-    const nodes = graphData ? graphData.nodes : nodesRef.current;
+    const nodes = graphData.nodes;
     const clock = clockRef.current;
     if (!scene || !nodes) return;
 
