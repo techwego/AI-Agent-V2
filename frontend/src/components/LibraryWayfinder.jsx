@@ -447,7 +447,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const { nodes, floorHeights, COLS_X, rowZOffsets } = graphData;
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-    // Clear old racks
+    // Floor groups (one per floor)
     rackGroupsRef.current = {};
     for(let f=0; f<config.floors; f++) {
         const floorGroup = new THREE.Group();
@@ -455,77 +455,132 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         rackGroupsRef.current[f+1] = floorGroup;
     }
 
-    const slabGeo = new THREE.BoxGeometry(40, 0.4, 30);
+    // ── Floor Slabs with Grid Overlays ──
+    const slabWidth = Math.max(41, (config.cols_per_row * 5.2) + 12);
+    const slabDepth = Math.max(28.5, (config.rows_per_floor * 9.4) + 10);
     for(let f=0; f<config.floors; f++) {
         const fy = floorHeights[f];
-        const slabMat = new THREE.MeshStandardMaterial({ 
-          color: f === 0 ? 0x1a2639 : 0x2a3649,
-          transparent: true, opacity: 0.9, roughness: 0.8
-        });
+        // Solid slab
+        const slabGeo = new THREE.BoxGeometry(slabWidth, 0.4, slabDepth);
+        const slabMat = new THREE.MeshPhongMaterial({ color: f === 0 ? 0x131c30 : 0x121b2c, shininess: 15 });
         const slab = new THREE.Mesh(slabGeo, slabMat);
-        slab.position.set(0, fy - 0.2, 0);
+        slab.position.set(0, fy - 0.25, 0);
         slab.receiveShadow = true;
         rackGroupsRef.current[f+1].add(slab);
+        // Grid overlay
+        const grid = new THREE.GridHelper(slabWidth - 1, 20, 0x24314d, 0x1a2338);
+        grid.position.set(0, fy - 0.02, 0);
+        rackGroupsRef.current[f+1].add(grid);
+        // Floor label plate
+        const floorLabel = makeLabel('FLOOR ' + (f+1), { bg: '#111a2e', fg: '#f2a93b', scale: 1.3 });
+        floorLabel.position.set(-(slabWidth/2) + 2, fy + 2.2, -(slabDepth/2) + 0.5);
+        rackGroupsRef.current[f+1].add(floorLabel);
     }
 
-    const rackGeo = new THREE.BoxGeometry(2.4, 4.8, 1.2);
-    const rackMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.6 });
+    // ── Build Racks (Prototype Style: grouped body + shelf lines + colored labels) ──
     let rackCodeIndex = 0;
+    const floorColors = [0xa9743f, 0x3f8f94, 0x7f5f9f, 0x5f7f3f, 0x9f3f5f, 0x3f5f9f, 0x9f7f3f, 0x5f3f9f, 0x3f9f5f, 0x9f5f3f];
+    const labelBgColors = ['#f2a93b', '#5fd6c9', '#c49bff', '#a8d65f', '#ff7f9f', '#7fb5ff', '#ffc46b', '#b87fff', '#6bffb8', '#ffb87f'];
 
     for(let f=0; f<config.floors; f++) {
         const fy = floorHeights[f];
+        const bodyColor = floorColors[f % floorColors.length];
+        const labelBg = labelBgColors[f % labelBgColors.length];
+
         for(let r=0; r<config.rows_per_floor; r++) {
             const rz = rowZOffsets[r];
             const rowLetter = alphabet[rackCodeIndex % alphabet.length];
             rackCodeIndex++;
+
             for(let c=0; c<config.cols_per_row; c++) {
                const cx = COLS_X[c];
-               const rackMesh = new THREE.Mesh(rackGeo, rackMat.clone());
-               rackMesh.position.set(cx, fy + 2.4, rz);
-               rackMesh.castShadow = true;
-               rackMesh.receiveShadow = true;
-               rackMesh.userData = { id: 'r' + rowLetter + (c+1), code: rowLetter + (c+1), type: 'rack' };
-               
-               const lbl = makeLabel(rowLetter + (c+1), { bg: '#2563eb', fg: '#ffffff', scale: 0.8 });
-               lbl.position.set(0, 3.2, 0);
-               rackMesh.add(lbl);
-
                const code = rowLetter + (c+1);
-               rackMeshByCodeRef.current[code] = rackMesh;
-               const topFloorY = floorHeights && floorHeights.length > 0 ? floorHeights[floorHeights.length - 1] : 6.4;
-    const buildingHeight = topFloorY + 4; // Add ceiling buffer
-    // Glass envelope
-    const shellMat = new THREE.MeshPhongMaterial({ color: 0x9fd7ff, transparent: true, opacity: 0.045, side: THREE.DoubleSide, shininess: 80 });
-    const shellGeo = new THREE.BoxGeometry(43, buildingHeight + 2, 30.5);
-    const shell = new THREE.Mesh(shellGeo, shellMat);
-    shell.position.set(0, buildingHeight / 2, 0);
-    scene.add(shell);
-    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(shellGeo), new THREE.LineBasicMaterial({ color: 0x3a4a70, transparent: true, opacity: 0.5 }));
-    edges.position.copy(shell.position);
-    scene.add(edges);
-               rackGroupsRef.current[f+1].add(rackMesh);
+
+               // Rack group (body + shelves + label)
+               const rackGroup = new THREE.Group();
+               rackGroup.position.set(cx, fy, rz);
+               rackGroup.userData = { rackCode: code, floor: f+1, baseColor: bodyColor };
+
+               // Body
+               const bodyGeo = new THREE.BoxGeometry(3.3, 2.5, 1.1);
+               const bodyMat = new THREE.MeshPhongMaterial({ color: bodyColor, shininess: 25 });
+               const body = new THREE.Mesh(bodyGeo, bodyMat);
+               body.position.y = 1.25;
+               body.castShadow = true;
+               body.receiveShadow = true;
+               rackGroup.add(body);
+
+               // Shelf lines
+               const shelfEdgeMat = new THREE.LineBasicMaterial({ color: 0x1a120a, transparent: true, opacity: 0.35 });
+               for(let s=1; s<4; s++) {
+                   const shelfGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(3.15, 1.0));
+                   const shelf = new THREE.LineSegments(shelfGeo, shelfEdgeMat);
+                   shelf.rotation.x = Math.PI / 2;
+                   shelf.position.set(0, s * 0.6, 0);
+                   rackGroup.add(shelf);
+               }
+
+               // Label
+               const lbl = makeLabel(code, { bg: labelBg, fg: '#151109', scale: 0.9 });
+               lbl.position.set(0, 3.05, 0);
+               rackGroup.add(lbl);
+
+               rackMeshByCodeRef.current[code] = rackGroup;
+               rackGroupsRef.current[f+1].add(rackGroup);
             }
         }
     }
 
-    // Render POIs
+    // ── Glass Envelope (once, outside rack loop) ──
+    const topFloorY = floorHeights.length > 0 ? floorHeights[floorHeights.length - 1] : 0;
+    const envelopeHeight = topFloorY + 6;
+    const shellMat = new THREE.MeshPhongMaterial({ color: 0x9fd7ff, transparent: true, opacity: 0.045, side: THREE.DoubleSide, shininess: 80 });
+    const shellGeo = new THREE.BoxGeometry(slabWidth + 2, envelopeHeight, slabDepth + 2);
+    const shell = new THREE.Mesh(shellGeo, shellMat);
+    shell.position.set(0, envelopeHeight / 2 - 0.5, 0);
+    scene.add(shell);
+    const shellEdges = new THREE.LineSegments(new THREE.EdgesGeometry(shellGeo), new THREE.LineBasicMaterial({ color: 0x3a4a70, transparent: true, opacity: 0.5 }));
+    shellEdges.position.copy(shell.position);
+    scene.add(shellEdges);
+
+    // ── Render POIs (Entrance Pins & Staircases) ──
     if (graphData.nodes) {
-       const entGeo = new THREE.ConeGeometry(0.5, 2, 8);
-       const entMat = new THREE.MeshLambertMaterial({ color: 0xff0000 });
-       const stairGeo = new THREE.BoxGeometry(2, 6.4, 3);
-       const stairMat = new THREE.MeshLambertMaterial({ color: 0x555555, transparent: true, opacity: 0.8 });
-       
        Object.keys(graphData.nodes).forEach(k => {
            const n = graphData.nodes[k];
+
            if (n.type === 'entrance') {
-               const mesh = new THREE.Mesh(entGeo, entMat);
-               mesh.position.set(n.x, n.y + 1, n.z);
-               mesh.rotation.x = Math.PI;
-               scene.add(mesh);
+               // Emissive pin with label (prototype style)
+               const pinGroup = new THREE.Group();
+               const cone = new THREE.Mesh(
+                 new THREE.ConeGeometry(0.45, 1.1, 16),
+                 new THREE.MeshPhongMaterial({ color: 0x5fe3a0, emissive: 0x5fe3a0, emissiveIntensity: 0.35 })
+               );
+               cone.position.y = 0.55;
+               pinGroup.add(cone);
+               const pinLabel = makeLabel('ENTRANCE', { bg: '#111a2e', fg: '#eae6da', scale: 0.65 });
+               pinLabel.position.y = 1.5;
+               pinGroup.add(pinLabel);
+               pinGroup.position.set(n.x, n.y, n.z);
+               scene.add(pinGroup);
+
            } else if (n.type === 'stairs' && !k.endsWith('_dest')) {
-               const mesh = new THREE.Mesh(stairGeo, stairMat);
-               mesh.position.set(n.x, n.y + 3.2, n.z);
-               scene.add(mesh);
+               // Stepped staircase geometry (prototype style)
+               const stairGroup = new THREE.Group();
+               const stairMat = new THREE.MeshPhongMaterial({ color: 0x6b7590, shininess: 40 });
+               const stepCount = 8;
+               const totalStairHeight = 6.4; // height per floor
+               for(let s=0; s<stepCount; s++) {
+                   const step = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.22, 0.9), stairMat);
+                   step.position.set(0, (s+1) * (totalStairHeight / stepCount), -2.6 + s * 0.72);
+                   step.castShadow = true;
+                   stairGroup.add(step);
+               }
+               stairGroup.position.set(n.x, n.y, n.z);
+               scene.add(stairGroup);
+               // Staircase label
+               const stairLabel = makeLabel('STAIRS', { bg: '#111a2e', fg: '#eae6da', scale: 0.6 });
+               stairLabel.position.set(n.x, n.y + totalStairHeight + 1, n.z);
+               scene.add(stairLabel);
            }
        });
     }
