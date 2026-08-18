@@ -913,6 +913,29 @@ class LibraryRAG:
                 yield chunk
             print("Streaming completed.")
             
+            # Programmatically inject route tag if location and rack are known
+            user_loc = None
+            lower_input = user_input.lower()
+            if "floor 1" in lower_input or "first floor" in lower_input: user_loc = "stairs1"
+            elif "floor 2" in lower_input or "second floor" in lower_input: user_loc = "stairs2"
+            elif "entrance" in lower_input: user_loc = "entrance"
+            else:
+                m = re.search(r'rack\s+([a-z0-9\-]+)', lower_input)
+                if m: user_loc = f"r{m.group(1).upper()}"
+                
+            dest_rack = ""
+            if history:
+                for msg in reversed(history):
+                    if msg["role"] == "assistant":
+                        rack_match = re.search(r'Rack ([A-Z0-9\-]+)', msg['content'], re.IGNORECASE)
+                        if rack_match: 
+                            dest_rack = rack_match.group(1).upper()
+                            break
+                            
+            if user_loc and dest_rack:
+                print(f"Injecting programmatic route tag: <ROUTE_FROM:{user_loc}_TO:{dest_rack}>")
+                yield f" <ROUTE_FROM:{user_loc}_TO:{dest_rack}>"
+            
         except Exception as e:
             import traceback
             tb = traceback.format_exc()
