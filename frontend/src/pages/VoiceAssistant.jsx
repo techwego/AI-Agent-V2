@@ -234,6 +234,8 @@ const VoiceAssistant = () => {
           stateManager.reset();
         }
       } else {
+        // If the AI response is completely empty after stripping route tags, remove the empty bubble
+        setMessages(prev => prev.filter((msg, i) => i !== prev.length - 1 || msg.content.trim() !== ''));
         stateManager.reset();
       }
 
