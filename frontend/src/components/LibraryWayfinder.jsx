@@ -182,7 +182,7 @@ function makeLabel(text, opts = {}) {
 /* ============================================================
    REACT COMPONENT
    ============================================================ */
-const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackClick, onRouteComplete, activeFloor = 'both' }, ref) => {
+const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackClick, onRouteComplete, activeFloor = 'both', overrideConfig }, ref) => {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
   const rendererRef = useRef(null);
@@ -202,14 +202,19 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   const [graphData, setGraphData] = useState(null);
 
   useEffect(() => {
-    fetch('/api/admin/architecture', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
-      .then(res => res.json())
-      .then(data => {
-         setConfig(data);
-         setGraphData(buildDynamicGraph(data));
-      })
-      .catch(err => console.error("Failed to fetch layout config", err));
-  }, []);
+    if (overrideConfig) {
+      setConfig(overrideConfig);
+      setGraphData(buildDynamicGraph(overrideConfig));
+    } else {
+      fetch('/api/admin/architecture', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+        .then(res => res.json())
+        .then(data => {
+           setConfig(data);
+           setGraphData(buildDynamicGraph(data));
+        })
+        .catch(err => console.error("Failed to fetch layout config", err));
+    }
+  }, [overrideConfig]);
 
 
   // Expose methods to parent via ref

@@ -25,6 +25,7 @@ const Architecture = () => {
   // Custom Rack Form state
   const [customRackCode, setCustomRackCode] = useState('A1');
   const [customRackName, setCustomRackName] = useState('');
+  const [editMode, setEditMode] = useState(false);
 
   // We use this to force Wayfinder to re-render and re-fetch from API
   const [mapKey, setMapKey] = useState(0);
@@ -116,6 +117,7 @@ const Architecture = () => {
   };
 
   const handleMapRackClick = (code) => {
+    if (!editMode) return;
     const currentName = config.custom_racks[code] || '';
     const newName = window.prompt(`Enter custom name for Rack ${code}:\n(Leave blank to reset to default)`, currentName);
     if (newName !== null) {
@@ -309,12 +311,20 @@ const Architecture = () => {
 
         {/* Right Col: Live 3D Map Preview */}
         <div className="col-span-2 glass rounded-2xl border border-gray-800 overflow-hidden relative shadow-inner">
-           <div className="absolute top-4 left-4 z-10 bg-gray-950/80 backdrop-blur border border-gray-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-lg flex items-center gap-2">
-             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Live Architecture Preview
+           <div className="absolute top-4 left-4 z-10 flex items-center gap-3">
+             <div className="bg-gray-950/80 backdrop-blur border border-gray-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-lg flex items-center gap-2">
+               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Live Architecture Preview
+             </div>
+             <button 
+                onClick={() => setEditMode(!editMode)}
+                className={`text-xs px-3 py-1.5 rounded-lg font-medium shadow-lg flex items-center gap-2 transition-colors border ${editMode ? 'bg-blue-600 border-blue-500 text-white' : 'bg-gray-950/80 backdrop-blur border-gray-800 text-gray-400 hover:text-white'}`}
+              >
+                {editMode ? 'Disable Click-to-Edit' : 'Enable Click-to-Edit'}
+             </button>
            </div>
            
            <div className="h-full w-full bg-[#05080f]">
-              <LibraryWayfinder key={mapKey} routeFrom={null} routeTo={null} onRackClick={handleMapRackClick} />
+              <LibraryWayfinder key={mapKey} routeFrom={null} routeTo={null} onRackClick={handleMapRackClick} overrideConfig={config} />
            </div>
         </div>
 
