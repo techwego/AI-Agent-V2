@@ -401,8 +401,7 @@ const VoiceAssistant = () => {
                     ref={wayfindRef}
                     routeFrom={routeFrom}
                     routeTo={routeTo} 
-                    onRackClick={handleRackClick}
-                    activeFloor="both" // Hardcoded to both floors since we removed floor controls
+                    activeFloor="both"
                   />
                   
                   {/* Close Map button floating over map */}

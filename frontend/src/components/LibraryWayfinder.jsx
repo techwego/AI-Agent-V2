@@ -293,9 +293,18 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     clearRoute();
 
     const endNode = 'r' + destCode;
-    if (!nodes[endNode] || !nodes[fromId]) return;
+    if (!nodes[endNode]) return;
 
-    const result = dijkstra(nodes, fromId, endNode);
+    // Resolve fromId: 'entrance' may actually be 'entrance_0', 'entrance_1', etc.
+    let resolvedFrom = fromId;
+    if (!nodes[resolvedFrom]) {
+      // Try matching by prefix or by type
+      const entranceKey = Object.keys(nodes).find(k => k.startsWith(resolvedFrom) || (resolvedFrom === 'entrance' && nodes[k].type === 'entrance'));
+      if (entranceKey) resolvedFrom = entranceKey;
+      else return; // no valid start node
+    }
+
+    const result = dijkstra(nodes, resolvedFrom, endNode);
     if (!result) return;
 
     const steps = generateDirections(result.path);
