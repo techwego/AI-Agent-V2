@@ -115,6 +115,24 @@ const Architecture = () => {
     setConfig({ ...config, custom_racks: newCustomRacks });
   };
 
+  const handleMapRackClick = (code) => {
+    const currentName = config.custom_racks[code] || '';
+    const newName = window.prompt(`Enter custom name for Rack ${code}:\n(Leave blank to reset to default)`, currentName);
+    if (newName !== null) {
+      if (newName.trim() === '') {
+        handleRemoveCustomRack(code);
+      } else {
+        setConfig(prev => ({
+          ...prev,
+          custom_racks: {
+            ...prev.custom_racks,
+            [code]: newName.trim()
+          }
+        }));
+      }
+    }
+  };
+
   const generatedRacks = [];
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   let codeIndex = 0;
@@ -296,7 +314,7 @@ const Architecture = () => {
            </div>
            
            <div className="h-full w-full bg-[#05080f]">
-              <LibraryWayfinder key={mapKey} routeFrom={null} routeTo={null} />
+              <LibraryWayfinder key={mapKey} routeFrom={null} routeTo={null} onRackClick={handleMapRackClick} />
            </div>
         </div>
 
