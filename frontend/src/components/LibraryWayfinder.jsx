@@ -619,7 +619,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       }
       renderer.dispose();
     };
-  }, [updateCamera, onRackClick]);
+  }, [updateCamera, onRackClick, config, graphData]);
 
   // Handle routeTo prop changes
   useEffect(() => {
