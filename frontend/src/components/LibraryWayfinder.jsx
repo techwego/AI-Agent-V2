@@ -437,10 +437,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const rim = new THREE.DirectionalLight(0x3fa796, 0.35);
     rim.position.set(-25, 20, -25);
     scene.add(rim);
-
     // Build graph
-    nodesRef.current = graphData.nodes;
-
+    // (Nodes are already generated in graphData)
     // Rack groups
     const rackGroups = { 1: new THREE.Group(), 2: new THREE.Group() };
     rackGroupsRef.current = rackGroups;
