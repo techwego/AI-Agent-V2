@@ -31,9 +31,43 @@ class GroqEngine(LLMEngine):
                 temperature=0.3,
             )
             
+            in_think_block = False
+            buffer = ""
+            
             for chunk in response:
                 if chunk.choices and chunk.choices[0].delta.content:
-                    yield chunk.choices[0].delta.content
+                    buffer += chunk.choices[0].delta.content
+                    
+                    while True:
+                        if not in_think_block:
+                            if "<think>" in buffer:
+                                before, rest = buffer.split("<think>", 1)
+                                if before:
+                                    yield before
+                                buffer = rest
+                                in_think_block = True
+                            else:
+                                if len(buffer) > 7:
+                                    safe_text = buffer[:-7]
+                                    buffer = buffer[-7:]
+                                    yield safe_text
+                                break
+                        else:
+                            if "</think>" in buffer:
+                                _, rest = buffer.split("</think>", 1)
+                                buffer = rest
+                                in_think_block = False
+                            else:
+                                if len(buffer) > 9:
+                                    buffer = buffer[-9:]
+                                break
+            
+            if not in_think_block and buffer:
+                # Strip out any partial "<think" at the very end just in case
+                if buffer.startswith("<thin"):
+                    pass
+                else:
+                    yield buffer
             
             duration = time.time() - t0
             Config.record_llm_success(duration)
@@ -80,7 +114,10 @@ class GroqEngine(LLMEngine):
             response = self.client.chat.completions.create(**kwargs)
             
             if response.choices and response.choices[0].message.content:
-                return response.choices[0].message.content
+                content = response.choices[0].message.content
+                import re
+                content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
+                return content.strip()
             return ""
         except Exception as e:
             print(f"Sync generation error: {e}")
