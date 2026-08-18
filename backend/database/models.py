@@ -105,3 +105,14 @@ class LoginHistory(Base):
     ip_address = Column(String, nullable=True)
     success = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class LibraryConfig(Base):
+    __tablename__ = "library_config"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    floors = Column(Integer, default=2)
+    rows_per_floor = Column(Integer, default=2) # e.g. A and B on floor 1
+    cols_per_row = Column(Integer, default=6) # e.g. 1 to 6
+    shelves_per_rack = Column(Integer, default=4)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+

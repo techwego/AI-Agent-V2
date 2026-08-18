@@ -5,7 +5,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 
 from backend.database.db import get_db
-from backend.database.models import User, Book, Department, Upload, AdminLog, LoginHistory, ConversationHistory
+from backend.database.models import User, Book, Department, Upload, AdminLog, LoginHistory, ConversationHistory, LibraryConfig
 from backend.auth.auth_middleware import require_admin
 from pydantic import BaseModel
 
@@ -179,3 +179,41 @@ def get_analytics(db: Session = Depends(get_db), current_user: User = Depends(re
 @router.get("/logs")
 def get_admin_logs(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     return db.query(AdminLog).order_by(AdminLog.created_at.desc()).limit(100).all()
+
+# --- Library Architecture Configuration ---
+class LibraryConfigUpdate(BaseModel):
+    floors: int
+    rows_per_floor: int
+    cols_per_row: int
+    shelves_per_rack: int
+
+@router.get("/architecture")
+def get_architecture(db: Session = Depends(get_db)):
+    config = db.query(LibraryConfig).first()
+    if not config:
+        config = LibraryConfig(floors=2, rows_per_floor=2, cols_per_row=6, shelves_per_rack=4)
+        db.add(config)
+        db.commit()
+        db.refresh(config)
+    return config
+
+@router.post("/architecture")
+def update_architecture(config_update: LibraryConfigUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    config = db.query(LibraryConfig).first()
+    if not config:
+        config = LibraryConfig()
+        db.add(config)
+    
+    config.floors = config_update.floors
+    config.rows_per_floor = config_update.rows_per_floor
+    config.cols_per_row = config_update.cols_per_row
+    config.shelves_per_rack = config_update.shelves_per_rack
+    
+    # Log the action
+    admin_log = AdminLog(admin_id=current_user.id, action="Update Architecture", details=f"Floors: {config.floors}, Rows: {config.rows_per_floor}, Cols: {config.cols_per_row}")
+    db.add(admin_log)
+    
+    db.commit()
+    db.refresh(config)
+    return {"message": "Library architecture updated successfully", "config": config}
+

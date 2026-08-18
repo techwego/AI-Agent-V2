@@ -225,7 +225,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   // Draw route
   const drawRoute = useCallback((destCode, fromId = 'entrance') => {
     const scene = sceneRef.current;
-    const nodes = nodesRef.current;
+    const nodes = graphData ? graphData.nodes : nodesRef.current;
     const clock = clockRef.current;
     if (!scene || !nodes) return;
 
@@ -239,7 +239,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     const steps = generateDirections(result.path);
     setDirections(steps);
-    setRouteInfo({ destination: destCode, distance: Math.round(result.distance), steps: steps.length, floor: destCode >= 'C' ? 2 : 1 });
+    setRouteInfo({ destination: destCode, distance: Math.round(result.distance), steps: steps.length, floor: nodes[endNode] ? nodes[endNode].floor : 1 });
 
     const nodePos = (id) => {
       const n = nodes[id];
@@ -350,7 +350,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
   // Initialize scene
   useEffect(() => {
-    if (!mountRef.current) return;
+    if (!mountRef.current || !config || !graphData) return;
     const container = mountRef.current;
 
     // Renderer
@@ -390,7 +390,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     scene.add(rim);
 
     // Build graph
-    nodesRef.current = buildGraph();
+    nodesRef.current = graphData.nodes;
 
     // Rack groups
     const rackGroups = { 1: new THREE.Group(), 2: new THREE.Group() };

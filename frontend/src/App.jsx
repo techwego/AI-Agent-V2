@@ -15,6 +15,7 @@ import Users from './pages/admin/Users';
 import Analytics from './pages/admin/Analytics';
 import Logs from './pages/admin/Logs';
 import Settings from './pages/admin/Settings';
+import Architecture from './pages/admin/Architecture';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -105,6 +106,7 @@ const App = () => {
           <Route path="users" element={<Users />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="logs" element={<Logs />} />
+          <Route path="architecture" element={<Architecture />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

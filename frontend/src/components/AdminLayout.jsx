@@ -10,7 +10,8 @@ import {
   BarChart3, 
   ScrollText, 
   Settings, 
-  LogOut 
+  LogOut,
+  Layers
 } from 'lucide-react';
 
 const AdminLayout = () => {
@@ -24,6 +25,7 @@ const AdminLayout = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Architecture', path: '/admin/architecture', icon: Layers },
     { name: 'Books', path: '/admin/books', icon: BookOpen },
     { name: 'Upload Dataset', path: '/admin/upload', icon: Upload },
     { name: 'Departments', path: '/admin/departments', icon: Building },
