@@ -188,12 +188,13 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   const rendererRef = useRef(null);
   const cameraRef = useRef(null);
   const clockRef = useRef(new THREE.Clock());
-  const orbitRef = useRef({ theta: Math.PI * 0.28, phi: 1.02, radius: 46, target: new THREE.Vector3(0, 4, 0), minPhi: 0.35, maxPhi: 1.45, minR: 14, maxR: 80 });
+  const orbitRef = useRef({ theta: Math.PI * 0.28, phi: 1.02, radius: 46, target: new THREE.Vector3(0, 4, 0), minPhi: 0.15, maxPhi: 1.55, minR: 4, maxR: 100 });
   const rackMeshByCodeRef = useRef({});
   const rackGroupsRef = useRef({});
-  const routeObjsRef = useRef({ tube: null, comet: null, ring: null, animId: null });
+  const routeObjsRef = useRef({ tube: null, comet: null, ring: null, glow: null, beacon: null, beaconAnim: null, animId: null });
   const lastRouteRef = useRef(null);
-  const dragRef = useRef({ dragging: false, lastX: 0, lastY: 0 });
+  const dragRef = useRef({ dragging: false, panning: false, lastX: 0, lastY: 0 });
+  const flyToRef = useRef(null);
   const reqIdRef = useRef(null);
 
   const [directions, setDirections] = useState(null);
@@ -265,14 +266,17 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   // Clear route
   const clearRoute = useCallback(() => {
     const scene = sceneRef.current;
-    const ro = routeObjsRef.current;
     if (!scene) return;
-    [ro.tube, ro.comet, ro.ring].forEach(o => { if (o) scene.remove(o); });
-    ro.tube = null; ro.comet = null; ro.ring = null;
+    const ro = routeObjsRef.current;
+    [ro.tube, ro.comet, ro.ring, ro.glow, ro.beacon].forEach(o => { if (o) scene.remove(o); });
+    ro.tube = null; ro.comet = null; ro.ring = null; ro.glow = null; ro.beacon = null;
     if (ro.animId) cancelAnimationFrame(ro.animId);
+    if (ro.beaconAnim) cancelAnimationFrame(ro.beaconAnim);
+    ro.beaconAnim = null;
     Object.values(rackMeshByCodeRef.current).forEach(g => {
       if (g.children[0]) {
         g.children[0].material.emissive.setHex(0x000000);
+        g.children[0].material.emissiveIntensity = 0;
       }
     });
     setDirections(null);
@@ -305,23 +309,31 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     const pts = result.path.map(nodePos);
     const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.15);
-    const tubeGeo = new THREE.TubeGeometry(curve, Math.max(64, result.path.length * 12), 0.09, 8, false);
-    const tubeMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.85 });
+    // Thicker, brighter route tube
+    const tubeGeo = new THREE.TubeGeometry(curve, Math.max(64, result.path.length * 12), 0.18, 12, false);
+    const tubeMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.92 });
     const routeTube = new THREE.Mesh(tubeGeo, tubeMat);
     routeTube.geometry.setDrawRange(0, 0);
     scene.add(routeTube);
     routeObjsRef.current.tube = routeTube;
 
+    // Outer glow tube for visibility
+    const glowGeo = new THREE.TubeGeometry(curve, Math.max(64, result.path.length * 12), 0.38, 12, false);
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.18 });
+    const glowTube = new THREE.Mesh(glowGeo, glowMat);
+    scene.add(glowTube);
+    routeObjsRef.current.glow = glowTube;
+
     // Comet
     const cometGroup = new THREE.Group();
     const headMat = new THREE.MeshBasicMaterial({ color: 0xfff2d8 });
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 16), headMat);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), headMat);
     cometGroup.add(head);
     const trail = [];
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 8; i++) {
       const m = new THREE.Mesh(
-        new THREE.SphereGeometry(0.22 - i * 0.025, 12, 12),
-        new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.55 - i * 0.08 })
+        new THREE.SphereGeometry(0.28 - i * 0.028, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.6 - i * 0.065 })
       );
       cometGroup.add(m);
       trail.push(m);
@@ -329,11 +341,74 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     scene.add(cometGroup);
     routeObjsRef.current.comet = cometGroup;
 
-    // Highlight destination rack
+    // Highlight destination rack with strong emissive
     if (rackMeshByCodeRef.current[destCode]) {
-      rackMeshByCodeRef.current[destCode].children[0].material.emissive.setHex(0xe2665f);
-      rackMeshByCodeRef.current[destCode].children[0].material.emissiveIntensity = 0.6;
+      const destMesh = rackMeshByCodeRef.current[destCode].children[0];
+      destMesh.material.emissive.setHex(0xe2665f);
+      destMesh.material.emissiveIntensity = 0.8;
     }
+
+    // Pulsing beacon column on destination rack
+    const destNode = nodes[endNode];
+    const beaconGroup = new THREE.Group();
+    beaconGroup.position.set(destNode.x, destNode.y - 0.15, destNode.z);
+    // Vertical light pillar
+    const pillarGeo = new THREE.CylinderGeometry(0.08, 0.08, 5, 16);
+    const pillarMat = new THREE.MeshBasicMaterial({ color: 0xe2665f, transparent: true, opacity: 0.4 });
+    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+    pillar.position.y = 2.5;
+    beaconGroup.add(pillar);
+    // Ground ring
+    for (let i = 0; i < 2; i++) {
+      const ringGeo = new THREE.RingGeometry(0.8 + i * 0.6, 1.0 + i * 0.6, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xe2665f, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.05;
+      ring.userData.baseScale = 1;
+      ring.userData.idx = i;
+      beaconGroup.add(ring);
+    }
+    // Diamond marker on top
+    const diamondGeo = new THREE.OctahedronGeometry(0.35, 0);
+    const diamondMat = new THREE.MeshBasicMaterial({ color: 0xff6655, transparent: true, opacity: 0.85 });
+    const diamond = new THREE.Mesh(diamondGeo, diamondMat);
+    diamond.position.y = 5.2;
+    beaconGroup.add(diamond);
+    scene.add(beaconGroup);
+    routeObjsRef.current.beacon = beaconGroup;
+
+    // Beacon pulse animation
+    const beaconClock = clock;
+    const beaconStartT = beaconClock.getElapsedTime();
+    function animateBeacon() {
+      const bT = beaconClock.getElapsedTime() - beaconStartT;
+      // Pulse rings
+      beaconGroup.children.forEach(child => {
+        if (child.geometry && child.geometry.type === 'RingGeometry') {
+          const phase = (bT + child.userData.idx * 0.5) % 1.8;
+          const s = 1 + phase * 0.6;
+          child.scale.set(s, s, s);
+          child.material.opacity = Math.max(0, 0.35 * (1 - phase / 1.8));
+        }
+      });
+      // Rotate diamond
+      diamond.rotation.y = bT * 1.5;
+      diamond.position.y = 5.2 + Math.sin(bT * 2) * 0.3;
+      // Pulse pillar
+      pillarMat.opacity = 0.25 + Math.sin(bT * 3) * 0.15;
+      routeObjsRef.current.beaconAnim = requestAnimationFrame(animateBeacon);
+    }
+    animateBeacon();
+
+    // Camera fly-to: smoothly zoom and orbit to frame the route
+    const endPos = new THREE.Vector3(destNode.x, destNode.y + 2, destNode.z);
+    const midIdx = Math.floor(pts.length / 2);
+    const midPt = pts[midIdx] || endPos;
+    const routeCenter = new THREE.Vector3().addVectors(midPt, endPos).multiplyScalar(0.5);
+    const routeSpan = Math.max(8, new THREE.Vector3().subVectors(pts[0], endPos).length());
+    const targetRadius = Math.min(50, Math.max(12, routeSpan * 1.6));
+    flyToRef.current = { target: routeCenter, radius: targetRadius, progress: 0 };
 
     const totalLen = curve.getLength();
     const speed = 9;
@@ -346,6 +421,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       const maxCount = tubeGeo.index ? tubeGeo.index.count : tubeGeo.attributes.position.count;
       const drawCount = Math.floor(maxCount * t);
       routeTube.geometry.setDrawRange(0, drawCount);
+      glowTube.geometry.setDrawRange(0, drawCount);
       const p = curve.getPointAt(t);
       cometGroup.position.copy(p);
       trailPts.unshift(p.clone());
@@ -354,14 +430,26 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         const idx = Math.min(trailPts.length - 1, (i + 1) * 4);
         if (trailPts[idx]) m.position.copy(trailPts[idx]).sub(p);
       });
-      // Gentle camera follow
-      orbitRef.current.target.lerp(p, 0.02);
+
+      // Smooth camera fly-to during animation
+      const fly = flyToRef.current;
+      if (fly && fly.progress < 1) {
+        fly.progress = Math.min(1, fly.progress + 0.012);
+        const ease = 1 - Math.pow(1 - fly.progress, 3); // ease-out cubic
+        orbitRef.current.target.lerp(fly.target, ease * 0.04);
+        orbitRef.current.radius += (fly.radius - orbitRef.current.radius) * ease * 0.04;
+      } else {
+        // Gentle follow after fly-to completes
+        orbitRef.current.target.lerp(p, 0.015);
+      }
       updateCamera();
 
       if (t < 1) {
         routeObjsRef.current.animId = requestAnimationFrame(animate);
       } else {
         spawnArrivalRing(p);
+        // Final zoom to destination
+        flyToRef.current = { target: endPos, radius: Math.max(12, targetRadius * 0.6), progress: 0 };
         if (onRouteComplete) onRouteComplete(destCode, steps);
       }
     }
@@ -600,30 +688,55 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const drag = dragRef.current;
 
     const onPointerDown = (e) => {
-      drag.dragging = true; drag.lastX = e.clientX; drag.lastY = e.clientY;
+      // Right-click or middle-click = pan mode
+      if (e.button === 2 || e.button === 1) {
+        drag.panning = true;
+      } else {
+        drag.dragging = true;
+      }
+      drag.lastX = e.clientX; drag.lastY = e.clientY;
       canvas.setPointerCapture(e.pointerId);
     };
-    const onPointerUp = () => { drag.dragging = false; };
+    const onPointerUp = () => { drag.dragging = false; drag.panning = false; };
     const onPointerMove = (e) => {
-      if (!drag.dragging) return;
+      if (!drag.dragging && !drag.panning) return;
       const dx = e.clientX - drag.lastX, dy = e.clientY - drag.lastY;
       drag.lastX = e.clientX; drag.lastY = e.clientY;
       const orbit = orbitRef.current;
-      orbit.theta -= dx * 0.0055;
-      orbit.phi = Math.min(orbit.maxPhi, Math.max(orbit.minPhi, orbit.phi - dy * 0.0045));
+      if (drag.panning) {
+        // Pan: shift the orbit target along the camera plane
+        const cam = cameraRef.current;
+        if (!cam) return;
+        const panSpeed = orbit.radius * 0.003;
+        const right = new THREE.Vector3();
+        const up = new THREE.Vector3();
+        cam.getWorldDirection(up);
+        right.crossVectors(cam.up, up).normalize();
+        up.crossVectors(right, up).normalize();
+        orbit.target.addScaledVector(right, dx * panSpeed);
+        orbit.target.addScaledVector(up, -dy * panSpeed);
+      } else {
+        // Orbit
+        orbit.theta -= dx * 0.0055;
+        orbit.phi = Math.min(orbit.maxPhi, Math.max(orbit.minPhi, orbit.phi - dy * 0.0045));
+      }
       updateCamera();
     };
     const onWheel = (e) => {
       e.preventDefault();
       const orbit = orbitRef.current;
-      orbit.radius = Math.min(orbit.maxR, Math.max(orbit.minR, orbit.radius + e.deltaY * 0.03));
+      // Zoom speed scales with distance for smooth close-up zoom
+      const zoomSpeed = Math.max(0.005, orbit.radius * 0.0008);
+      orbit.radius = Math.min(orbit.maxR, Math.max(orbit.minR, orbit.radius + e.deltaY * zoomSpeed));
       updateCamera();
     };
+    const onContextMenu = (e) => e.preventDefault();
 
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointerup', onPointerUp);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('wheel', onWheel, { passive: false });
+    canvas.addEventListener('contextmenu', onContextMenu);
 
     // Rack click
     const raycaster = new THREE.Raycaster();
@@ -658,9 +771,18 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     handleResize();
     updateCamera();
 
-    // Render loop
+    // Render loop with smooth fly-to
     function loop() {
       reqIdRef.current = requestAnimationFrame(loop);
+      // Continuous fly-to interpolation (post-route arrival zoom)
+      const fly = flyToRef.current;
+      if (fly && fly.progress < 1) {
+        fly.progress = Math.min(1, fly.progress + 0.015);
+        const ease = 1 - Math.pow(1 - fly.progress, 3);
+        orbitRef.current.target.lerp(fly.target, ease * 0.06);
+        orbitRef.current.radius += (fly.radius - orbitRef.current.radius) * ease * 0.06;
+        updateCamera();
+      }
       renderer.render(scene, camera);
     }
     loop();
@@ -673,6 +795,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('wheel', onWheel);
       canvas.removeEventListener('click', onClick);
+      canvas.removeEventListener('contextmenu', onContextMenu);
       if (container && renderer.domElement) {
         container.removeChild(renderer.domElement);
       }
