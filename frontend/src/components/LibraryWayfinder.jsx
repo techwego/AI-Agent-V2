@@ -282,9 +282,9 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   // Draw route
   const drawRoute = useCallback((destCode, fromId = 'entrance') => {
     const scene = sceneRef.current;
-    const nodes = graphData.nodes;
     const clock = clockRef.current;
-    if (!scene || !nodes) return;
+    if (!scene || !graphData || !graphData.nodes) return;
+    const nodes = graphData.nodes;
 
     clearRoute();
 
@@ -554,7 +554,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     scene.add(shellEdges);
 
     // ── Render POIs (Entrance Pins & Staircases) ──
-    if (graphData.nodes) {
+    if (graphData && graphData.nodes) {
        Object.keys(graphData.nodes).forEach(k => {
            const n = graphData.nodes[k];
 
