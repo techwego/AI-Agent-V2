@@ -33,7 +33,7 @@ const ChatBubble = ({ message, onSpeak, hasRoute, isSpeaking }) => {
               : 'bg-white/[0.05] border-white/[0.06] text-gray-200 rounded-bl-sm'
           } shadow-lg relative group`}>
             {content ? (
-              <div className="whitespace-pre-wrap text-[13px] leading-relaxed">{content}</div>
+              <div className="whitespace-pre-wrap text-[13px] leading-relaxed">{content.trim()}</div>
             ) : (
               <div className="flex space-x-1.5 items-center h-5 px-2">
                 <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
