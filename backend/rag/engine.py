@@ -439,6 +439,7 @@ class LibraryRAG:
             print("SQLite: Syncing index from ChromaDB & Library DB...")
             results = self.collection.get(include=["metadatas"])
             if results and results["metadatas"]:
+                chroma_rows = []
                 for i, meta in enumerate(results["metadatas"]):
                     chroma_id = results["ids"][i] if "ids" in results and results["ids"] else str(i)
                     title = meta.get("title") or meta.get("book_name") or ""
@@ -450,11 +451,13 @@ class LibraryRAG:
                     
                     norm_title = str(title).lower().strip()
                     norm_author = str(author).lower().strip()
-                    
-                    cursor.execute('''
+                    chroma_rows.append((str(i), str(title), str(author), str(subject), str(call_number), str(location), str(copies), norm_title, norm_author, chroma_id))
+                
+                if chroma_rows:
+                    cursor.executemany('''
                         INSERT OR REPLACE INTO book_index (id, title, author, subject, call_number, location, copies, normalized_title, normalized_author, chroma_id)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (str(i), str(title), str(author), str(subject), str(call_number), str(location), str(copies), norm_title, norm_author, chroma_id))
+                    ''', chroma_rows)
         
         # Also sync from SQLite library.db books table if available
         try:
@@ -465,18 +468,22 @@ class LibraryRAG:
                 lib_conn = sqlite3.connect(lib_db_path)
                 lib_cursor = lib_conn.cursor()
                 lib_books = lib_cursor.execute("SELECT id, title, author, rack, copies, available FROM books").fetchall()
+                lib_rows = []
                 for b_id, b_title, b_author, b_rack, b_copies, b_avail in lib_books:
                     if b_title:
                         n_title = str(b_title).lower().strip()
                         n_author = str(b_author or "").lower().strip()
                         rack_str = str(b_rack or "").replace("Rack ", "").strip()
                         c_str = str(b_avail if b_avail is not None else (b_copies or ""))
-                        cursor.execute('''
-                            INSERT OR REPLACE INTO book_index (id, title, author, subject, call_number, location, copies, normalized_title, normalized_author, chroma_id)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ''', (f"lib_{b_id}", str(b_title), str(b_author or ""), "", "", rack_str, c_str, n_title, n_author, f"lib_{b_id}"))
+                        lib_rows.append((f"lib_{b_id}", str(b_title), str(b_author or ""), "", "", rack_str, c_str, n_title, n_author, f"lib_{b_id}"))
+                
+                if lib_rows:
+                    cursor.executemany('''
+                        INSERT OR REPLACE INTO book_index (id, title, author, subject, call_number, location, copies, normalized_title, normalized_author, chroma_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', lib_rows)
                 lib_conn.close()
-                print(f"SQLite: Synced {len(lib_books)} books from library.db")
+                print(f"SQLite: Fast-synced {len(lib_books)} books from library.db")
         except Exception as ex:
             print(f"SQLite index sync warning: {ex}")
             

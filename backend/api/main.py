@@ -200,11 +200,20 @@ class ChatRequest(BaseModel):
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
-    print(f"\n[BACKEND] POST /api/chat received from user")
+    print(f"\n[BACKEND] POST /api/chat received from user: '{request.message}'")
     
     if not rag.ready:
+        # Wait up to 3s if system is currently finishing startup
+        for _ in range(15):
+            if rag.ready:
+                break
+            time.sleep(0.2)
+            
+    if not rag.ready:
         state_val = getattr(rag, "state", "INITIALIZING")
-        return JSONResponse(status_code=503, content={"status": "initializing", "state": state_val})
+        def stream_init():
+            yield f"I am currently finishing setting up the library catalog ({state_val}). Please try your question again in a few seconds."
+        return StreamingResponse(stream_init(), media_type="text/plain")
     
     def generate():
         for chunk in rag.query_stream(request.message, history=request.history):
