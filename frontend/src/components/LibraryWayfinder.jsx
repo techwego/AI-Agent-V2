@@ -379,9 +379,10 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     camera.lookAt(orbit.target);
   }, []);
 
-  const handleFloorChange = useCallback((floor) => {
+  const handleFloorChange = useCallback((floorStr) => {
+    const targetFloor = parseInt(floorStr, 10);
     const rg = rackGroupsRef.current;
-    if (!rg[1] || !rg[2]) return;
+    
     const setOpacity = (group, op) => {
       group.traverse(o => {
         if (o.isMesh) {
@@ -390,10 +391,16 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         }
       });
     };
-    rg[1].visible = true;
-    rg[2].visible = true;
-    setOpacity(rg[1], floor === '2' ? 0.12 : 1);
-    setOpacity(rg[2], floor === '1' ? 0.12 : 1);
+    
+    Object.keys(rg).forEach(fKey => {
+      const fNum = parseInt(fKey, 10);
+      const group = rg[fKey];
+      if (group) {
+        group.visible = true;
+        // If a specific floor is selected, fade out all others. If 'both'/all, make all visible.
+        setOpacity(group, (isNaN(targetFloor) || fNum === targetFloor) ? 1 : 0.12);
+      }
+    });
   }, []);
 
   const clearRoute = useCallback(() => {
@@ -427,8 +434,20 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     clearRoute();
 
-    const endNode = 'r' + destCode;
-    if (!nodes[endNode]) return;
+    let endNode = destCode;
+    if (destCode.toUpperCase().startsWith('STAIRS')) {
+      const floorMatch = destCode.match(/\d+/);
+      const floorNum = floorMatch ? parseInt(floorMatch[0], 10) : 1;
+      const allStairs = Object.keys(nodes).filter(k => k.startsWith('stairs') && nodes[k].floor === floorNum && !k.endsWith('_dest'));
+      if (allStairs.length > 0) endNode = allStairs[0];
+    } else {
+      endNode = 'r' + destCode;
+    }
+    
+    if (!nodes[endNode]) {
+      console.warn('Destination node not found:', endNode);
+      return;
+    }
 
     let resolvedFrom = fromId;
     if (!nodes[resolvedFrom]) {

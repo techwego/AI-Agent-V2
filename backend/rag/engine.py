@@ -834,21 +834,21 @@ class LibraryRAG:
                 print(f"Intent Router: Routed to metadata lookup, found {len(top_chunks)} exact results.")
             else:
                 print("Vector search...")
-                vector_hits = self._vector_search(expanded_query, top_k=200)
+                vector_hits = self._vector_search(expanded_query, top_k=50)
 
                 print("BM25 search...")
-                bm25_hits = self._bm25_search(expanded_query, top_k=200)
+                bm25_hits = self._bm25_search(expanded_query, top_k=50)
 
                 merged = self._reciprocal_rank_fusion(vector_hits, bm25_hits)
                 print(f"RRF results count: {len(merged)}")
                 
                 # Filter with Record Validator
                 valid_chunks = []
-                for chunk in merged[:100]:
+                for chunk in merged[:30]:
                     if self._validate_record(user_input, chunk):
                         valid_chunks.append(chunk)
                 
-                top_chunks = self._rerank(user_input, valid_chunks, top_k=15)
+                top_chunks = self._rerank(user_input, valid_chunks, top_k=5)
                 
             print(f"Final retrieved chunks: {len(top_chunks)}")
 
@@ -867,8 +867,8 @@ class LibraryRAG:
             context = "\n\n".join(context_blocks)
             
             # HARD LIMIT: Ensure context doesn't exceed limits to stay within reasonable limits
-            if len(context) > 120000:
-                context = context[:120000] + "\n...[CONTENT TRUNCATED DUE TO SIZE LIMITS]..."
+            if len(context) > 12000:
+                context = context[:12000] + "\n...[CONTENT TRUNCATED DUE TO SIZE LIMITS]..."
 
             system_prompt = (
                 "You are Sam, a virtual library assistant for the University Library. "
@@ -884,9 +884,9 @@ class LibraryRAG:
                 "Use clear, neutral Indian English or international English. "
                 "Keep it concise but natural — provide a smooth, fluid answer in one to three sentences. "
                 "CRITICAL: Do NOT output any internal thoughts or <think> tags. Output ONLY your final verbal response.\n"
-                "ROUTING RULE 1: If the user EXPLICITLY asks for a path, route, or directions to a book, you MUST check if they have provided their current location in their latest message. If their location is UNKNOWN, you MUST ask: 'Where are you currently located? At the entrance, or on a specific floor?'. YOU MUST NOT append any <ROUTE> tags in this step!\n"
-                "ROUTING RULE 2: If the user just asks for book details, provide the details and DO NOT proactively ask for their location.\n"
-                "ROUTING RULE 3: If the user states their location (e.g. 'I am at the entrance', 'Floor 1'), you MUST append a routing tag to the VERY END of your answer. Format: `<ROUTE_FROM:A_TO:B>`. 'A' is their location node ('entrance', 'stairs1', 'stairs2', or a rack like 'rA1'). 'B' is the destination rack code. Example: `<ROUTE_FROM:entrance_TO:C6>`."
+                "ROUTING RULE 1: If the user explicitly asks for a path, route, or directions to a book, rack, or another floor, check if they provided their location. If their location is UNKNOWN, ask: 'Where are you currently located? At the entrance, or on a specific floor?'. Do NOT output a <ROUTE_FROM... tag in this step!\n"
+                "ROUTING RULE 2: If the user just asks for book details without asking for a route, provide the details and DO NOT proactively ask for their location.\n"
+                "ROUTING RULE 3: CRITICAL! If the user states their location, or asks for a path between two known locations (e.g., 'path from floor 1 to floor 3'), you MUST append a routing tag to the VERY END of your response! Format: `<ROUTE_FROM:start_TO:destination>`. For locations, use 'entrance', 'stairs1', 'stairs2', etc. (for floors), or a Rack Code (e.g. 'C6', 'F1'). Example 1: '...path to Rack F1. <ROUTE_FROM:stairs1_TO:F1>'. Example 2 (Floor to Floor): '...path from floor 1 to floor 3. <ROUTE_FROM:stairs1_TO:stairs3>'\n"
 
             )
 
