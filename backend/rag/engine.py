@@ -882,11 +882,12 @@ class LibraryRAG:
                 "Answer the user naturally and directly. DO NOT mention file names, document names, source files, page numbers, or book record numbers in your response. Just provide the answer. "
                 "Adopt a professional, calm, friendly, confident, and efficient female persona. "
                 "Use clear, neutral Indian English or international English. "
-                "Keep it concise but natural — provide a smooth, fluid answer in one to three sentences. "
-                "CRITICAL: Do NOT output any internal thoughts or <think> tags. Output ONLY your final verbal response.\n"
-                "ROUTING RULE 1: If the user asks for a book, book location, or rack (e.g. 'where is Python', 'find machine learning', 'path to F1'), provide the answer and ALWAYS append a routing tag to the very end: `<ROUTE_FROM:start_TO:destination>`. If user start location is unknown, use 'entrance' as the start location. Example: 'The book is in Rack B1 on Floor 1. <ROUTE_FROM:entrance_TO:B1>'\n"
-                "ROUTING RULE 2: If the user specifies their current location (e.g. 'I am on Floor 1', 'from Floor 2 to F1'), use that location as start (e.g. 'stairs1', 'stairs2', 'entrance'). Example: '<ROUTE_FROM:stairs1_TO:F1>'\n"
-                "ROUTING RULE 3: For floor-to-floor requests (e.g. 'path from floor 1 to floor 3'), format as `<ROUTE_FROM:stairs1_TO:stairs3>`.\n"
+                "INTENT RULES:\n"
+                "1. BOOK INFO INTENT: If the user is asking about a book (availability, author, title, number of copies, description, etc.), respond with the relevant book details in the chat. Do NOT ask for their location. Do NOT output any `<ROUTE_...>` tags. The map will stay closed.\n"
+                "2. PATH / LOCATION INTENT: If the user is asking where the book/rack physically is, or asking for directions/route/path (e.g. 'where is this book', 'where is it kept', 'show me the path', 'take me to it', 'how do I get there', 'route me to rack B2', 'path from floor 1 to floor 2'):\n"
+                "   a) If their current location is UNKNOWN in this conversation, ask: 'Where are you currently located? At the entrance, or on a specific floor?'. Do NOT output a `<ROUTE_...>` tag yet.\n"
+                "   b) If their current location is KNOWN (or stated in the message), respond with guidance and ALWAYS append the routing tag at the VERY END: `<ROUTE_FROM:start_TO:destination>`. Examples: `<ROUTE_FROM:stairs1_TO:B2>`, `<ROUTE_FROM:entrance_TO:F1>`, `<ROUTE_FROM:stairs1_TO:stairs2>`.\n"
+                "3. CONVERSATION CONTEXT: If the user previously asked about a book and then asks 'where is it kept' or 'show me the path', resolve 'it' to the last book discussed. Do not ask them to repeat the book name.\n"
 
             )
 
@@ -915,81 +916,116 @@ class LibraryRAG:
                 yield chunk
             print("Streaming completed.")
             
-            # Programmatically inject route tag if missing
+            # Helper: Path/Location intent check
             import re
-            if not re.search(r'<ROUTE_', full_output, re.IGNORECASE):
-                user_loc = "entrance"
-                lower_input = user_input.lower()
-                
-                # Check user location in current input
-                floor_m = re.search(r'floor\s*(\d+)', lower_input)
-                if floor_m: 
-                    user_loc = f"stairs{floor_m.group(1)}"
-                elif "first floor" in lower_input: 
-                    user_loc = "stairs1"
-                elif "second floor" in lower_input: 
-                    user_loc = "stairs2"
-                elif "third floor" in lower_input: 
-                    user_loc = "stairs3"
-                elif "entrance" in lower_input: 
-                    user_loc = "entrance"
-                elif history:
-                    # Check if user previously stated their location
-                    for msg in reversed(history):
-                        if msg.get("role") == "user":
-                            past_input = msg["content"].lower()
-                            past_floor = re.search(r'floor\s*(\d+)', past_input)
-                            if past_floor:
-                                user_loc = f"stairs{past_floor.group(1)}"
-                                break
-                            elif "first floor" in past_input:
-                                user_loc = "stairs1"
-                                break
-                            elif "second floor" in past_input:
-                                user_loc = "stairs2"
-                                break
+            lower_input = user_input.lower().strip()
+            
+            path_intent_patterns = [
+                r'\bwhere\s+(?:is|are)\b',
+                r'\bwhere\s+.*(?:kept|located|placed|shelved)\b',
+                r'\bshow\s+me\s+(?:the\s+)?path\b',
+                r'\bshow\s+me\s+(?:the\s+)?(?:way|route|direction)',
+                r'\btake\s+me\s+(?:to|there)\b',
+                r'\bhow\s+do\s+i\s+get\s+there\b',
+                r'\bhow\s+to\s+reach\b',
+                r'\broute\s+(?:to|me)\b',
+                r'\bdirection(?:s)?\s+to\b',
+                r'\bnavigate\s+(?:to|me)\b',
+                r'\blocate\s+(?:this|the)\s+book\b',
+                r'\bfind\s+(?:this|the)\s+book\b',
+                r'\bpath\s+from\b',
+                r'\bpath\s+to\b',
+                r'\bfloor\s*\d+\s*(?:to|towards)\s*floor\s*\d+\b',
+                r'^(?:floor\s*\d+|entrance|first\s+floor|second\s+floor|third\s+floor)$'
+            ]
+            is_path_intent = any(re.search(p, lower_input) for p in path_intent_patterns)
+            
+            # Also check if the previous assistant message was asking for the user's location
+            was_asking_location = False
+            if history:
+                for msg in reversed(history):
+                    if msg.get("role") == "assistant":
+                        if "where are you" in msg.get("content", "").lower() or "currently located" in msg.get("content", "").lower():
+                            was_asking_location = True
+                        break
+            
+            if is_path_intent or was_asking_location:
+                # Only inject route tag if missing and location prompt is NOT being asked
+                if not re.search(r'<ROUTE_', full_output, re.IGNORECASE) and "where are you" not in full_output.lower() and "currently located" not in full_output.lower():
+                    user_loc = None
+                    
+                    # Extract user location
+                    floor_m = re.search(r'floor\s*(\d+)', lower_input)
+                    if floor_m: 
+                        user_loc = f"stairs{floor_m.group(1)}"
+                    elif "first floor" in lower_input: 
+                        user_loc = "stairs1"
+                    elif "second floor" in lower_input: 
+                        user_loc = "stairs2"
+                    elif "third floor" in lower_input: 
+                        user_loc = "stairs3"
+                    elif "entrance" in lower_input: 
+                        user_loc = "entrance"
+                    elif history:
+                        for msg in reversed(history):
+                            if msg.get("role") == "user":
+                                past_input = msg.get("content", "").lower()
+                                past_floor = re.search(r'floor\s*(\d+)', past_input)
+                                if past_floor:
+                                    user_loc = f"stairs{past_floor.group(1)}"
+                                    break
+                                elif "first floor" in past_input:
+                                    user_loc = "stairs1"
+                                    break
+                                elif "second floor" in past_input:
+                                    user_loc = "stairs2"
+                                    break
+                                elif "entrance" in past_input:
+                                    user_loc = "entrance"
+                                    break
+                    
+                    if user_loc:
+                        # Extract destination rack
+                        dest_rack = ""
+                        # 1. From current LLM output
+                        rm = re.search(r'(?:Rack|Shelf)\s*([A-Z0-9\-]+)', full_output, re.IGNORECASE)
+                        if rm:
+                            dest_rack = rm.group(1).upper()
+                        
+                        # 2. From user query directly
+                        if not dest_rack:
+                            um = re.search(r'(?:to|at|rack)\s+([A-Z][0-9]+)', user_input, re.IGNORECASE)
+                            if um:
+                                dest_rack = um.group(1).upper()
 
-                # Extract destination rack
-                dest_rack = ""
-                # 1. From current LLM output
-                rm = re.search(r'(?:Rack|Shelf)\s*([A-Z0-9\-]+)', full_output, re.IGNORECASE)
-                if rm:
-                    dest_rack = rm.group(1).upper()
-                
-                # 2. From user query directly (e.g. "path to F1", "route to rack C6")
-                if not dest_rack:
-                    um = re.search(r'(?:to|at|rack)\s+([A-Z][0-9]+)', user_input, re.IGNORECASE)
-                    if um:
-                        dest_rack = um.group(1).upper()
+                        # 3. From retrieved top chunks metadata
+                        if not dest_rack and top_chunks:
+                            for chk in top_chunks:
+                                meta = chk.get("metadata", {})
+                                if meta.get("location"):
+                                    loc = str(meta["location"]).strip()
+                                    loc_m = re.search(r'([A-Z0-9\-]+)', loc)
+                                    if loc_m:
+                                        dest_rack = loc_m.group(1).upper()
+                                        break
+                        
+                        # 4. From conversation history
+                        if not dest_rack and history:
+                            for msg in reversed(history):
+                                past_text = msg.get("content", "")
+                                hm = re.search(r'(?:Rack|to)\s+([A-Z0-9\-]+)', past_text, re.IGNORECASE)
+                                if hm:
+                                    dest_rack = hm.group(1).upper()
+                                    break
 
-                # 3. From retrieved top chunks metadata
-                if not dest_rack and top_chunks:
-                    for chk in top_chunks:
-                        meta = chk.get("metadata", {})
-                        if meta.get("location"):
-                            loc = str(meta["location"]).strip()
-                            loc_m = re.search(r'([A-Z0-9\-]+)', loc)
-                            if loc_m:
-                                dest_rack = loc_m.group(1).upper()
-                                break
-                
-                # 4. From conversation history
-                if not dest_rack and history:
-                    for msg in reversed(history):
-                        past_text = msg.get("content", "")
-                        hm = re.search(r'(?:Rack|to)\s+([A-Z0-9\-]+)', past_text, re.IGNORECASE)
-                        if hm:
-                            dest_rack = hm.group(1).upper()
-                            break
+                        # 5. Floor-to-floor
+                        dest_floor_m = re.search(r'(?:to|towards)\s+floor\s*(\d+)', lower_input)
+                        if dest_floor_m:
+                            dest_rack = f"stairs{dest_floor_m.group(1)}"
 
-                # 5. Check if it's a floor-to-floor request (e.g. "to floor 2")
-                dest_floor_m = re.search(r'(?:to|towards)\s+floor\s*(\d+)', lower_input)
-                if dest_floor_m:
-                    dest_rack = f"stairs{dest_floor_m.group(1)}"
-
-                if dest_rack and "where are you" not in full_output.lower() and "currently located" not in full_output.lower():
-                    print(f"Injecting programmatic route tag: <ROUTE_FROM:{user_loc}_TO:{dest_rack}>")
-                    yield f" <ROUTE_FROM:{user_loc}_TO:{dest_rack}>"
+                        if dest_rack:
+                            print(f"Injecting programmatic route tag: <ROUTE_FROM:{user_loc}_TO:{dest_rack}>")
+                            yield f" <ROUTE_FROM:{user_loc}_TO:{dest_rack}>"
             
         except Exception as e:
             import traceback
