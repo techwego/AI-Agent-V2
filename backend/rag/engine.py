@@ -961,11 +961,11 @@ class LibraryRAG:
             if is_path_intent or was_asking_location:
                 # Only inject route tag if missing and location prompt is NOT being asked
                 if not re.search(r'<ROUTE_', full_output, re.IGNORECASE) and "where are you" not in full_output.lower() and "currently located" not in full_output.lower():
-                    user_loc = None
+                    user_loc = "entrance" # Default to entrance
                     
-                    # Extract user location
-                    floor_m = re.search(r'floor\s*(\d+)', lower_input)
-                    if floor_m: 
+                    # Extract user location if specified
+                    floor_m = re.search(r'(?:from\s+)?floor\s*(\d+)', lower_input)
+                    if floor_m and "to floor" not in lower_input[:floor_m.start()]: 
                         user_loc = f"stairs{floor_m.group(1)}"
                     elif "first floor" in lower_input: 
                         user_loc = "stairs1"
@@ -1004,6 +1004,7 @@ class LibraryRAG:
                         # 2. From user query directly
                         if not dest_rack:
                             um = re.search(r'(?:to|at|rack)\s+([A-Z][0-9]+)', user_input, re.IGNORECASE)
+                            if not um: um = re.search(r'\b([A-Z][0-9]+)\b', user_input, re.IGNORECASE)
                             if um:
                                 dest_rack = um.group(1).upper()
 
