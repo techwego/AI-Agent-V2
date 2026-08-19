@@ -435,28 +435,52 @@ class LibraryRAG:
         cursor.execute("SELECT COUNT(*) FROM book_index")
         count = cursor.fetchone()[0]
         
-        if count == 0 and self.collection:
-            print("SQLite: Populating from ChromaDB...")
+        if self.collection:
+            print("SQLite: Syncing index from ChromaDB & Library DB...")
             results = self.collection.get(include=["metadatas"])
             if results and results["metadatas"]:
                 for i, meta in enumerate(results["metadatas"]):
                     chroma_id = results["ids"][i] if "ids" in results and results["ids"] else str(i)
-                    title = meta.get("title", "")
-                    author = meta.get("author", "")
-                    subject = meta.get("subject", "")
-                    call_number = meta.get("call_number", "")
-                    location = meta.get("location", "")
-                    copies = meta.get("copies", "")
+                    title = meta.get("title") or meta.get("book_name") or ""
+                    author = meta.get("author") or ""
+                    subject = meta.get("subject") or ""
+                    call_number = meta.get("call_number") or ""
+                    location = meta.get("location") or meta.get("rack") or meta.get("shelf") or ""
+                    copies = meta.get("copies") or meta.get("available") or ""
                     
                     norm_title = str(title).lower().strip()
                     norm_author = str(author).lower().strip()
                     
                     cursor.execute('''
-                        INSERT INTO book_index (id, title, author, subject, call_number, location, copies, normalized_title, normalized_author, chroma_id)
+                        INSERT OR REPLACE INTO book_index (id, title, author, subject, call_number, location, copies, normalized_title, normalized_author, chroma_id)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (str(i), str(title), str(author), str(subject), str(call_number), str(location), str(copies), norm_title, norm_author, chroma_id))
-                self.sqlite_conn.commit()
-                print(f"SQLite: Populated {len(results['metadatas'])} records.")
+        
+        # Also sync from SQLite library.db books table if available
+        try:
+            lib_db_path = os.path.join(self.data_dir, "..", "database", "library.db")
+            if not os.path.exists(lib_db_path):
+                lib_db_path = "library.db"
+            if os.path.exists(lib_db_path):
+                lib_conn = sqlite3.connect(lib_db_path)
+                lib_cursor = lib_conn.cursor()
+                lib_books = lib_cursor.execute("SELECT id, title, author, rack, copies, available FROM books").fetchall()
+                for b_id, b_title, b_author, b_rack, b_copies, b_avail in lib_books:
+                    if b_title:
+                        n_title = str(b_title).lower().strip()
+                        n_author = str(b_author or "").lower().strip()
+                        rack_str = str(b_rack or "").replace("Rack ", "").strip()
+                        c_str = str(b_avail if b_avail is not None else (b_copies or ""))
+                        cursor.execute('''
+                            INSERT OR REPLACE INTO book_index (id, title, author, subject, call_number, location, copies, normalized_title, normalized_author, chroma_id)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ''', (f"lib_{b_id}", str(b_title), str(b_author or ""), "", "", rack_str, c_str, n_title, n_author, f"lib_{b_id}"))
+                lib_conn.close()
+                print(f"SQLite: Synced {len(lib_books)} books from library.db")
+        except Exception as ex:
+            print(f"SQLite index sync warning: {ex}")
+            
+        self.sqlite_conn.commit()
 
     def _rebuild_sqlite_index(self):
         """Drops and recreates the SQLite index from ChromaDB."""

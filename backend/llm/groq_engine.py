@@ -21,15 +21,24 @@ class GroqEngine(LLMEngine):
             yield "I am currently not connected to the AI service. Please check the Groq API key."
             return
             
-        try:
-            response = self.client.chat.completions.create(
-                model=Config.GROQ_MODEL,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ],
-                stream=True,
-                temperature=0.3,
-            )
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            try:
+                response = self.client.chat.completions.create(
+                    model=Config.GROQ_MODEL,
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ],
+                    stream=True,
+                    temperature=0.3,
+                )
+                break
+            except Exception as conn_err:
+                if attempt < max_attempts:
+                    print(f"Groq API connection attempt {attempt} failed ({conn_err}). Retrying in 1s...")
+                    time.sleep(1)
+                else:
+                    raise conn_err
             
             in_think_block = False
             buffer = ""
