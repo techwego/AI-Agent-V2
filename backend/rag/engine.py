@@ -803,54 +803,68 @@ class LibraryRAG:
             
             # --- INTENT ROUTER ---
             lower_query = expanded_query.lower()
+            clean_input = re.sub(r'[^\w\s]', ' ', user_input).strip()
             metadata_results = []
             
+            # 1. Author search
             if "books by" in lower_query or "author" in lower_query or "written by" in lower_query:
                 author_name = user_input.lower().replace("author", "").replace("written by", "").replace("books by", "").replace("?", "").strip()
                 if author_name:
                     print(f"Intent Router: Author search detected for '{author_name}'")
                     metadata_results = self._metadata_lookup(author_name, field="author")
+            
+            # 2. Location search
             elif "rack" in lower_query or "where is" in lower_query:
-                import re
                 rack_match = re.search(r'rack\s+([a-z0-9\-]+)', lower_query)
                 if rack_match:
                     print(f"Intent Router: Location search detected for '{rack_match.group(1)}'")
                     metadata_results = self._metadata_lookup(rack_match.group(1), field="location")
+            
+            # 3. Call number / ID
             elif "book id" in lower_query or "call number" in lower_query:
-                import re
                 id_match = re.search(r'(?:book id|call number)\s+([a-z0-9\-]+)', lower_query)
                 if id_match:
                     print(f"Intent Router: Call number search detected for '{id_match.group(1)}'")
                     metadata_results = self._metadata_lookup(id_match.group(1), field="call_number")
-            else:
-                # Fallback to exact title search before RAG
-                title_results = self._metadata_lookup(user_input, field="title")
-                if title_results:
-                    print(f"Intent Router: Exact title match found for '{user_input}'")
-                    metadata_results = title_results
             
-            if metadata_results:
-                top_chunks = metadata_results[:15]
-                print(f"Intent Router: Routed to metadata lookup, found {len(top_chunks)} exact results.")
-            else:
-                print("Vector search...")
-                vector_hits = self._vector_search(expanded_query, top_k=50)
+            # 4. Direct title / book lookup (e.g. "Harry Potter", "Goodnight Moon", "Python programming")
+            if not metadata_results and clean_input:
+                # Strip conversational fluff to isolate title
+                potential_title = re.sub(r'^(?:do\s+you\s+have|we\s+have|is\s+there|find|search|get|book|the)\s+', '', clean_input, flags=re.IGNORECASE).strip()
+                potential_title = re.sub(r'\s+book$', '', potential_title, flags=re.IGNORECASE).strip()
+                
+                title_results = self._metadata_lookup(potential_title if potential_title else clean_input, field="title")
+                if title_results:
+                    print(f"Intent Router: Direct title match found for '{potential_title}' ({len(title_results)} records)")
+                    metadata_results = title_results
+                elif clean_input != potential_title:
+                    fallback_title_results = self._metadata_lookup(clean_input, field="title")
+                    if fallback_title_results:
+                        print(f"Intent Router: Raw title match found for '{clean_input}'")
+                        metadata_results = fallback_title_results
 
-                print("BM25 search...")
-                bm25_hits = self._bm25_search(expanded_query, top_k=50)
+            if metadata_results:
+                top_chunks = metadata_results[:10]
+                print(f"Intent Router: Fast-path metadata lookup retrieved {len(top_chunks)} records in {time.time() - t_embed:.3f}s")
+            else:
+                print("Vector search (fallback)...")
+                vector_hits = self._vector_search(expanded_query, top_k=25)
+
+                print("BM25 search (fallback)...")
+                bm25_hits = self._bm25_search(expanded_query, top_k=25)
 
                 merged = self._reciprocal_rank_fusion(vector_hits, bm25_hits)
                 print(f"RRF results count: {len(merged)}")
                 
-                # Filter with Record Validator
+                # Filter with Record Validator (relaxed for speed)
                 valid_chunks = []
-                for chunk in merged[:30]:
+                for chunk in merged[:15]:
                     if self._validate_record(user_input, chunk):
                         valid_chunks.append(chunk)
                 
-                top_chunks = self._rerank(user_input, valid_chunks, top_k=5)
+                top_chunks = valid_chunks[:5] if valid_chunks else merged[:5]
                 
-            print(f"Final retrieved chunks: {len(top_chunks)}")
+            print(f"Final retrieved chunks: {len(top_chunks)} in {time.time() - t_embed:.3f}s")
 
             context_blocks = []
             
