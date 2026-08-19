@@ -102,7 +102,7 @@ const Analytics = () => {
             <XAxis dataKey="name" stroke="#9ca3af" />
             <YAxis stroke="#9ca3af" />
             <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#fff' }} />
-            <Line type="monotone" dataKey="queries" stroke="#3b82f6" strokeWidth={3} />
+            <Line type="monotone" dataKey="queries" stroke="#3b82f6" strokeWidth={2} isAnimationActive={false} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>

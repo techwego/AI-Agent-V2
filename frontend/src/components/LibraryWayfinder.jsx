@@ -173,95 +173,87 @@ function generateDirections(path, nodes) {
   return steps;
 }
 
+let _cachedWoodMat = null;
 function createWoodMaterial() {
+  if (_cachedWoodMat) return _cachedWoodMat;
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
+  canvas.width = 128;
+  canvas.height = 128;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#6b4423';
-  ctx.fillRect(0, 0, 512, 512);
+  ctx.fillRect(0, 0, 128, 128);
   ctx.fillStyle = '#59381d';
-  for (let i = 0; i < 500; i++) {
-    const y = Math.random() * 512;
-    const h = Math.random() * 3 + 1;
-    ctx.beginPath();
-    for(let x = 0; x <= 512; x += 10) {
-      const yy = y + Math.sin(x * 0.05 + y) * 5;
-      if (x === 0) ctx.moveTo(x, yy);
-      else ctx.lineTo(x, yy);
-    }
-    ctx.lineWidth = h;
-    ctx.strokeStyle = `rgba(0,0,0,${Math.random() * 0.1})`;
-    ctx.stroke();
+  for (let i = 0; i < 40; i++) {
+    const y = Math.random() * 128;
+    const h = Math.random() * 2 + 1;
+    ctx.fillRect(0, y, 128, h);
   }
   const texture = new THREE.CanvasTexture(canvas);
-  return new THREE.MeshStandardMaterial({
+  _cachedWoodMat = new THREE.MeshStandardMaterial({
     map: texture,
     color: 0x6b4423,
     roughness: 0.65,
-    metalness: 0.05,
-    bumpMap: texture,
-    bumpScale: 0.02
+    metalness: 0.05
   });
+  return _cachedWoodMat;
 }
 
+let _cachedTileMat = null;
 function createTileMaterial() {
+  if (_cachedTileMat) return _cachedTileMat;
   const canvas = document.createElement('canvas');
-  canvas.width = 1024;
-  canvas.height = 1024;
+  canvas.width = 256;
+  canvas.height = 256;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#dbe0e6';
-  ctx.fillRect(0, 0, 1024, 1024);
-  for(let i=0; i<10000; i++) {
-    const x = Math.random() * 1024;
-    const y = Math.random() * 1024;
-    const r = Math.random() * 3 + 1;
-    ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.5)';
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  ctx.fillRect(0, 0, 256, 256);
   ctx.strokeStyle = '#a9b0ba';
-  ctx.lineWidth = 4;
-  const tileSize = 256;
-  for(let x=0; x<=1024; x+=tileSize) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 1024); ctx.stroke();
+  ctx.lineWidth = 2;
+  const tileSize = 64;
+  for(let x=0; x<=256; x+=tileSize) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 256); ctx.stroke();
   }
-  for(let y=0; y<=1024; y+=tileSize) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1024, y); ctx.stroke();
+  for(let y=0; y<=256; y+=tileSize) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(256, y); ctx.stroke();
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(10, 10);
-  return new THREE.MeshStandardMaterial({
+  texture.repeat.set(4, 4);
+  _cachedTileMat = new THREE.MeshStandardMaterial({
     map: texture,
     roughness: 0.22,
     metalness: 0.04
   });
+  return _cachedTileMat;
 }
 
+const _signSpriteCache = {};
 function createSignSprite(label) {
+  if (_signSpriteCache[label]) {
+    return _signSpriteCache[label].clone();
+  }
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 128;
+  canvas.width = 256;
+  canvas.height = 64;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#111a2e';
   ctx.beginPath();
-  ctx.roundRect(0, 0, 512, 128, 16);
+  ctx.roundRect(0, 0, 256, 64, 8);
   ctx.fill();
   ctx.strokeStyle = '#f2a93b';
-  ctx.lineWidth = 8;
+  ctx.lineWidth = 4;
   ctx.stroke();
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 64px sans-serif';
+  ctx.font = 'bold 32px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(label, 256, 64);
+  ctx.fillText(label, 128, 32);
   const texture = new THREE.CanvasTexture(canvas);
   const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.35), material);
-  return mesh;
+  _signSpriteCache[label] = mesh;
+  return mesh.clone();
 }
 
 function makeLabel(text, opts = {}) {
@@ -515,8 +507,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     const totalLen = curve.getLength();
     
-    // Thicker, brighter route tube
-    const tubeGeo = new THREE.TubeGeometry(curve, Math.max(64, result.path.length * 12), 0.18, 12, false);
+    // Lightweight, highly visible route tube
+    const tubeGeo = new THREE.TubeGeometry(curve, Math.min(96, Math.max(32, result.path.length * 8)), 0.16, 6, false);
     const tubeMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.92, depthTest: false });
     const routeTube = new THREE.Mesh(tubeGeo, tubeMat);
     routeTube.geometry.setDrawRange(0, 0);
@@ -525,7 +517,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     routeObjsRef.current.tube = routeTube;
 
     // Outer glow tube for visibility
-    const glowGeo = new THREE.TubeGeometry(curve, Math.max(64, result.path.length * 12), 0.38, 12, false);
+    const glowGeo = new THREE.TubeGeometry(curve, Math.min(96, Math.max(32, result.path.length * 8)), 0.32, 6, false);
     const glowMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.18, depthTest: false });
     const glowTube = new THREE.Mesh(glowGeo, glowMat);
     glowTube.geometry.setDrawRange(0, 0);
@@ -533,17 +525,17 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     scene.add(glowTube);
     routeObjsRef.current.glow = glowTube;
 
-    // Comet
+    // Comet (optimized to 4 trailing spheres)
     const cometGroup = new THREE.Group();
     const headMat = new THREE.MeshBasicMaterial({ color: 0xfff2d8, depthTest: false });
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), headMat);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), headMat);
     head.renderOrder = 1000;
     cometGroup.add(head);
     const trail = [];
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= 4; i++) {
       const m = new THREE.Mesh(
-        new THREE.SphereGeometry(0.28 - i * 0.028, 12, 12),
-        new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.6 - i * 0.065, depthTest: false })
+        new THREE.SphereGeometry(0.26 - i * 0.04, 6, 6),
+        new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.6 - i * 0.12, depthTest: false })
       );
       m.renderOrder = 1000 - i;
       cometGroup.add(m);
@@ -681,11 +673,9 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     if (!mountRef.current || !config || !graphData) return;
     const container = mountRef.current;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    // Disabled shadow map for massive performance boost on lower-end devices
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.shadowMap.enabled = false;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     rendererRef.current = renderer;
     container.appendChild(renderer.domElement);
     renderer.domElement.style.width = '100%';
@@ -705,22 +695,13 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     minimapCamera.lookAt(0, 0, 0);
     minimapCameraRef.current = minimapCamera;
 
-    scene.add(new THREE.AmbientLight(0x8892b0, 0.6));
-    const sun = new THREE.DirectionalLight(0xfff2d8, 0.7);
+    scene.add(new THREE.AmbientLight(0x8892b0, 0.8));
+    const sun = new THREE.DirectionalLight(0xfff2d8, 0.8);
     sun.position.set(30, 50, 20);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -35; sun.shadow.camera.right = 35;
-    sun.shadow.camera.top = 35; sun.shadow.camera.bottom = -35;
-    sun.shadow.camera.far = 120;
     scene.add(sun);
     
     const hemi = new THREE.HemisphereLight(0x87ceeb, 0x362a1f, 0.3);
     scene.add(hemi);
-
-    const rackGroups = { 1: new THREE.Group(), 2: new THREE.Group() };
-    rackGroupsRef.current = rackGroups;
-    scene.add(rackGroups[1], rackGroups[2]);
 
     const { floorHeights, COLS_X, rowZOffsets } = graphData;
 
@@ -797,6 +778,11 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     let rackCodeIndex = 0;
     const woodMat = createWoodMaterial();
     const bookColors = [0x8b263e, 0x1e3d59, 0x17b978, 0xd78232, 0x3a3d40, 0x4a2f1d, 0x9a8c73].map(c => new THREE.Color(c));
+    const sharedBackGeo = new THREE.BoxGeometry(3.3, 2.5, 0.04);
+    const sharedPanelGeo = new THREE.BoxGeometry(0.06, 2.5, 1.1);
+    const sharedShelfGeo = new THREE.BoxGeometry(3.3, 0.04, 1.1);
+    const sharedBookGeo = new THREE.BoxGeometry(1, 1, 1);
+    const sharedBookMat = new THREE.MeshStandardMaterial({ roughness: 0.8 });
 
     for(let f=0; f<config.floors; f++) {
         const fy = floorHeights[f];
@@ -812,51 +798,49 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
                const rackGroup = new THREE.Group();
                
-               const backGeo = new THREE.BoxGeometry(3.3, 2.5, 0.04);
-               const backPanel = new THREE.Mesh(backGeo, woodMat.clone());
+               const backPanel = new THREE.Mesh(sharedBackGeo, woodMat.clone());
                backPanel.position.set(0, 1.25, -0.53);
                rackGroup.add(backPanel);
 
-               const panelGeo = new THREE.BoxGeometry(0.06, 2.5, 1.1);
-               const leftPanel = new THREE.Mesh(panelGeo, woodMat);
+               const leftPanel = new THREE.Mesh(sharedPanelGeo, woodMat);
                leftPanel.position.set(-1.62, 1.25, 0);
-               const rightPanel = new THREE.Mesh(panelGeo, woodMat);
+               const rightPanel = new THREE.Mesh(sharedPanelGeo, woodMat);
                rightPanel.position.set(1.62, 1.25, 0);
                rackGroup.add(leftPanel);
                rackGroup.add(rightPanel);
                
-               const shelfGeo = new THREE.BoxGeometry(3.3, 0.04, 1.1);
                const shelves = new THREE.Group();
                for(let s=0; s<4; s++) {
-                 const shelf = new THREE.Mesh(shelfGeo, woodMat);
+                 const shelf = new THREE.Mesh(sharedShelfGeo, woodMat);
                  shelf.position.y = 0.4 + s * 0.6;
                  shelves.add(shelf);
                }
                rackGroup.add(shelves);
 
-               const bookGeo = new THREE.BoxGeometry(1, 1, 1);
-               const instMesh = new THREE.InstancedMesh(bookGeo, new THREE.MeshStandardMaterial({ roughness: 0.8 }), 120);
+               const instMesh = new THREE.InstancedMesh(sharedBookGeo, sharedBookMat, 60);
                let bookIdx = 0;
                const matrix = new THREE.Matrix4();
                const q = new THREE.Quaternion();
                for(let s=0; s<4; s++) {
-                 let bx = -1.5;
+                 let bx = -1.4;
                  const sy = 0.4 + s * 0.6 + 0.02;
-                 while(bx < 1.5 && bookIdx < 120) {
-                   const thickness = 0.04 + Math.random() * 0.03;
-                   const height = 0.20 + Math.random() * 0.14;
-                   const depth = 0.5 + Math.random() * 0.4;
+                 while(bx < 1.4 && bookIdx < 60) {
+                   const thickness = 0.08 + Math.random() * 0.04;
+                   const height = 0.22 + Math.random() * 0.12;
+                   const depth = 0.6 + Math.random() * 0.3;
                    let rotZ = 0;
-                   if (Math.random() < 0.08) rotZ = (Math.random() > 0.5 ? 1 : -1) * 0.2;
+                   if (Math.random() < 0.06) rotZ = (Math.random() > 0.5 ? 1 : -1) * 0.15;
                    q.setFromAxisAngle(new THREE.Vector3(0, 0, 1), rotZ);
                    matrix.compose(new THREE.Vector3(bx + thickness/2, sy + height/2, 0), q, new THREE.Vector3(thickness, height, depth));
                    instMesh.setMatrixAt(bookIdx, matrix);
-                   instMesh.setColorAt(bookIdx, bookColors[Math.floor(Math.random() * bookColors.length)]);
-                   bx += thickness + 0.005;
+                   instMesh.setColorAt(bookIdx, bookColors[bookIdx % bookColors.length]);
+                   bx += thickness + 0.01;
                    bookIdx++;
                  }
                }
                instMesh.count = bookIdx;
+               instMesh.instanceMatrix.needsUpdate = true;
+               if (instMesh.instanceColor) instMesh.instanceColor.needsUpdate = true;
                rackGroup.add(instMesh);
 
                const sign = createSignSprite(customName);
