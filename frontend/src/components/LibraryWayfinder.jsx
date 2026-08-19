@@ -408,8 +408,14 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     if (!scene) return;
     const ro = routeObjsRef.current;
     if (ro.ribbon) scene.remove(ro.ribbon);
+    if (ro.tube) scene.remove(ro.tube);
+    if (ro.glow) scene.remove(ro.glow);
+    if (ro.comet) scene.remove(ro.comet);
     if (ro.beacon) scene.remove(ro.beacon);
     ro.ribbon = null;
+    ro.tube = null;
+    ro.glow = null;
+    ro.comet = null;
     ro.beacon = null;
     if (ro.animId) cancelAnimationFrame(ro.animId);
     ro.animId = null;
@@ -482,38 +488,40 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     routeCurveRef.current = curve;
 
     const totalLen = curve.getLength();
-    const pointsCount = Math.floor(totalLen * 5);
     
-    const ribbonVerts = [];
-    const ribbonUvs = [];
-    const ribbonIndices = [];
-    for (let i = 0; i <= pointsCount; i++) {
-      const t = i / pointsCount;
-      const pt = curve.getPointAt(t);
-      const tan = curve.getTangentAt(t).normalize();
-      const binorm = new THREE.Vector3(0, 1, 0).cross(tan).normalize();
-      const w = 0.2;
-      ribbonVerts.push(pt.x + binorm.x * w, pt.y, pt.z + binorm.z * w);
-      ribbonVerts.push(pt.x - binorm.x * w, pt.y, pt.z - binorm.z * w);
-      ribbonUvs.push(0, t * totalLen);
-      ribbonUvs.push(1, t * totalLen);
-      
-      if (i < pointsCount) {
-        const idx = i * 2;
-        ribbonIndices.push(idx, idx + 1, idx + 2);
-        ribbonIndices.push(idx + 1, idx + 3, idx + 2);
-      }
-    }
-    const ribbonGeo = new THREE.BufferGeometry();
-    ribbonGeo.setAttribute('position', new THREE.Float32BufferAttribute(ribbonVerts, 3));
-    ribbonGeo.setAttribute('uv', new THREE.Float32BufferAttribute(ribbonUvs, 2));
-    ribbonGeo.setIndex(ribbonIndices);
+    // Thicker, brighter route tube
+    const tubeGeo = new THREE.TubeGeometry(curve, Math.max(64, result.path.length * 12), 0.18, 12, false);
+    const tubeMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.92 });
+    const routeTube = new THREE.Mesh(tubeGeo, tubeMat);
+    routeTube.geometry.setDrawRange(0, 0);
+    scene.add(routeTube);
+    routeObjsRef.current.tube = routeTube;
 
-    const ribbonMat = new THREE.MeshBasicMaterial({ color: 0x5fe3a0, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
-    
-    const ribbon = new THREE.Mesh(ribbonGeo, ribbonMat);
-    scene.add(ribbon);
-    routeObjsRef.current.ribbon = ribbon;
+    // Outer glow tube for visibility
+    const glowGeo = new THREE.TubeGeometry(curve, Math.max(64, result.path.length * 12), 0.38, 12, false);
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.18 });
+    const glowTube = new THREE.Mesh(glowGeo, glowMat);
+    glowTube.geometry.setDrawRange(0, 0);
+    scene.add(glowTube);
+    routeObjsRef.current.glow = glowTube;
+
+    // Comet
+    const cometGroup = new THREE.Group();
+    const headMat = new THREE.MeshBasicMaterial({ color: 0xfff2d8 });
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), headMat);
+    cometGroup.add(head);
+    const trail = [];
+    for (let i = 1; i <= 8; i++) {
+      const m = new THREE.Mesh(
+        new THREE.SphereGeometry(0.28 - i * 0.028, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.6 - i * 0.065 })
+      );
+      cometGroup.add(m);
+      trail.push(m);
+    }
+    scene.add(cometGroup);
+    routeObjsRef.current.comet = cometGroup;
+    const trailPts = [];
 
     const destNode = nodes[endNode];
     const beaconGroup = new THREE.Group();
@@ -581,8 +589,11 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     flyToRef.current = { target: routeCenter, radius: targetRadius, progress: 0 };
     
     const startT = clock.getElapsedTime();
+    const duration = Math.min(6, result.path.length * 0.4);
+    
     function animate() {
       const bT = clock.getElapsedTime() - startT;
+      // Pulse beacon rings
       beaconGroup.children.forEach(child => {
         if (child.geometry && child.geometry.type === 'RingGeometry') {
           const phase = (bT + child.userData.idx * 0.5) % 1.8;
@@ -594,6 +605,38 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       diamond.rotation.y = bT * 1.5;
       diamond.position.y = 5.2 + Math.sin(bT * 2) * 0.3;
       pillarMat.opacity = 0.25 + Math.sin(bT * 3) * 0.15;
+      
+      // Animate path drawing and comet
+      const t = Math.min(1, bT / duration);
+      const maxCount = tubeGeo.index ? tubeGeo.index.count : tubeGeo.attributes.position.count;
+      const drawCount = Math.floor(maxCount * t);
+      routeTube.geometry.setDrawRange(0, drawCount);
+      glowTube.geometry.setDrawRange(0, drawCount);
+      
+      const p = curve.getPointAt(t);
+      cometGroup.position.copy(p);
+      trailPts.unshift(p.clone());
+      if (trailPts.length > 60) trailPts.pop();
+      trail.forEach((m, i) => {
+        const idx = Math.min(trailPts.length - 1, (i + 1) * 4);
+        if (trailPts[idx]) m.position.copy(trailPts[idx]).sub(p);
+      });
+
+      // Camera fly-to animation
+      const fly = flyToRef.current;
+      if (fly && fly.progress < 1) {
+        fly.progress = Math.min(1, fly.progress + 0.012);
+        const ease = 1 - Math.pow(1 - fly.progress, 3); // ease-out cubic
+        if (orbitRef.current && orbitRef.current.target) {
+            orbitRef.current.target.lerp(fly.target, ease * 0.04);
+            orbitRef.current.radius += (fly.radius - orbitRef.current.radius) * ease * 0.04;
+        }
+      } else if (orbitRef.current && orbitRef.current.target) {
+        // Gentle follow after fly-to completes
+        orbitRef.current.target.lerp(p, 0.015);
+      }
+      updateCamera();
+      
       routeObjsRef.current.animId = requestAnimationFrame(animate);
     }
     animate();
