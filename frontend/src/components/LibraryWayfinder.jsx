@@ -432,15 +432,15 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     let resolvedFrom = fromId;
     if (!nodes[resolvedFrom]) {
-      let entranceKey = Object.keys(nodes).find(k => k.startsWith(resolvedFrom) || (resolvedFrom === 'entrance' && nodes[k].type === 'entrance'));
-      if (!entranceKey && resolvedFrom.startsWith('stairs')) {
-         const allStairs = Object.keys(nodes).filter(k => k.startsWith('stairs') && !k.endsWith('_dest'));
-         if (allStairs.length > 0) {
-             allStairs.sort();
-             entranceKey = allStairs[allStairs.length - 1];
-         } else {
-             entranceKey = Object.keys(nodes).find(k => k.type === 'entrance');
-         }
+      let entranceKey = null;
+      if (resolvedFrom.startsWith('stairs')) {
+          const floorMatch = resolvedFrom.match(/\d+/);
+          const floorNum = floorMatch ? parseInt(floorMatch[0], 10) : 1;
+          const allStairs = Object.keys(nodes).filter(k => k.startsWith('stairs') && nodes[k].floor === floorNum && !k.endsWith('_dest'));
+          if (allStairs.length > 0) entranceKey = allStairs[0];
+          else entranceKey = Object.keys(nodes).find(k => k.type === 'entrance');
+      } else {
+          entranceKey = Object.keys(nodes).find(k => k.type === 'entrance');
       }
       if (entranceKey) resolvedFrom = entranceKey;
       else return; 
