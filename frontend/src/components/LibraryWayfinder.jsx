@@ -440,42 +440,40 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     clearRoute();
 
-    let endNode = destCode;
-    if (destCode.toUpperCase().startsWith('STAIRS')) {
-      const floorMatch = destCode.match(/\d+/);
-      const floorNum = floorMatch ? parseInt(floorMatch[0], 10) : 1;
-      const allStairs = Object.keys(nodes).filter(k => k.startsWith('stairs') && nodes[k].floor === floorNum && !k.endsWith('_dest'));
-      if (allStairs.length > 0) endNode = allStairs[0];
-    } else {
-      endNode = 'r' + destCode;
-      if (!nodes[endNode]) {
-         const matchingNode = Object.keys(nodes).find(k => nodes[k].type === 'rack' && 
-            (nodes[k].label.toUpperCase() === destCode.toUpperCase() || 
-             nodes[k].label.toUpperCase() === 'RACK ' + destCode.toUpperCase() || 
-             (nodes[k].code && nodes[k].code.toUpperCase() === destCode.toUpperCase())));
-         if (matchingNode) endNode = matchingNode;
+    const resolveNodeId = (code) => {
+      if (!code) return null;
+      let nodeId = code;
+      if (code.toUpperCase().startsWith('STAIRS') || code.toUpperCase().startsWith('FLOOR')) {
+        const floorMatch = code.match(/\d+/);
+        const floorNum = floorMatch ? parseInt(floorMatch[0], 10) : 1;
+        const allStairs = Object.keys(nodes).filter(k => k.startsWith('stairs') && nodes[k].floor === floorNum && !k.endsWith('_dest'));
+        if (allStairs.length > 0) return allStairs[0];
       }
-    }
+      if (nodes[nodeId]) return nodeId;
+      nodeId = 'r' + code.toUpperCase();
+      if (nodes[nodeId]) return nodeId;
+      
+      const matchingNode = Object.keys(nodes).find(k => nodes[k].type === 'rack' && 
+        (nodes[k].label.toUpperCase() === code.toUpperCase() || 
+         nodes[k].label.toUpperCase() === 'RACK ' + code.toUpperCase() || 
+         (nodes[k].code && nodes[k].code.toUpperCase() === code.toUpperCase())));
+      
+      if (matchingNode) return matchingNode;
+      return null;
+    };
+
+    let endNode = resolveNodeId(destCode);
     
-    if (!nodes[endNode]) {
-      console.warn('[LibraryWayfinder] Destination node not found:', endNode, 'from requested:', destCode);
+    if (!endNode || !nodes[endNode]) {
+      console.warn('[LibraryWayfinder] Destination node not found from requested:', destCode);
       return;
     }
 
-    let resolvedFrom = fromId;
-    if (!nodes[resolvedFrom]) {
-      let entranceKey = null;
-      if (resolvedFrom.startsWith('stairs')) {
-          const floorMatch = resolvedFrom.match(/\d+/);
-          const floorNum = floorMatch ? parseInt(floorMatch[0], 10) : 1;
-          const allStairs = Object.keys(nodes).filter(k => k.startsWith('stairs') && nodes[k].floor === floorNum && !k.endsWith('_dest'));
-          if (allStairs.length > 0) entranceKey = allStairs[0];
-          else entranceKey = Object.keys(nodes).find(k => k.type === 'entrance');
-      } else {
-          entranceKey = Object.keys(nodes).find(k => k.type === 'entrance');
-      }
-      if (entranceKey) resolvedFrom = entranceKey;
-      else return; 
+    let resolvedFrom = resolveNodeId(fromId);
+    if (!resolvedFrom || !nodes[resolvedFrom]) {
+      // Fallback to entrance if source is missing/invalid
+      resolvedFrom = Object.keys(nodes).find(k => k.type === 'entrance');
+      if (!resolvedFrom) return; 
     }
 
     console.log('[LibraryWayfinder] drawRoute -> resolvedFrom:', resolvedFrom, 'endNode:', endNode);
