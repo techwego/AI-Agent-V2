@@ -443,21 +443,35 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     const resolveNodeId = (code) => {
       if (!code) return null;
-      let nodeId = code;
-      if (code.toUpperCase().startsWith('STAIRS') || code.toUpperCase().startsWith('FLOOR')) {
-        const floorMatch = code.match(/\d+/);
+      let raw = String(code).trim().replace(/['"]/g, '');
+      let clean = raw.toUpperCase().replace(/^RACK[\s-_]*/i, '').replace(/^R(?=[A-Z0-9])/i, '');
+      
+      // Check entrance
+      if (raw.toLowerCase().includes('entrance')) {
+        const ent = Object.keys(nodes).find(k => nodes[k].type === 'entrance');
+        if (ent) return ent;
+      }
+      
+      // Check floor/stairs
+      if (raw.toUpperCase().includes('STAIRS') || raw.toUpperCase().includes('FLOOR')) {
+        const floorMatch = raw.match(/\d+/);
         const floorNum = floorMatch ? parseInt(floorMatch[0], 10) : 1;
         const allStairs = Object.keys(nodes).filter(k => k.startsWith('stairs') && nodes[k].floor === floorNum && !k.endsWith('_dest'));
         if (allStairs.length > 0) return allStairs[0];
       }
-      if (nodes[nodeId]) return nodeId;
-      nodeId = 'r' + code.toUpperCase();
-      if (nodes[nodeId]) return nodeId;
       
+      // Direct key match
+      if (nodes[raw]) return raw;
+      if (nodes['r' + raw.toUpperCase()]) return 'r' + raw.toUpperCase();
+      if (nodes['r' + clean]) return 'r' + clean;
+      if (nodes[clean]) return clean;
+      
+      // Match by rack code or label
       const matchingNode = Object.keys(nodes).find(k => nodes[k].type === 'rack' && 
-        (nodes[k].label.toUpperCase() === code.toUpperCase() || 
-         nodes[k].label.toUpperCase() === 'RACK ' + code.toUpperCase() || 
-         (nodes[k].code && nodes[k].code.toUpperCase() === code.toUpperCase())));
+        (nodes[k].label.toUpperCase() === raw.toUpperCase() || 
+         nodes[k].label.toUpperCase() === clean || 
+         nodes[k].label.toUpperCase() === 'RACK ' + clean || 
+         (nodes[k].code && (nodes[k].code.toUpperCase() === clean || nodes[k].code.toUpperCase() === raw.toUpperCase()))));
       
       if (matchingNode) return matchingNode;
       return null;
