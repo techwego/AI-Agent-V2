@@ -519,7 +519,6 @@ class LibraryRAG:
     def _validate_record(self, query: str, record: dict) -> bool:
         title = record.get("metadata", {}).get("title", "")
         if not title:
-            import re
             m = re.search(r'Title:\s*(.*)', record.get("text", ""))
             if m:
                 title = m.group(1)
@@ -527,7 +526,6 @@ class LibraryRAG:
         if not title:
             return True
             
-        import re
         query_words = set(re.findall(r'\w+', query.lower()))
         title_words = set(re.findall(r'\w+', title.lower()))
         
@@ -721,8 +719,6 @@ class LibraryRAG:
 
     def _expand_query(self, query: str, history: list[dict] = None) -> str:
         # Fast query expansion without LLM latency
-        import re
-        
         # Normalize concatenated or spaced IDs (e.g., 'com9842' or 'com 3' -> 'com-9842', 'com-3')
         query = re.sub(r'\b([a-z]{3})\s*(\d{1,4})\b', r'\1-\2', query, flags=re.IGNORECASE)
         
@@ -931,7 +927,6 @@ class LibraryRAG:
             print("Streaming completed.")
             
             # Helper: Path/Location intent check
-            import re
             lower_input = user_input.lower().strip()
             
             path_intent_patterns = [
@@ -1027,7 +1022,9 @@ class LibraryRAG:
                         if not dest_rack and history:
                             for msg in reversed(history):
                                 past_text = msg.get("content", "")
-                                hm = re.search(r'(?:Rack|to)\s+([A-Z0-9\-]+)', past_text, re.IGNORECASE)
+                                hm = re.search(r'<ROUTE_[^>]+_TO:([^>]+)>', past_text)
+                                if not hm: hm = re.search(r'\*\*Rack:\*\*\s*([A-Z0-9\-]+)', past_text, re.IGNORECASE)
+                                if not hm: hm = re.search(r'(?:Rack|to)\s+([A-Z0-9\-]+)', past_text, re.IGNORECASE)
                                 if hm:
                                     dest_rack = hm.group(1).upper()
                                     break
