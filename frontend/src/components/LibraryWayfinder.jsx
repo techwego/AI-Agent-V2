@@ -490,7 +490,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     const nodePos = (id) => {
       const n = nodes[id];
-      return new THREE.Vector3(n.x, n.y + 0.03, n.z);
+      return new THREE.Vector3(n.x, n.y + 0.9, n.z);
     };
 
     const pts = result.path.map(nodePos);
@@ -504,31 +504,35 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     
     // Thicker, brighter route tube
     const tubeGeo = new THREE.TubeGeometry(curve, Math.max(64, result.path.length * 12), 0.18, 12, false);
-    const tubeMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.92 });
+    const tubeMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.92, depthTest: false });
     const routeTube = new THREE.Mesh(tubeGeo, tubeMat);
     routeTube.geometry.setDrawRange(0, 0);
+    routeTube.renderOrder = 999;
     scene.add(routeTube);
     routeObjsRef.current.tube = routeTube;
 
     // Outer glow tube for visibility
     const glowGeo = new THREE.TubeGeometry(curve, Math.max(64, result.path.length * 12), 0.38, 12, false);
-    const glowMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.18 });
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.18, depthTest: false });
     const glowTube = new THREE.Mesh(glowGeo, glowMat);
     glowTube.geometry.setDrawRange(0, 0);
+    glowTube.renderOrder = 998;
     scene.add(glowTube);
     routeObjsRef.current.glow = glowTube;
 
     // Comet
     const cometGroup = new THREE.Group();
-    const headMat = new THREE.MeshBasicMaterial({ color: 0xfff2d8 });
+    const headMat = new THREE.MeshBasicMaterial({ color: 0xfff2d8, depthTest: false });
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), headMat);
+    head.renderOrder = 1000;
     cometGroup.add(head);
     const trail = [];
     for (let i = 1; i <= 8; i++) {
       const m = new THREE.Mesh(
         new THREE.SphereGeometry(0.28 - i * 0.028, 12, 12),
-        new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.6 - i * 0.065 })
+        new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.6 - i * 0.065, depthTest: false })
       );
+      m.renderOrder = 1000 - i;
       cometGroup.add(m);
       trail.push(m);
     }
@@ -604,7 +608,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     flyToRef.current = { target: routeCenter, radius: targetRadius, progress: 0 };
     
     const startT = clock.getElapsedTime();
-    const duration = Math.min(6, result.path.length * 0.4);
+    const speed = 9;
+    const duration = Math.max(1.8, totalLen / speed);
     
     function animate() {
       const bT = clock.getElapsedTime() - startT;
