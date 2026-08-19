@@ -137,8 +137,8 @@ function buildDynamicGraph(config) {
       });
   } else {
       addNode('entrance_0', 0, 0, -13.2, 'Entrance', 'entrance', 1);
-      if(config.cols_per_row > 1) {
-          addEdge('entrance_0', 'aisle_f1_r0_c' + Math.floor(config.cols_per_row/2));
+      if (config.cols_per_row > 0) {
+          addEdge('entrance_0', 'aisle_f1_r0_c' + Math.floor((config.cols_per_row - 1) / 2));
       }
       for(let f=0; f<config.floors; f++) {
           const sid = 'stairs_def_' + f;
@@ -448,10 +448,17 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       if (allStairs.length > 0) endNode = allStairs[0];
     } else {
       endNode = 'r' + destCode;
+      if (!nodes[endNode]) {
+         const matchingNode = Object.keys(nodes).find(k => nodes[k].type === 'rack' && 
+            (nodes[k].label.toUpperCase() === destCode.toUpperCase() || 
+             nodes[k].label.toUpperCase() === 'RACK ' + destCode.toUpperCase() || 
+             (nodes[k].code && nodes[k].code.toUpperCase() === destCode.toUpperCase())));
+         if (matchingNode) endNode = matchingNode;
+      }
     }
     
     if (!nodes[endNode]) {
-      console.warn('Destination node not found:', endNode);
+      console.warn('[LibraryWayfinder] Destination node not found:', endNode, 'from requested:', destCode);
       return;
     }
 
@@ -471,7 +478,10 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       else return; 
     }
 
+    console.log('[LibraryWayfinder] drawRoute -> resolvedFrom:', resolvedFrom, 'endNode:', endNode);
+
     const result = dijkstra(nodes, resolvedFrom, endNode);
+    console.log('[LibraryWayfinder] dijkstra result:', result);
     if (!result) return;
 
     const steps = generateDirections(result.path, nodes);
@@ -484,6 +494,9 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     };
 
     const pts = result.path.map(nodePos);
+    if (pts.length === 1) {
+       pts.push(pts[0].clone().add(new THREE.Vector3(0, 0.1, 0))); // Prevent curve crash for single-node paths
+    }
     const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.15);
     routeCurveRef.current = curve;
 
@@ -524,6 +537,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const trailPts = [];
 
     const destNode = nodes[endNode];
+    const physicalCode = destNode.code || destCode;
+    const displayName = destNode.label && destNode.label !== ('Rack ' + destNode.code) ? destNode.label : `Rack ${destCode}`;
     const beaconGroup = new THREE.Group();
     beaconGroup.position.set(destNode.x, destNode.y - 0.15, destNode.z);
     
@@ -559,7 +574,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     ctx.font = 'bold 24px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`Rack ${destCode} · ${Math.round(result.distance)}m`, 128, 32);
+    ctx.fillText(`${displayName} · ${Math.round(result.distance)}m`, 128, 32);
     
     const tex = new THREE.CanvasTexture(billboardCanvas);
     const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
@@ -571,8 +586,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     scene.add(beaconGroup);
     routeObjsRef.current.beacon = beaconGroup;
 
-    if (rackMeshByCodeRef.current[destCode]) {
-      const destMesh = rackMeshByCodeRef.current[destCode].children[0];
+    if (rackMeshByCodeRef.current[physicalCode]) {
+      const destMesh = rackMeshByCodeRef.current[physicalCode].children[0];
       if (destMesh) {
         destMesh.material = destMesh.material.clone();
         destMesh.material.emissive.setHex(0xe2665f);
