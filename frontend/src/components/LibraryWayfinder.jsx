@@ -1099,30 +1099,13 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   }, [updateCamera, onRackClick, config, graphData, handleSetCameraMode]);
 
   useEffect(() => {
+    if (!graphData || !graphData.nodes) return;
     if (routeTo) {
-      let normalizedTo = routeTo.toUpperCase().replace(/[\s_]+/g, '');
-      const toMatch = normalizedTo.match(/^(?:RACK|R)?([A-Z][0-9]+)$/);
-      if (toMatch) {
-        normalizedTo = toMatch[1];
-      }
-      let normalizedFrom = 'entrance';
-      if (routeFrom) {
-         const f = String(routeFrom).toLowerCase();
-         const floorMatch = f.match(/floor\s*(\d+)/) || f.match(/stairs(\d+)/);
-         if (floorMatch) normalizedFrom = 'stairs' + floorMatch[1];
-         else if (f === 'entrance') normalizedFrom = 'entrance';
-         else {
-            let rackMatch = f.match(/r?([a-d])\s*(\d)/);
-            if (rackMatch) {
-               normalizedFrom = 'r' + rackMatch[1].toUpperCase() + rackMatch[2];
-            } else {
-               normalizedFrom = String(routeFrom);
-            }
-         }
-      }
-      drawRoute(normalizedTo, normalizedFrom);
+      drawRoute(String(routeTo), routeFrom ? String(routeFrom) : 'entrance');
+    } else {
+      clearRoute();
     }
-  }, [routeTo, routeFrom, drawRoute]);
+  }, [routeTo, routeFrom, drawRoute, graphData, clearRoute]);
 
   useEffect(() => {
     handleFloorChange(activeFloor);
