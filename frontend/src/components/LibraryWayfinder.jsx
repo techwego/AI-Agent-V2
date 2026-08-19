@@ -311,6 +311,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   const [routeInfo, setRouteInfo] = useState(null);
   const [config, setConfig] = useState(null);
   const [graphData, setGraphData] = useState(null);
+  const [sceneReady, setSceneReady] = useState(false);
   
   const [cameraMode, setCameraMode] = useState('orbit');
   const cameraModeRef = useRef('orbit');
@@ -660,7 +661,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     animate();
     
     if (onRouteComplete) onRouteComplete(destCode, steps);
-  }, [clearRoute, onRouteComplete]);
+  }, [clearRoute, onRouteComplete, graphData]);
 
   useEffect(() => {
     if (!mountRef.current || !config || !graphData) return;
@@ -1081,8 +1082,10 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       renderer.render(scene, camera);
     }
     loop();
+    setSceneReady(true);
 
     return () => {
+      setSceneReady(false);
       cancelAnimationFrame(reqIdRef.current);
       resizeObserver.disconnect();
       canvas.removeEventListener('pointerdown', onPointerDown);
@@ -1099,13 +1102,13 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   }, [updateCamera, onRackClick, config, graphData, handleSetCameraMode]);
 
   useEffect(() => {
-    if (!graphData || !graphData.nodes) return;
+    if (!sceneReady || !graphData || !graphData.nodes) return;
     if (routeTo) {
       drawRoute(String(routeTo), routeFrom ? String(routeFrom) : 'entrance');
     } else {
       clearRoute();
     }
-  }, [routeTo, routeFrom, drawRoute, graphData, clearRoute]);
+  }, [sceneReady, routeTo, routeFrom, drawRoute, graphData, clearRoute]);
 
   useEffect(() => {
     handleFloorChange(activeFloor);
