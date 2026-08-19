@@ -490,35 +490,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     ribbonGeo.setAttribute('uv', new THREE.Float32BufferAttribute(ribbonUvs, 2));
     ribbonGeo.setIndex(ribbonIndices);
 
-    const ribbonMat = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uColor: { value: new THREE.Color(0xf2a93b) }
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float uTime; 
-        uniform vec3 uColor;
-        varying vec2 vUv;
-        void main() {
-          float v = fract(vUv.y - uTime * 2.0);
-          float chevron = abs(vUv.x - 0.5) * 2.0;
-          float arrow = smoothstep(0.4, 0.45, v - chevron * 0.3) * (1.0 - smoothstep(0.55, 0.6, v - chevron * 0.3));
-          float edge = pow(chevron, 3.0);
-          vec3 finalColor = mix(uColor, vec3(1.0, 0.95, 0.8), arrow);
-          float alpha = clamp(arrow * 0.9 + edge * 0.4 + 0.15, 0.0, 1.0);
-          gl_FragColor = vec4(finalColor, alpha);
-        }
-      `,
-      transparent: true,
-      side: THREE.DoubleSide
-    });
+    const ribbonMat = new THREE.MeshBasicMaterial({ color: 0x5fe3a0, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
     
     const ribbon = new THREE.Mesh(ribbonGeo, ribbonMat);
     scene.add(ribbon);
@@ -1027,12 +999,6 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       renderer.setViewport(0, 0, container.clientWidth, container.clientHeight);
       renderer.setScissorTest(false);
       renderer.render(scene, camera);
-      
-      renderer.setScissorTest(true);
-      renderer.setScissor(container.clientWidth - 190, 10, 180, 180);
-      renderer.setViewport(container.clientWidth - 190, 10, 180, 180);
-      renderer.render(scene, minimapCamera);
-      renderer.setScissorTest(false);
     }
     loop();
 
