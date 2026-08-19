@@ -21,25 +21,31 @@ class GroqEngine(LLMEngine):
             yield "I am currently not connected to the AI service. Please check the Groq API key."
             return
             
-        max_attempts = 3
-        for attempt in range(1, max_attempts + 1):
-            try:
-                response = self.client.chat.completions.create(
-                    model=Config.GROQ_MODEL,
-                    messages=[
-                        {"role": "user", "content": prompt}
-                    ],
-                    stream=True,
-                    temperature=0.3,
-                )
-                break
-            except Exception as conn_err:
-                if attempt < max_attempts:
-                    print(f"Groq API connection attempt {attempt} failed ({conn_err}). Retrying in 1s...")
-                    time.sleep(1)
-                else:
-                    raise conn_err
-            
+        try:
+            response = None
+            max_attempts = 3
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    response = self.client.chat.completions.create(
+                        model=Config.GROQ_MODEL,
+                        messages=[
+                            {"role": "user", "content": prompt}
+                        ],
+                        stream=True,
+                        temperature=0.3,
+                    )
+                    break
+                except Exception as conn_err:
+                    if attempt < max_attempts:
+                        print(f"Groq API connection attempt {attempt} failed ({conn_err}). Retrying in 1s...")
+                        time.sleep(1)
+                    else:
+                        raise conn_err
+
+            if not response:
+                yield "I am having trouble connecting to the network right now. Please try again."
+                return
+
             in_think_block = False
             buffer = ""
             
@@ -72,10 +78,7 @@ class GroqEngine(LLMEngine):
                                 break
             
             if not in_think_block and buffer:
-                # Strip out any partial "<think" at the very end just in case
-                if buffer.startswith("<thin"):
-                    pass
-                else:
+                if not buffer.startswith("<thin"):
                     yield buffer
             
             duration = time.time() - t0
