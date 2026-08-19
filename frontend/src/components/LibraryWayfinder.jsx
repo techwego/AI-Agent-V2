@@ -616,7 +616,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
+    // Disabled shadow map for massive performance boost on lower-end devices
+    renderer.shadowMap.enabled = false;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     rendererRef.current = renderer;
     container.appendChild(renderer.domElement);
@@ -706,9 +707,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
                 diffuser.rotation.x = Math.PI / 2;
                 diffuser.position.y = -0.045;
                 fixtureGroup.add(diffuser);
-                const pLight = new THREE.PointLight(0xfff5ea, 0.6, 10, 2);
-                pLight.position.y = -0.1;
-                fixtureGroup.add(pLight);
+                // Removed expensive PointLight for performance, relying on emissive diffuser and ambient light
                 rackGroupsRef.current[f+1].add(fixtureGroup);
             }
         }
@@ -807,7 +806,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     const topFloorY = floorHeights.length > 0 ? floorHeights[floorHeights.length - 1] : 0;
     const envelopeHeight = topFloorY + 6;
-    const glassMat = new THREE.MeshPhysicalMaterial({ transmission: 0.85, roughness: 0.05, ior: 1.5, thickness: 0.3, color: 0xffffff, transparent: true, opacity: 0.15, side: THREE.DoubleSide });
+    // Removed expensive transmission (which forces multi-pass rendering) for a huge performance boost
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x9fd7ff, transparent: true, opacity: 0.15, side: THREE.DoubleSide, roughness: 0.1, metalness: 0.8 });
     
     const wGeo = new THREE.BoxGeometry(slabWidth + 2, envelopeHeight, 0.1);
     const frontWall = new THREE.Mesh(wGeo, glassMat);
