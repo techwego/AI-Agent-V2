@@ -754,7 +754,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
                 const housing = new THREE.Mesh(housingGeo, housingMat);
                 fixtureGroup.add(housing);
                 const diffuserGeo = new THREE.PlaneGeometry(0.26, 1.96);
-                const diffuserMat = new THREE.MeshBasicMaterial({ color: 0xfffaed, emissive: 0xfffaed, emissiveIntensity: 1.5 });
+                const diffuserMat = new THREE.MeshBasicMaterial({ color: 0xfffaed });
                 const diffuser = new THREE.Mesh(diffuserGeo, diffuserMat);
                 diffuser.rotation.x = Math.PI / 2;
                 diffuser.position.y = -0.045;
