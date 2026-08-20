@@ -277,22 +277,87 @@ function buildDynamicGraph(config) {
 
 function generateDirections(path, nodes) {
   const steps = [];
-  let prevType = null;
-  for (let i = 0; i < path.length; i++) {
-    const n = nodes[path[i]];
-    if (!n) continue;
+  let prevDir = null; 
+  
+  if (!path || path.length === 0) return steps;
+  
+  const startNode = nodes[path[0]];
+  const endNode = nodes[path[path.length - 1]];
+  
+  let startLabel = startNode.label || 'your location';
+  if (startNode.type === 'stairs') startLabel = `Stairs on Floor ${startNode.floor}`;
+  if (startNode.type === 'entrance') startLabel = `the Entrance`;
+  
+  steps.push(`Start from ${startLabel}.`);
+  
+  let currentDistance = 0;
+  
+  for (let i = 1; i < path.length; i++) {
+    const p1 = nodes[path[i-1]];
+    const p2 = nodes[path[i]];
+    if (!p1 || !p2) continue;
+
+    if (p1.floor !== p2.floor) {
+       if (currentDistance > 1) {
+           steps.push(`Walk straight.`);
+           currentDistance = 0;
+       }
+       steps.push(`Take the stairs to Floor ${p2.floor}.`);
+       prevDir = null;
+       continue;
+    }
     
-    if (n.type === 'entrance') { steps.push('Enter through the Entrance.'); }
-    else if (n.type === 'rack' && i === path.length - 1) { steps.push(`Arrive at ${n.label}, Floor ${n.floor}.`); }
-    else if (n.type === 'stairs') {
-      if (prevType !== 'stairs') steps.push(`Take the stairs to Floor ${n.floor}.`);
+    const dx = p2.x - p1.x;
+    const dz = p2.z - p1.z;
+    const dist = Math.hypot(dx, dz);
+    
+    if (dist < 0.1) continue;
+    
+    const dir = { x: dx / dist, z: dz / dist };
+    
+    if (prevDir) {
+       const dot = prevDir.x * dir.x + prevDir.z * dir.z;
+       const det = prevDir.x * dir.z - prevDir.z * dir.x;
+       
+       let turn = null;
+       if (det > 0.3) turn = "Turn right.";
+       else if (det < -0.3) turn = "Turn left.";
+       else if (dot < -0.5) turn = "Turn around.";
+       
+       if (turn) {
+           steps.push(turn);
+           currentDistance = 0;
+       }
+    } else {
+       steps.push("Head straight.");
     }
-    else if (n.type === 'corridor') {
-      if (prevType !== 'corridor') steps.push('Walk through the aisle.');
-    }
-    prevType = n.type;
+    
+    currentDistance += dist;
+    prevDir = dir;
   }
-  return steps;
+  
+  if (currentDistance > 2) {
+      steps.push("Continue straight.");
+  }
+  
+  if (endNode && endNode.type === 'rack') {
+     steps.push(`Arrive at ${endNode.label}, Floor ${endNode.floor}.`);
+  } else if (endNode) {
+     steps.push(`Arrive at destination.`);
+  }
+  
+  const collapsed = [];
+  for (let s of steps) {
+      if (collapsed.length > 0) {
+          const last = collapsed[collapsed.length - 1];
+          if ((last.includes("straight") && s.includes("straight")) || (last === s)) {
+              continue;
+          }
+      }
+      collapsed.push(s);
+  }
+  
+  return collapsed;
 }
 
 let _cachedWoodMat = null;
