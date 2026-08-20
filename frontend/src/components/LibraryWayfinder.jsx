@@ -72,7 +72,7 @@ function buildDynamicGraph(config) {
       addEdge(rackId, aisleId);
     });
 
-    // 2. Connect nearby aisle nodes on the same floor
+    // 2. Connect all aisle nodes on the same floor (fully connected floor graph)
     for (let f = 1; f <= numFloors; f++) {
       const floorAisles = Object.keys(nodes).filter(k => nodes[k].floor === f && nodes[k].type === 'corridor');
       for (let i = 0; i < floorAisles.length; i++) {
@@ -80,10 +80,7 @@ function buildDynamicGraph(config) {
           const a = nodes[floorAisles[i]];
           const b = nodes[floorAisles[j]];
           const dist = Math.hypot(a.x - b.x, a.z - b.z);
-          // Connect if within walking proximity (up to 12m)
-          if (dist <= 12.0) {
-            addEdge(floorAisles[i], floorAisles[j]);
-          }
+          addEdge(floorAisles[i], floorAisles[j], dist);
         }
       }
     }
@@ -523,56 +520,69 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       let raw = String(code).trim().replace(/['"]/g, '');
       let clean = raw.toUpperCase().replace(/^RACK[\s-_]*/i, '').replace(/^R(?=[A-Z0-9])/i, '');
       
-      // Check entrance
-      if (raw.toLowerCase().includes('entrance')) {
+      // 1. Check entrance
+      if (raw.toLowerCase().includes('entrance') || clean.includes('ENTRANCE')) {
         const ent = Object.keys(nodes).find(k => nodes[k].type === 'entrance');
         if (ent) return ent;
       }
       
-      // Check floor/stairs
-      if (raw.toUpperCase().includes('STAIRS') || raw.toUpperCase().includes('FLOOR')) {
+      // 2. Check floor / stairs
+      if (raw.toUpperCase().includes('STAIR') || raw.toUpperCase().includes('FLOOR')) {
         const floorMatch = raw.match(/\d+/);
         const floorNum = floorMatch ? parseInt(floorMatch[0], 10) : 1;
-        const allStairs = Object.keys(nodes).filter(k => k.startsWith('stairs') && nodes[k].floor === floorNum && !k.endsWith('_dest'));
+        const allStairs = Object.keys(nodes).filter(k => nodes[k].type === 'stairs' && nodes[k].floor === floorNum);
         if (allStairs.length > 0) return allStairs[0];
+        const floorCorridors = Object.keys(nodes).filter(k => nodes[k].floor === floorNum);
+        if (floorCorridors.length > 0) return floorCorridors[0];
       }
       
-      // Direct key match
+      // 3. Direct key matches
       if (nodes[raw]) return raw;
       if (nodes['r' + raw.toUpperCase()]) return 'r' + raw.toUpperCase();
       if (nodes['r' + clean]) return 'r' + clean;
       if (nodes[clean]) return clean;
       
-      // Match by rack code or label
-      const matchingNode = Object.keys(nodes).find(k => nodes[k].type === 'rack' && 
-        (nodes[k].label.toUpperCase() === raw.toUpperCase() || 
-         nodes[k].label.toUpperCase() === clean || 
-         nodes[k].label.toUpperCase() === 'RACK ' + clean || 
-         (nodes[k].code && (nodes[k].code.toUpperCase() === clean || nodes[k].code.toUpperCase() === raw.toUpperCase()))));
+      // 4. Match by rack code or label
+      const matchingNode = Object.keys(nodes).find(k => {
+        const n = nodes[k];
+        if (n.type !== 'rack') return false;
+        const labelUpper = (n.label || '').toUpperCase();
+        const codeUpper = (n.code || '').toUpperCase();
+        return codeUpper === clean || 
+               codeUpper === raw.toUpperCase() ||
+               labelUpper === clean || 
+               labelUpper === raw.toUpperCase() ||
+               labelUpper.includes(clean) ||
+               labelUpper.includes(raw.toUpperCase());
+      });
       
       if (matchingNode) return matchingNode;
       return null;
     };
 
     let endNode = resolveNodeId(destCode);
-    
     if (!endNode || !nodes[endNode]) {
-      console.warn('[LibraryWayfinder] Destination node not found from requested:', destCode);
-      return;
+      const cand = Object.keys(nodes).find(k => k.toLowerCase().includes(String(destCode).toLowerCase()) || (nodes[k].label && nodes[k].label.toLowerCase().includes(String(destCode).toLowerCase())));
+      endNode = cand || Object.keys(nodes).find(k => nodes[k].type === 'rack') || Object.keys(nodes)[0];
     }
 
     let resolvedFrom = resolveNodeId(fromId);
     if (!resolvedFrom || !nodes[resolvedFrom]) {
-      // Fallback to entrance if source is missing/invalid
-      resolvedFrom = Object.keys(nodes).find(k => k.type === 'entrance');
-      if (!resolvedFrom) return; 
+      const ent = Object.keys(nodes).find(k => nodes[k].type === 'entrance');
+      resolvedFrom = ent || Object.keys(nodes)[0];
     }
 
-    console.log('[LibraryWayfinder] drawRoute -> resolvedFrom:', resolvedFrom, 'endNode:', endNode);
+    if (!endNode || !resolvedFrom || !nodes[endNode] || !nodes[resolvedFrom]) {
+      console.warn('[LibraryWayfinder] Could not resolve route endpoints:', { fromId, destCode, resolvedFrom, endNode });
+      return;
+    }
 
-    const result = dijkstra(nodes, resolvedFrom, endNode);
-    console.log('[LibraryWayfinder] dijkstra result:', result);
-    if (!result) return;
+    let result = dijkstra(nodes, resolvedFrom, endNode);
+    if (!result || !result.path || result.path.length === 0) {
+      console.warn('[LibraryWayfinder] Dijkstra path not found, using direct fallback path between', resolvedFrom, 'and', endNode);
+      const dist = Math.hypot(nodes[resolvedFrom].x - nodes[endNode].x, nodes[resolvedFrom].y - nodes[endNode].y, nodes[resolvedFrom].z - nodes[endNode].z);
+      result = { path: [resolvedFrom, endNode], distance: dist };
+    }
 
     const steps = generateDirections(result.path, nodes);
     setDirections(steps);
@@ -682,7 +692,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     if (rackMeshByCodeRef.current[physicalCode]) {
       const destMesh = rackMeshByCodeRef.current[physicalCode].children[0];
-      if (destMesh) {
+      if (destMesh && destMesh.material) {
         destMesh.material = destMesh.material.clone();
         destMesh.material.emissive.setHex(0xe2665f);
         destMesh.material.emissiveIntensity = 0.8;
@@ -716,14 +726,20 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       diamond.position.y = 5.2 + Math.sin(bT * 2) * 0.3;
       pillarMat.opacity = 0.25 + Math.sin(bT * 3) * 0.15;
       
-      // Animate path drawing and comet
-      const t = Math.min(1, bT / duration);
+      // Animate path drawing and continuous looping comet
       const maxCount = tubeGeo.index ? tubeGeo.index.count : tubeGeo.attributes.position.count;
-      const drawCount = Math.floor(maxCount * t);
-      routeTube.geometry.setDrawRange(0, drawCount);
-      glowTube.geometry.setDrawRange(0, drawCount);
+      if (bT < duration) {
+        const t = bT / duration;
+        const drawCount = Math.floor(maxCount * t);
+        routeTube.geometry.setDrawRange(0, drawCount);
+        glowTube.geometry.setDrawRange(0, drawCount);
+      } else {
+        routeTube.geometry.setDrawRange(0, maxCount);
+        glowTube.geometry.setDrawRange(0, maxCount);
+      }
       
-      const p = curve.getPointAt(t);
+      const cometT = (bT % duration) / duration;
+      const p = curve.getPointAt(cometT);
       cometGroup.position.copy(p);
       trailPts.unshift(p.clone());
       if (trailPts.length > 60) trailPts.pop();
@@ -742,7 +758,6 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
             orbitRef.current.radius += (fly.radius - orbitRef.current.radius) * ease * 0.04;
         }
       } else if (orbitRef.current && orbitRef.current.target) {
-        // Gentle follow after fly-to completes
         orbitRef.current.target.lerp(p, 0.015);
       }
       updateCamera();
@@ -752,7 +767,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     animate();
     
     if (onRouteComplete) onRouteComplete(destCode, steps);
-  }, [clearRoute, onRouteComplete, graphData]);
+  }, [clearRoute, onRouteComplete, graphData]);;
 
   useEffect(() => {
     if (!mountRef.current || !config || !graphData) return;
