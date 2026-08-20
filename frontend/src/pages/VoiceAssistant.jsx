@@ -273,11 +273,11 @@ const VoiceAssistant = () => {
     showToast(`Showing route to Rack ${rackCode}`, 'success');
   }, [showToast]);
 
-  const handleRouteComplete = (destination, steps) => {
+  const handleRouteComplete = useCallback((destination, steps) => {
     if (steps && steps.length > 0) {
       setRouteSteps(steps);
     }
-  };
+  }, []);
 
   const handleCloseFullscreenMap = () => {
     setIsMapFullscreen(false);
