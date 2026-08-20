@@ -264,7 +264,7 @@ const VoiceAssistant = () => {
     setMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
     setTimeout(async () => {
       stateManager.setState(State.RETRIEVING);
-      await streamAIResponse(text, history, false);
+      await streamAIResponse(text, history, true); // true = Text Only (No Speech)
     }, 0);
   };
 
