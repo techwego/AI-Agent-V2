@@ -269,14 +269,9 @@ const VoiceAssistant = () => {
   };
 
   const handleRackClick = useCallback((rackCode) => {
-    const text = `Route to Rack ${rackCode}`;
-    const history = [...messagesRef.current];
-    setMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
-    setTimeout(() => {
-      stateManager.setState(State.RETRIEVING);
-      streamAIResponse(text, history, false);
-    }, 0);
-  }, [streamAIResponse]);
+    setRouteTo(rackCode);
+    showToast(`Showing route to Rack ${rackCode}`, 'success');
+  }, [showToast]);
 
   const handleRouteComplete = (destination, steps) => {
     if (steps && steps.length > 0) {
@@ -429,7 +424,7 @@ const VoiceAssistant = () => {
 
       {/* SINGLE UNIFIED 3D WAYFINDER COMPONENT (FULLSCREEN & PANEL DYNAMIC) */}
       <div 
-        className={`transition-all duration-300 ${
+        className={`transition-opacity duration-200 ${
           isMapFullscreen 
             ? 'fixed inset-0 z-50 bg-[#060912] flex flex-col opacity-100 pointer-events-auto' 
             : activeTab === 'map' 
