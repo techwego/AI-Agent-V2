@@ -472,7 +472,7 @@ function makeLabel(text, opts = {}) {
   return sprite;
 }
 
-const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackClick, onRouteComplete, activeFloor = 'both', overrideConfig }, ref) => {
+const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackClick, onRouteComplete, onConfigLoaded, activeFloor = 'both', overrideConfig }, ref) => {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
   const rendererRef = useRef(null);
@@ -522,16 +522,18 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     if (overrideConfig) {
       setConfig(overrideConfig);
       setGraphData(buildDynamicGraph(overrideConfig));
+      if (onConfigLoaded) onConfigLoaded(overrideConfig);
     } else {
       fetch('/api/admin/architecture', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
         .then(res => res.json())
         .then(data => {
            setConfig(data);
            setGraphData(buildDynamicGraph(data));
+           if (onConfigLoaded) onConfigLoaded(data);
         })
         .catch(err => console.error("Failed to fetch layout config", err));
     }
-  }, [overrideConfig]);
+  }, [overrideConfig, onConfigLoaded]);
 
   useImperativeHandle(ref, () => ({
     getDirections: () => directions,

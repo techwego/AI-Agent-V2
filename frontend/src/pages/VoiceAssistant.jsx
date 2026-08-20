@@ -37,6 +37,7 @@ const VoiceAssistant = () => {
   const [activeTab, setActiveTab] = useState('chat'); // 'chat', 'map', or 'search'
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [activeFloor, setActiveFloor] = useState('both');
+  const [totalFloors, setTotalFloors] = useState(2);
   const [routeSteps, setRouteSteps] = useState([]);
   
   const messagesEndRef = useRef(null);
@@ -460,22 +461,17 @@ const VoiceAssistant = () => {
               >
                 All Floors
               </button>
-              <button
-                onClick={() => setActiveFloor('1')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  activeFloor === '1' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                Floor 1
-              </button>
-              <button
-                onClick={() => setActiveFloor('2')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  activeFloor === '2' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                Floor 2
-              </button>
+              {Array.from({ length: totalFloors }).map((_, i) => (
+                <button
+                  key={i+1}
+                  onClick={() => setActiveFloor(String(i+1))}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    activeFloor === String(i+1) ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  Floor {i+1}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -534,6 +530,7 @@ const VoiceAssistant = () => {
             activeFloor={activeFloor}
             onRackClick={handleRackClick}
             onRouteComplete={handleRouteComplete}
+            onConfigLoaded={(c) => setTotalFloors(c.floors || 2)}
           />
 
           {/* Turn-by-Turn Guidance Overlay Card */}
