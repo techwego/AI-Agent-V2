@@ -312,32 +312,33 @@ function createTileMaterial() {
   return _cachedTileMat;
 }
 
-const _signSpriteCache = {};
 function createSignSprite(label) {
-  if (_signSpriteCache[label]) {
-    return _signSpriteCache[label].clone();
-  }
+  const str = String(label || 'Rack');
   const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 64;
+  canvas.width = 512;
+  canvas.height = 128;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#111a2e';
+  ctx.fillStyle = '#0f172a';
   ctx.beginPath();
-  ctx.roundRect(0, 0, 256, 64, 8);
+  ctx.roundRect(0, 0, 512, 128, 16);
   ctx.fill();
-  ctx.strokeStyle = '#f2a93b';
-  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 6;
   ctx.stroke();
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 32px sans-serif';
+
+  let fontSize = 48;
+  if (str.length > 20) fontSize = 28;
+  else if (str.length > 12) fontSize = 36;
+  ctx.font = `bold ${fontSize}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(label, 128, 32);
+  ctx.fillText(str, 256, 64);
+
   const texture = new THREE.CanvasTexture(canvas);
-  const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.35), material);
-  _signSpriteCache[label] = mesh;
-  return mesh.clone();
+  const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.45), material);
+  return mesh;
 }
 
 function makeLabel(text, opts = {}) {

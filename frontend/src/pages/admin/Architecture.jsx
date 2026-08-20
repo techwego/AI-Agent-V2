@@ -184,9 +184,11 @@ const Architecture = () => {
 
           {/* Base Grid Configuration Card */}
           <div className="glass rounded-2xl border border-white/10 p-6 space-y-4 shadow-xl">
-            <div className="flex items-center gap-2 text-white font-bold text-base mb-2">
-              <Sliders size={18} className="text-indigo-400" />
-              <h2>Base Grid Setup</h2>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 text-white font-bold text-base">
+                <Sliders size={18} className="text-indigo-400" />
+                <h2>Base Grid Setup</h2>
+              </div>
             </div>
             
             <div className="space-y-2">
@@ -231,19 +233,68 @@ const Architecture = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 flex justify-between">
-                <span>Shelves per Rack</span> <span className="text-blue-400 font-bold">{config.shelves_per_rack}</span>
-              </label>
-              <input 
-                type="range" 
-                min="1" 
-                max="8" 
-                value={config.shelves_per_rack} 
-                onChange={e => setConfig({...config, shelves_per_rack: parseInt(e.target.value)})} 
-                className="w-full accent-blue-500 cursor-pointer" 
-              />
-            </div>
+            <button
+              onClick={() => {
+                const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                let rackCodeIndex = 0;
+                const colSpacing = 5.2;
+                const rowSpacing = 9.4;
+                const startX = -((config.cols_per_row - 1) * colSpacing) / 2;
+                const startZ = config.rows_per_floor === 1 ? 0 : -((config.rows_per_floor - 1) * rowSpacing) / 2;
+                
+                const newRacks = {};
+                const newPois = [];
+
+                for (let f = 1; f <= config.floors; f++) {
+                  for (let r = 0; r < config.rows_per_floor; r++) {
+                    const rz = startZ + (r * rowSpacing);
+                    const rowLetter = alphabet[rackCodeIndex % alphabet.length];
+                    rackCodeIndex++;
+                    for (let c = 0; c < config.cols_per_row; c++) {
+                      const cx = startX + (c * colSpacing);
+                      const code = rowLetter + (c + 1);
+                      newRacks[code] = {
+                        code,
+                        name: `Rack ${code}`,
+                        floor: f,
+                        x: Math.round(cx * 10) / 10,
+                        z: Math.round(rz * 10) / 10,
+                        rotation: 0
+                      };
+                    }
+                  }
+                  newPois.push({
+                    id: `stairs_f${f}`,
+                    type: 'stairs',
+                    floor: f,
+                    name: `Stairs Floor ${f}`,
+                    x: Math.round(((config.cols_per_row * colSpacing) / 2 + 3) * 10) / 10,
+                    z: 0,
+                    connectsToFloor: f < config.floors ? f + 1 : f - 1,
+                    rotation: 0
+                  });
+                }
+                newPois.push({
+                  id: 'entrance_0',
+                  type: 'entrance',
+                  floor: 1,
+                  name: 'Main Entrance',
+                  x: 0,
+                  z: Math.round((startZ - 5) * 10) / 10,
+                  rotation: 0
+                });
+
+                const regenerated = {
+                  ...config,
+                  custom_layout: { racks: newRacks, pois: newPois }
+                };
+                setConfig(regenerated);
+                handleSave(regenerated);
+              }}
+              className="w-full mt-2 py-2.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/30 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95"
+            >
+              <RefreshCw size={13} /> Apply & Regenerate Grid ({config.rows_per_floor}x{config.cols_per_row})
+            </button>
           </div>
 
         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   X, Save, RotateCw, Trash2, Plus, Move, ZoomIn, ZoomOut, Maximize2, 
-  Grid, MapPin, Layers, DoorOpen, ArrowUpDown, Undo2, Check, AlertCircle, Sparkles
+  Grid, MapPin, Layers, DoorOpen, ArrowUpDown, Undo2, Check, AlertCircle, Sparkles, PlusCircle, MinusCircle
 } from 'lucide-react';
 
 const SNAP_STEP = 1.0; // Snap to 1 meter increments
@@ -12,14 +12,14 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
   // Deep clone initial config
   const [config, setConfig] = useState(() => {
     const cfg = JSON.parse(JSON.stringify(initialConfig || {}));
-    if (!cfg.floors) cfg.floors = 2;
-    if (!cfg.rows_per_floor) cfg.rows_per_floor = 2;
-    if (!cfg.cols_per_row) cfg.cols_per_row = 6;
+    if (!cfg.floors || cfg.floors < 1) cfg.floors = 2;
+    if (!cfg.rows_per_floor || cfg.rows_per_floor < 1) cfg.rows_per_floor = 1;
+    if (!cfg.cols_per_row || cfg.cols_per_row < 1) cfg.cols_per_row = 1;
     if (!cfg.custom_racks) cfg.custom_racks = {};
     if (!cfg.pois) cfg.pois = [];
 
     // Initialize custom_layout if not present
-    if (!cfg.custom_layout || !cfg.custom_layout.racks) {
+    if (!cfg.custom_layout || !cfg.custom_layout.racks || Object.keys(cfg.custom_layout.racks).length === 0) {
       cfg.custom_layout = generateDefaultLayout(cfg);
     }
     return cfg;
@@ -30,6 +30,13 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
   const [selectedId, setSelectedId] = useState(null);
   const [selectedType, setSelectedType] = useState(null); // 'rack' | 'poi'
   
+  // Custom Add Dialog Modal state
+  const [addModalType, setAddModalType] = useState(null); // 'rack' | 'entrance' | 'stairs' | null
+  const [newRackCode, setNewRackCode] = useState('');
+  const [newRackName, setNewRackName] = useState('');
+  const [newPoiName, setNewPoiName] = useState('');
+  const [newStairsDest, setNewStairsDest] = useState(2);
+
   // Pan & Zoom
   const [zoom, setZoom] = useState(18); // Pixels per meter (1m = 18px default)
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -92,7 +99,7 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
       floor: 1,
       name: 'Main Entrance',
       x: 0,
-      z: startZ - 6,
+      z: startZ - 5,
       rotation: 0
     });
 
@@ -228,25 +235,83 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
     setDragOffset({ x: curWorld.x - itemX, z: curWorld.z - itemZ });
   };
 
-  // Add new rack on current floor
-  const handleAddRack = () => {
+  // Add Floor
+  const handleAddNewFloor = () => {
+    const nextFloorNum = config.floors + 1;
+    setConfig(prev => ({
+      ...prev,
+      floors: nextFloorNum
+    }));
+    setActiveFloor(nextFloorNum);
+    setSelectedId(null);
+  };
+
+  // Delete Active Floor
+  const handleDeleteActiveFloor = () => {
+    if (config.floors <= 1) {
+      alert('You must have at least 1 floor.');
+      return;
+    }
+    if (window.confirm(`Delete Floor ${activeFloor} and all its racks/POIs?`)) {
+      setConfig(prev => {
+        const nextRacks = { ...prev.custom_layout.racks };
+        Object.keys(nextRacks).forEach(k => {
+          if (nextRacks[k].floor === activeFloor) {
+            delete nextRacks[k];
+          } else if (nextRacks[k].floor > activeFloor) {
+            nextRacks[k].floor -= 1;
+          }
+        });
+
+        const nextPois = (prev.custom_layout.pois || []).filter(p => p.floor !== activeFloor).map(p => {
+          if (p.floor > activeFloor) {
+            return { ...p, floor: p.floor - 1 };
+          }
+          return p;
+        });
+
+        return {
+          ...prev,
+          floors: prev.floors - 1,
+          custom_layout: {
+            ...prev.custom_layout,
+            racks: nextRacks,
+            pois: nextPois
+          }
+        };
+      });
+      setActiveFloor(Math.max(1, activeFloor - 1));
+      setSelectedId(null);
+    }
+  };
+
+  // Open Add Rack Dialog
+  const openAddRackModal = () => {
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const existingCodes = Object.keys(config.custom_layout.racks || {});
-    let nextCode = 'A1';
+    const existingCodes = Object.keys(config.custom_layout?.racks || {});
+    let candidate = 'A1';
     for (let i = 0; i < alphabet.length; i++) {
       for (let num = 1; num <= 20; num++) {
-        const candidate = alphabet[i] + num;
-        if (!existingCodes.includes(candidate)) {
-          nextCode = candidate;
+        const c = alphabet[i] + num;
+        if (!existingCodes.includes(c)) {
+          candidate = c;
           break;
         }
       }
-      if (nextCode !== 'A1' || !existingCodes.includes('A1')) break;
+      if (candidate !== 'A1' || !existingCodes.includes('A1')) break;
     }
+    setNewRackCode(candidate);
+    setNewRackName(`Rack ${candidate}`);
+    setAddModalType('rack');
+  };
 
+  // Confirm Add Rack
+  const handleConfirmAddRack = () => {
+    const code = newRackCode.trim().toUpperCase() || 'R1';
+    const name = newRackName.trim() || `Rack ${code}`;
     const newRack = {
-      code: nextCode,
-      name: `Rack ${nextCode}`,
+      code,
+      name,
       floor: activeFloor,
       x: applySnap(mousePos.x || 0),
       z: applySnap(mousePos.z || 0),
@@ -255,63 +320,85 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
 
     setConfig(prev => ({
       ...prev,
+      custom_racks: {
+        ...(prev.custom_racks || {}),
+        [code]: name
+      },
       custom_layout: {
-        ...prev.custom_layout,
+        ...(prev.custom_layout || {}),
         racks: {
-          ...prev.custom_layout.racks,
-          [nextCode]: newRack
+          ...(prev.custom_layout?.racks || {}),
+          [code]: newRack
         }
       }
     }));
-    setSelectedId(nextCode);
+    setSelectedId(code);
     setSelectedType('rack');
+    setAddModalType(null);
   };
 
-  // Add new entrance on current floor
-  const handleAddEntrance = () => {
+  // Open Add Entrance Dialog
+  const openAddEntranceModal = () => {
+    setNewPoiName(`Entrance Floor ${activeFloor}`);
+    setAddModalType('entrance');
+  };
+
+  // Confirm Add Entrance
+  const handleConfirmAddEntrance = () => {
+    const name = newPoiName.trim() || `Entrance Floor ${activeFloor}`;
     const newPoi = {
       id: `entrance_${Date.now()}`,
       type: 'entrance',
       floor: activeFloor,
-      name: `Entrance Floor ${activeFloor}`,
+      name,
       x: applySnap(mousePos.x || 0),
-      z: applySnap(mousePos.z || -10),
+      z: applySnap(mousePos.z || -6),
       rotation: 0
     };
 
     setConfig(prev => ({
       ...prev,
       custom_layout: {
-        ...prev.custom_layout,
-        pois: [...(prev.custom_layout.pois || []), newPoi]
+        ...(prev.custom_layout || {}),
+        pois: [...(prev.custom_layout?.pois || []), newPoi]
       }
     }));
     setSelectedId(newPoi.id);
     setSelectedType('poi');
+    setAddModalType(null);
   };
 
-  // Add new stairs on current floor
-  const handleAddStairs = () => {
+  // Open Add Stairs Dialog
+  const openAddStairsModal = () => {
+    setNewPoiName(`Staircase Floor ${activeFloor}`);
+    setNewStairsDest(activeFloor < config.floors ? activeFloor + 1 : Math.max(1, activeFloor - 1));
+    setAddModalType('stairs');
+  };
+
+  // Confirm Add Stairs
+  const handleConfirmAddStairs = () => {
+    const name = newPoiName.trim() || `Staircase Floor ${activeFloor}`;
     const newPoi = {
       id: `stairs_${Date.now()}`,
       type: 'stairs',
       floor: activeFloor,
-      name: `Staircase Floor ${activeFloor}`,
-      x: applySnap(mousePos.x || 10),
+      name,
+      x: applySnap(mousePos.x || 8),
       z: applySnap(mousePos.z || 0),
-      connectsToFloor: activeFloor < config.floors ? activeFloor + 1 : activeFloor - 1,
+      connectsToFloor: parseInt(newStairsDest, 10),
       rotation: 0
     };
 
     setConfig(prev => ({
       ...prev,
       custom_layout: {
-        ...prev.custom_layout,
-        pois: [...(prev.custom_layout.pois || []), newPoi]
+        ...(prev.custom_layout || {}),
+        pois: [...(prev.custom_layout?.pois || []), newPoi]
       }
     }));
     setSelectedId(newPoi.id);
     setSelectedType('poi');
+    setAddModalType(null);
   };
 
   // Rotate selected item
@@ -360,7 +447,7 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
 
   // Auto-arrange to default grid
   const handleAutoArrange = () => {
-    if (window.confirm('Reset this layout to the mathematical default grid arrangement?')) {
+    if (window.confirm('Reset this layout to a clean mathematical grid arrangement?')) {
       const defLayout = generateDefaultLayout(config);
       setConfig(prev => ({
         ...prev,
@@ -372,10 +459,9 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
 
   // Save changes and return
   const handleSaveAndReturn = () => {
-    // Sync custom_racks mapping
     const custom_racks = { ...(config.custom_racks || {}) };
     Object.values(config.custom_layout.racks || {}).forEach(r => {
-      if (r.name && r.name !== `Rack ${r.code}`) {
+      if (r.name) {
         custom_racks[r.code] = r.name;
       }
     });
@@ -389,20 +475,129 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
   };
 
   // Filter items for current floor
-  const floorRacks = Object.values(config.custom_layout.racks || {}).filter(r => r.floor === activeFloor);
-  const floorPois = (config.custom_layout.pois || []).filter(p => p.floor === activeFloor);
+  const floorRacks = Object.values(config.custom_layout?.racks || {}).filter(r => r.floor === activeFloor);
+  const floorPois = (config.custom_layout?.pois || []).filter(p => p.floor === activeFloor);
   const selectedItem = selectedType === 'rack' 
-    ? config.custom_layout.racks[selectedId] 
-    : (config.custom_layout.pois || []).find(p => p.id === selectedId);
+    ? config.custom_layout?.racks?.[selectedId] 
+    : (config.custom_layout?.pois || []).find(p => p.id === selectedId);
 
-  // Slab bounds calculation for drawing floor boundary outline
-  const slabWidth = Math.max(45, (config.cols_per_row * 5.2) + 16);
-  const slabDepth = Math.max(32, (config.rows_per_floor * 9.4) + 14);
+  // Dynamic Slab bounds calculation based on floor elements or rows/cols
+  const rackXs = floorRacks.map(r => Math.abs(r.x));
+  const rackZs = floorRacks.map(r => Math.abs(r.z));
+  const maxX = rackXs.length > 0 ? Math.max(...rackXs) : (config.cols_per_row * 5.2) / 2;
+  const maxZ = rackZs.length > 0 ? Math.max(...rackZs) : (config.rows_per_floor * 9.4) / 2;
+  const slabWidth = Math.max(22, (maxX * 2) + 10);
+  const slabDepth = Math.max(18, (maxZ * 2) + 10);
+
   const slabTopLeft = worldToScreen(-slabWidth / 2, -slabDepth / 2);
   const slabBottomRight = worldToScreen(slabWidth / 2, slabDepth / 2);
 
   return (
     <div className="fixed inset-0 z-50 bg-[#060912] text-white flex flex-col select-none overflow-hidden font-sans">
+      
+      {/* ADD ELEMENT MODAL DIALOG */}
+      {addModalType && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0c1222] border border-white/20 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                {addModalType === 'rack' && <><Plus className="text-blue-400" size={18} /> Add Custom Rack (Floor {activeFloor})</>}
+                {addModalType === 'entrance' && <><DoorOpen className="text-emerald-400" size={18} /> Add Entrance (Floor {activeFloor})</>}
+                {addModalType === 'stairs' && <><ArrowUpDown className="text-amber-400" size={18} /> Add Staircase (Floor {activeFloor})</>}
+              </h3>
+              <button onClick={() => setAddModalType(null)} className="text-gray-400 hover:text-white p-1 rounded-lg">
+                <X size={18} />
+              </button>
+            </div>
+
+            {addModalType === 'rack' && (
+              <div className="space-y-3.5">
+                <div>
+                  <label className="text-xs font-semibold text-gray-400 block mb-1">Rack Code (e.g. A1, B4, C6, Z1)</label>
+                  <input
+                    type="text"
+                    value={newRackCode}
+                    onChange={(e) => setNewRackCode(e.target.value.toUpperCase())}
+                    placeholder="e.g. A1"
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono uppercase focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-400 block mb-1">Rack Name / Category (e.g. Science Fiction, Physics)</label>
+                  <input
+                    type="text"
+                    value={newRackName}
+                    onChange={(e) => setNewRackName(e.target.value)}
+                    placeholder="e.g. Science Fiction"
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {addModalType === 'entrance' && (
+              <div className="space-y-3.5">
+                <div>
+                  <label className="text-xs font-semibold text-gray-400 block mb-1">Entrance Name</label>
+                  <input
+                    type="text"
+                    value={newPoiName}
+                    onChange={(e) => setNewPoiName(e.target.value)}
+                    placeholder="e.g. Main Entrance, North Door"
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {addModalType === 'stairs' && (
+              <div className="space-y-3.5">
+                <div>
+                  <label className="text-xs font-semibold text-gray-400 block mb-1">Staircase Name</label>
+                  <input
+                    type="text"
+                    value={newPoiName}
+                    onChange={(e) => setNewPoiName(e.target.value)}
+                    placeholder="e.g. Main Staircase"
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-400 block mb-1">Connects to Floor Level</label>
+                  <select
+                    value={newStairsDest}
+                    onChange={(e) => setNewStairsDest(e.target.value)}
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500"
+                  >
+                    {[...Array(config.floors)].map((_, i) => (
+                      <option key={i} value={i + 1}>Floor {i + 1}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setAddModalType(null)}
+                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl text-xs font-semibold border border-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (addModalType === 'rack') handleConfirmAddRack();
+                  else if (addModalType === 'entrance') handleConfirmAddEntrance();
+                  else if (addModalType === 'stairs') handleConfirmAddStairs();
+                }}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/30"
+              >
+                Add to Floor Plan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* TOP BAR */}
       <div className="h-16 px-6 bg-[#0c1222]/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between z-20 shrink-0">
@@ -412,8 +607,8 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
             <span className="text-sm font-bold tracking-wide text-blue-200">2D Floor Plan Architect</span>
           </div>
 
-          {/* Floor Tabs */}
-          <div className="flex items-center bg-black/40 p-1 rounded-xl border border-white/10">
+          {/* Floor Switcher Tabs & Floor Management */}
+          <div className="flex items-center bg-black/40 p-1 rounded-xl border border-white/10 gap-1">
             {[...Array(config.floors)].map((_, i) => (
               <button
                 key={i}
@@ -427,10 +622,30 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                 Floor {i + 1}
               </button>
             ))}
+
+            {/* Add New Floor Button */}
+            <button
+              onClick={handleAddNewFloor}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 flex items-center gap-1 transition-all"
+              title="Add New Empty Floor Level"
+            >
+              <PlusCircle size={14} /> Add Floor
+            </button>
+
+            {/* Delete Active Floor Button */}
+            {config.floors > 1 && (
+              <button
+                onClick={handleDeleteActiveFloor}
+                className="px-2 py-1.5 rounded-lg text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all"
+                title={`Delete Floor ${activeFloor}`}
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
           </div>
 
           <span className="text-xs text-gray-400 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
-            {floorRacks.length} Racks · {floorPois.length} POIs
+            {floorRacks.length} Racks · {floorPois.length} POIs on Floor {activeFloor}
           </span>
         </div>
 
@@ -450,7 +665,7 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
           <button
             onClick={handleAutoArrange}
             className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 flex items-center gap-1.5 transition-all"
-            title="Auto-Arrange Racks in Standard Grid"
+            title="Auto-Arrange Racks in Clean Grid"
           >
             <Sparkles size={14} className="text-amber-400" /> Auto-Grid
           </button>
@@ -477,28 +692,28 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
       <div className="flex-1 relative flex overflow-hidden">
         
         {/* LEFT TOOLBAR PALETTE */}
-        <div className="absolute top-4 left-4 z-20 flex flex-col gap-2.5 bg-[#0c1222]/85 backdrop-blur-md p-2.5 rounded-2xl border border-white/10 shadow-2xl">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 pt-1">Add Elements</span>
+        <div className="absolute top-4 left-4 z-20 flex flex-col gap-2.5 bg-[#0c1222]/90 backdrop-blur-md p-3 rounded-2xl border border-white/10 shadow-2xl w-44">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">Add to Floor {activeFloor}</span>
           
           <button
-            onClick={handleAddRack}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 border border-blue-500/30 transition-all shadow-sm active:scale-95"
+            onClick={openAddRackModal}
+            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-500/40 transition-all shadow-sm active:scale-95"
           >
-            <Plus size={15} /> Add Rack
+            <Plus size={15} /> ➕ Add Rack
           </button>
 
           <button
-            onClick={handleAddEntrance}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 transition-all shadow-sm active:scale-95"
+            onClick={openAddEntranceModal}
+            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 transition-all shadow-sm active:scale-95"
           >
-            <DoorOpen size={15} /> Add Entrance
+            <DoorOpen size={15} /> 🚪 Add Entrance
           </button>
 
           <button
-            onClick={handleAddStairs}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 border border-amber-500/30 transition-all shadow-sm active:scale-95"
+            onClick={openAddStairsModal}
+            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/40 transition-all shadow-sm active:scale-95"
           >
-            <ArrowUpDown size={15} /> Add Stairs
+            <ArrowUpDown size={15} /> 🪜 Add Stairs
           </button>
 
           <div className="h-px bg-white/10 my-1" />
@@ -519,7 +734,7 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
         <div className="absolute bottom-4 left-4 z-20 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-[11px] font-mono text-gray-300 shadow-lg pointer-events-none flex items-center gap-3">
           <span>X: <strong className="text-blue-400">{mousePos.x}m</strong></span>
           <span>Z: <strong className="text-purple-400">{mousePos.z}m</strong></span>
-          <span className="text-gray-500">| Drag items to place · Click empty area to pan</span>
+          <span className="text-gray-500">| Drag items to position · Click empty area to pan</span>
         </div>
 
         {/* 2D CANVAS VIEWPORT */}
@@ -569,6 +784,19 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
             </text>
           </svg>
 
+          {/* EMPTY FLOOR GUIDE BANNER */}
+          {floorRacks.length === 0 && floorPois.length === 0 && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-6">
+              <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl p-6 max-w-sm space-y-2">
+                <Layers size={36} className="text-blue-400 mx-auto opacity-70" />
+                <h4 className="font-bold text-white text-base">Floor {activeFloor} is Empty</h4>
+                <p className="text-xs text-gray-400">
+                  Use the left toolbar to add custom <strong>Racks</strong>, <strong>Entrances</strong>, or <strong>Stairs</strong> to this level.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* RACKS ON CURRENT FLOOR */}
           {floorRacks.map(rack => {
             const pos = worldToScreen(rack.x, rack.z);
@@ -578,6 +806,8 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
             const isRotated = (rack.rotation || 0) === 90 || (rack.rotation || 0) === 270;
             const widthPx = (isRotated ? RACK_DEPTH_M : RACK_WIDTH_M) * zoom;
             const depthPx = (isRotated ? RACK_WIDTH_M : RACK_DEPTH_M) * zoom;
+
+            const displayName = rack.name || config.custom_racks?.[rack.code] || `Rack ${rack.code}`;
 
             return (
               <div
@@ -591,23 +821,23 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                   transform: 'translate(-50%, -50%)',
                   zIndex: isSelected || isDragging ? 30 : 10
                 }}
-                className={`absolute rounded-lg flex flex-col items-center justify-center cursor-move transition-shadow ${
+                className={`absolute rounded-lg flex flex-col items-center justify-center cursor-move transition-shadow px-1 ${
                   isSelected 
-                    ? 'bg-gradient-to-br from-amber-600/90 to-amber-800/90 border-2 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.6)] text-white' 
+                    ? 'bg-gradient-to-br from-amber-600/95 to-amber-800/95 border-2 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.6)] text-white' 
                     : 'bg-[#18233a]/90 hover:bg-[#203050]/90 border border-blue-400/40 text-blue-100 shadow-md hover:shadow-blue-500/20'
                 }`}
               >
                 <div className="flex items-center gap-1">
                   <span className="font-extrabold text-xs tracking-wider">Rack {rack.code}</span>
                 </div>
-                {rack.name && rack.name !== `Rack ${rack.code}` && (
-                  <span className="text-[10px] text-gray-300 truncate max-w-[90%] px-1 font-medium">
-                    {rack.name}
+                {displayName && displayName !== `Rack ${rack.code}` && (
+                  <span className="text-[10px] text-amber-300 font-semibold truncate max-w-[95%] text-center">
+                    {displayName}
                   </span>
                 )}
                 
                 {/* Coordinates Indicator */}
-                <span className="text-[9px] text-white/50 font-mono mt-0.5">
+                <span className="text-[8px] text-white/50 font-mono mt-0.5">
                   ({rack.x}, {rack.z})
                 </span>
               </div>
@@ -687,24 +917,33 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                           delete nextRacks[selectedId];
                           nextRacks[newCode] = { ...item, code: newCode };
                           next.custom_layout.racks = nextRacks;
+                          if (next.custom_racks) {
+                            const curName = next.custom_racks[selectedId] || item.name;
+                            delete next.custom_racks[selectedId];
+                            next.custom_racks[newCode] = curName;
+                          }
                           return next;
                         });
                         setSelectedId(newCode);
                       }}
-                      className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white font-mono uppercase focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 block mb-1">Custom Display Name</label>
+                    <label className="text-xs font-semibold text-gray-400 block mb-1">Custom Rack Name / Category</label>
                     <input
                       type="text"
-                      placeholder="e.g. Science Fiction, Reference"
+                      placeholder="e.g. Science Fiction, Reference, History"
                       value={selectedItem.name || ''}
                       onChange={(e) => {
                         const val = e.target.value;
                         setConfig(prev => ({
                           ...prev,
+                          custom_racks: {
+                            ...(prev.custom_racks || {}),
+                            [selectedId]: val
+                          },
                           custom_layout: {
                             ...prev.custom_layout,
                             racks: {
