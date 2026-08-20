@@ -533,7 +533,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         })
         .catch(err => console.error("Failed to fetch layout config", err));
     }
-  }, [overrideConfig, onConfigLoaded]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overrideConfig]);
 
   useImperativeHandle(ref, () => ({
     getDirections: () => directions,
