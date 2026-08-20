@@ -748,15 +748,20 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       pillarMat.opacity = 0.25 + Math.sin(bT * 3) * 0.15;
       
       // Route tube is now drawn entirely at once to guarantee visibility
-      const cometT = (bT % duration) / duration;
-      const p = curve.getPointAt(cometT);
-      cometGroup.position.copy(p);
-      trailPts.unshift(p.clone());
-      if (trailPts.length > 60) trailPts.pop();
-      trail.forEach((m, i) => {
-        const idx = Math.min(trailPts.length - 1, (i + 1) * 4);
-        if (trailPts[idx]) m.position.copy(trailPts[idx]).sub(p);
-      });
+      const cometT = Math.min(1, bT / duration);
+      if (cometT >= 1) {
+          cometGroup.visible = false;
+      } else {
+          cometGroup.visible = true;
+          const p = curve.getPointAt(cometT);
+          cometGroup.position.copy(p);
+          trailPts.unshift(p.clone());
+          if (trailPts.length > 60) trailPts.pop();
+          trail.forEach((m, i) => {
+            const idx = Math.min(trailPts.length - 1, (i + 1) * 4);
+            if (trailPts[idx]) m.position.copy(trailPts[idx]).sub(p);
+          });
+      }
 
       // Camera fly-to animation (only in orbit mode)
       if (cameraModeRef.current !== 'walk') {
