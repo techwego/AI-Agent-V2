@@ -72,17 +72,58 @@ function buildDynamicGraph(config) {
       addEdge(rackId, aisleId);
     });
 
-    // 2. Connect all aisle nodes on the same floor (fully connected floor graph)
+    // 2. Build a collision-free navigable grid for aisles to prevent crossing through racks
     for (let f = 1; f <= numFloors; f++) {
-      const floorAisles = Object.keys(nodes).filter(k => nodes[k].floor === f && nodes[k].type === 'corridor');
-      for (let i = 0; i < floorAisles.length; i++) {
-        for (let j = i + 1; j < floorAisles.length; j++) {
-          const a = nodes[floorAisles[i]];
-          const b = nodes[floorAisles[j]];
-          const dist = Math.hypot(a.x - b.x, a.z - b.z);
-          addEdge(floorAisles[i], floorAisles[j], dist);
+      const GRID_SIZE = 0.5;
+      const gridNodes = {};
+      const MIN_X = -25, MAX_X = 25;
+      const MIN_Z = -25, MAX_Z = 25;
+      
+      for (let x = MIN_X; x <= MAX_X; x += GRID_SIZE) {
+        for (let z = MIN_Z; z <= MAX_Z; z += GRID_SIZE) {
+           let inRack = false;
+           for (const r of Object.values(customRacks).filter(r => (r.floor || 1) === f)) {
+              const dx = x - r.x;
+              const dz = z - r.z;
+              const w = ((r.rotation === 90 || r.rotation === 270) ? 1.1 : 3.3) / 2 + 0.5;
+              const d = ((r.rotation === 90 || r.rotation === 270) ? 3.3 : 1.1) / 2 + 0.5;
+              if (Math.abs(dx) < w && Math.abs(dz) < d) {
+                 inRack = true;
+                 break;
+              }
+           }
+           if (!inRack) {
+              const id = `g_${f}_${Math.round(x*10)}_${Math.round(z*10)}`;
+              addNode(id, x, floorHeights[f-1], z, 'walkway', 'grid', f);
+              gridNodes[`${Math.round(x*10)},${Math.round(z*10)}`] = id;
+           }
         }
       }
+      
+      // Connect adjacent grid nodes
+      for (let x = MIN_X; x <= MAX_X; x += GRID_SIZE) {
+        for (let z = MIN_Z; z <= MAX_Z; z += GRID_SIZE) {
+           const id = gridNodes[`${Math.round(x*10)},${Math.round(z*10)}`];
+           if (id) {
+             const right = gridNodes[`${Math.round((x+GRID_SIZE)*10)},${Math.round(z*10)}`];
+             const down = gridNodes[`${Math.round(x*10)},${Math.round((z+GRID_SIZE)*10)}`];
+             if (right) addEdge(id, right, GRID_SIZE);
+             if (down) addEdge(id, down, GRID_SIZE);
+           }
+        }
+      }
+
+      // Connect each rack's aisle node to the nearest safe grid node
+      const floorAisles = Object.keys(nodes).filter(k => nodes[k].floor === f && nodes[k].type === 'corridor');
+      floorAisles.forEach(aId => {
+         let minDist = Infinity;
+         let nearestGrid = null;
+         for (const gId of Object.values(gridNodes)) {
+            const d = Math.hypot(nodes[gId].x - nodes[aId].x, nodes[gId].z - nodes[aId].z);
+            if (d < minDist) { minDist = d; nearestGrid = gId; }
+         }
+         if (nearestGrid) addEdge(aId, nearestGrid, minDist);
+      });
     }
 
     // 3. Add POIs (entrances, stairs)
@@ -94,15 +135,15 @@ function buildDynamicGraph(config) {
 
       addNode(poiId, poi.x, fy, poi.z, poiLabel, poi.type, f);
 
-      // Connect POI to the closest aisle on this floor
-      const floorAisles = Object.keys(nodes).filter(k => nodes[k].floor === f && nodes[k].type === 'corridor');
-      let closestAisle = null;
+      // Connect POI to the closest safe navmesh grid node on this floor
+      const floorGrids = Object.keys(nodes).filter(k => nodes[k].floor === f && nodes[k].type === 'grid');
+      let closestGrid = null;
       let minD = Infinity;
-      floorAisles.forEach(aId => {
-        const d = Math.hypot(nodes[aId].x - poi.x, nodes[aId].z - poi.z);
-        if (d < minD) { minD = d; closestAisle = aId; }
+      floorGrids.forEach(gId => {
+        const d = Math.hypot(nodes[gId].x - poi.x, nodes[gId].z - poi.z);
+        if (d < minD) { minD = d; closestGrid = gId; }
       });
-      if (closestAisle) addEdge(poiId, closestAisle);
+      if (closestGrid) addEdge(poiId, closestGrid, minD);
 
       // Stairs floor connection
       if (poi.type === 'stairs' && poi.connectsToFloor) {
@@ -112,14 +153,14 @@ function buildDynamicGraph(config) {
         addNode(destId, poi.x, destY, poi.z, 'Stairs Floor ' + destF, 'stairs', destF);
         addEdge(poiId, destId, 9);
 
-        const destAisles = Object.keys(nodes).filter(k => nodes[k].floor === destF && nodes[k].type === 'corridor');
-        let closestDestAisle = null;
+        const destGrids = Object.keys(nodes).filter(k => nodes[k].floor === destF && nodes[k].type === 'grid');
+        let closestDestGrid = null;
         let minDestD = Infinity;
-        destAisles.forEach(aId => {
-          const d = Math.hypot(nodes[aId].x - poi.x, nodes[aId].z - poi.z);
-          if (d < minDestD) { minDestD = d; closestDestAisle = aId; }
+        destGrids.forEach(gId => {
+          const d = Math.hypot(nodes[gId].x - poi.x, nodes[gId].z - poi.z);
+          if (d < minDestD) { minDestD = d; closestDestGrid = gId; }
         });
-        if (closestDestAisle) addEdge(destId, closestDestAisle);
+        if (closestDestGrid) addEdge(destId, closestDestGrid, minDestD);
       }
     });
 
