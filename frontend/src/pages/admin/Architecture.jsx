@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Save, RefreshCw, Plus, Trash2, MapPin, Tag, LayoutTemplate, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Layers, Save, RefreshCw, LayoutTemplate, CheckCircle2, Sliders, Box, Info } from 'lucide-react';
 import LibraryWayfinder from '../../components/LibraryWayfinder';
 import FloorPlanEditor2D from '../../components/admin/FloorPlanEditor2D';
 import { getArchitecture, updateArchitecture } from '../../api/client';
@@ -19,18 +19,6 @@ const Architecture = () => {
   const [message, setMessage] = useState('');
   const [show2DEditor, setShow2DEditor] = useState(false);
 
-  // POI Form state
-  const [poiType, setPoiType] = useState('entrance');
-  const [poiFloor, setPoiFloor] = useState(1);
-  const [poiAnchor, setPoiAnchor] = useState('A1');
-  const [poiOffset, setPoiOffset] = useState('left');
-  const [poiConnectsTo, setPoiConnectsTo] = useState(2);
-
-  // Custom Rack Form state
-  const [customRackCode, setCustomRackCode] = useState('A1');
-  const [customRackName, setCustomRackName] = useState('');
-  const [editMode, setEditMode] = useState(false);
-
   // We use this to force Wayfinder to re-render and re-fetch from API
   const [mapKey, setMapKey] = useState(0);
 
@@ -43,9 +31,9 @@ const Architecture = () => {
     try {
       const response = await getArchitecture();
       const data = response.data;
-      if(!data.pois) data.pois = [];
-      if(!data.custom_racks) data.custom_racks = {};
-      if(!data.custom_layout) data.custom_layout = {};
+      if (!data.pois) data.pois = [];
+      if (!data.custom_racks) data.custom_racks = {};
+      if (!data.custom_layout) data.custom_layout = {};
       setConfig(data);
     } catch (error) {
       console.error('Failed to fetch architecture config:', error);
@@ -87,74 +75,13 @@ const Architecture = () => {
     await handleSave(newConfig);
   };
 
-  const handleAddPoi = () => {
-    const newPoi = {
-      type: poiType,
-      floor: parseInt(poiFloor),
-      anchorRack: poiAnchor,
-      offset: poiOffset
-    };
-    if (poiType === 'stairs') {
-       newPoi.connectsToFloor = parseInt(poiConnectsTo);
-    }
-    setConfig({ ...config, pois: [...config.pois, newPoi] });
-  };
-
-  const handleRemovePoi = (index) => {
-    const newPois = [...config.pois];
-    newPois.splice(index, 1);
-    setConfig({ ...config, pois: newPois });
-  };
-
-  const handleAddCustomRack = () => {
-    if (!customRackName.trim() || !customRackCode.trim()) return;
-    setConfig({
-      ...config,
-      custom_racks: {
-        ...config.custom_racks,
-        [customRackCode.toUpperCase()]: customRackName.trim()
-      }
-    });
-    setCustomRackName('');
-  };
-
-  const handleRemoveCustomRack = (code) => {
-    const newCustomRacks = { ...config.custom_racks };
-    delete newCustomRacks[code];
-    setConfig({ ...config, custom_racks: newCustomRacks });
-  };
-
-  const handleMapRackClick = (code) => {
-    if (!editMode) return;
-    const currentName = config.custom_racks[code] || '';
-    const newName = window.prompt(`Enter custom name for Rack ${code}:\n(Leave blank to reset to default)`, currentName);
-    if (newName !== null) {
-      if (newName.trim() === '') {
-        handleRemoveCustomRack(code);
-      } else {
-        setConfig(prev => ({
-          ...prev,
-          custom_racks: {
-            ...prev.custom_racks,
-            [code]: newName.trim()
-          }
-        }));
-      }
-    }
-  };
-
-  const generatedRacks = [];
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  let codeIndex = 0;
-  for(let f=0; f<config.floors; f++) {
-    for(let r=0; r<config.rows_per_floor; r++) {
-      const rowLetter = alphabet[codeIndex % alphabet.length];
-      codeIndex++;
-      for(let c=0; c<config.cols_per_row; c++) {
-        generatedRacks.push(rowLetter + (c+1));
-      }
-    }
-  }
+  const rackCount = config.custom_layout?.racks 
+    ? Object.keys(config.custom_layout.racks).length 
+    : (config.floors * config.rows_per_floor * config.cols_per_row);
+    
+  const poiCount = config.custom_layout?.pois 
+    ? config.custom_layout.pois.length 
+    : (config.pois?.length || config.floors + 1);
 
   if (loading) return <div className="p-8 text-gray-400">Loading Enterprise Layout...</div>;
 
@@ -172,211 +99,165 @@ const Architecture = () => {
       {/* HEADER SECTION */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center border border-blue-500/30 shadow-lg shadow-blue-500/10">
             <Layers className="text-blue-400" size={24} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Enterprise Architecture</h1>
-            <p className="text-sm text-gray-400">Configure Library Floor Plans, Racks & Wayfinding POIs</p>
+            <h1 className="text-2xl font-bold text-white">Library Architecture</h1>
+            <p className="text-sm text-gray-400">Design custom 2D floor plans with live 3D wayfinding synchronization</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {message && (
-            <span className={`text-sm px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${message.includes('success') ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300' : 'bg-red-500/20 border-red-500/30 text-red-300'}`}>
-              <CheckCircle2 size={15} /> {message}
+            <span className={`text-xs font-semibold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${message.includes('success') ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300' : 'bg-red-500/20 border-red-500/30 text-red-300'}`}>
+              <CheckCircle2 size={14} /> {message}
             </span>
           )}
 
-          {/* OPEN 2D FULLSCREEN EDITOR BUTTON */}
+          {/* SINGLE CONSOLIDATED 2D VISUAL EDITOR BUTTON */}
           <button
             onClick={() => setShow2DEditor(true)}
-            className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_25px_rgba(59,130,246,0.6)] transition-all flex items-center gap-2 border border-blue-400/40 active:scale-95"
+            className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 shadow-[0_0_25px_rgba(79,70,229,0.45)] hover:shadow-[0_0_35px_rgba(79,70,229,0.7)] transition-all flex items-center gap-2 border border-indigo-400/40 active:scale-95"
           >
-            <LayoutTemplate size={16} /> 📐 Edit in 2D Fullscreen Mode
+            <LayoutTemplate size={16} className="text-indigo-200" />
+            <span>📐 Edit Floor Plan in 2D Mode</span>
           </button>
 
-          <button onClick={fetchConfig} className="px-4 py-2 text-gray-400 bg-gray-900/50 hover:bg-gray-800 hover:text-white rounded-xl transition-colors text-xs font-medium border border-gray-700 flex items-center gap-2">
+          <button 
+            onClick={fetchConfig} 
+            className="px-4 py-2 text-gray-400 bg-gray-900/50 hover:bg-gray-800 hover:text-white rounded-xl transition-colors text-xs font-medium border border-gray-700 flex items-center gap-2"
+          >
             <RefreshCw size={14} /> Discard Changes
           </button>
           
-          <button onClick={() => handleSave()} disabled={saving} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all font-semibold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/30">
-            <Save size={15} /> {saving ? 'Saving...' : 'Save & Apply 3D Map'}
+          <button 
+            onClick={() => handleSave()} 
+            disabled={saving} 
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all font-semibold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/30 active:scale-95 disabled:opacity-50"
+          >
+            <Save size={15} /> {saving ? 'Saving...' : 'Save & Apply Map'}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-6 flex-1 min-h-0">
         
-        {/* Left Col: Config */}
+        {/* Left Column: Grid Parameters & Spatial Summary */}
         <div className="col-span-1 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar pb-10">
           
-          {/* Quick 2D Banner */}
-          <div className="bg-gradient-to-br from-blue-900/40 via-indigo-900/20 to-purple-900/40 rounded-2xl border border-blue-500/30 p-5 space-y-2 shadow-lg">
-            <div className="flex items-center gap-2 text-blue-300 font-bold text-sm">
-              <Sparkles size={16} className="text-amber-400" />
-              <span>Interactive 2D Floor Plan Editor</span>
+          {/* Spatial Architecture Summary Card */}
+          <div className="glass rounded-2xl border border-white/10 p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-2 text-white font-bold text-base">
+              <Box size={18} className="text-blue-400" />
+              <h2>Spatial Layout Overview</h2>
             </div>
-            <p className="text-xs text-gray-300 leading-relaxed">
-              Drag & drop racks, entrances, and stairs on a visual 2D millimeter-accurate grid to customize your library floor plan.
-            </p>
-            <button
-              onClick={() => setShow2DEditor(true)}
-              className="w-full mt-2 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
-            >
-              <LayoutTemplate size={15} /> Open 2D Floor Plan Editor
-            </button>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/5 rounded-xl p-3.5 border border-white/5">
+                <span className="text-xs text-gray-400 block mb-1">Total Floors</span>
+                <span className="text-xl font-bold text-blue-400">{config.floors}</span>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3.5 border border-white/5">
+                <span className="text-xs text-gray-400 block mb-1">Configured Racks</span>
+                <span className="text-xl font-bold text-emerald-400">{rackCount}</span>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3.5 border border-white/5">
+                <span className="text-xs text-gray-400 block mb-1">Wayfinding POIs</span>
+                <span className="text-xl font-bold text-amber-400">{poiCount}</span>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3.5 border border-white/5">
+                <span className="text-xs text-gray-400 block mb-1">Custom Coordinates</span>
+                <span className="text-sm font-bold text-purple-400 mt-1 block">
+                  {config.custom_layout?.racks ? 'Active (2D)' : 'Standard Grid'}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-blue-200/90 leading-relaxed">
+              <Info size={16} className="text-blue-400 shrink-0 mt-0.5" />
+              <span>
+                To drag racks, entrances, or staircases to custom physical positions or rename racks, click <strong>"Edit Floor Plan in 2D Mode"</strong> above.
+              </span>
+            </div>
           </div>
 
-          <div className="glass rounded-2xl border border-gray-800 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-white mb-4">Base Grid Configuration</h2>
+          {/* Base Grid Configuration Card */}
+          <div className="glass rounded-2xl border border-white/10 p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-2 text-white font-bold text-base mb-2">
+              <Sliders size={18} className="text-indigo-400" />
+              <h2>Base Grid Setup</h2>
+            </div>
             
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-400 flex justify-between">
-                <span>Floors</span> <span className="text-blue-400">{config.floors}</span>
+                <span>Floors</span> <span className="text-blue-400 font-bold">{config.floors}</span>
               </label>
-              <input type="range" min="1" max="10" value={config.floors} onChange={e => setConfig({...config, floors: parseInt(e.target.value)})} className="w-full accent-blue-500" />
+              <input 
+                type="range" 
+                min="1" 
+                max="10" 
+                value={config.floors} 
+                onChange={e => setConfig({...config, floors: parseInt(e.target.value)})} 
+                className="w-full accent-blue-500 cursor-pointer" 
+              />
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-400 flex justify-between">
-                <span>Rows per Floor</span> <span className="text-blue-400">{config.rows_per_floor}</span>
+                <span>Rows per Floor</span> <span className="text-blue-400 font-bold">{config.rows_per_floor}</span>
               </label>
-              <input type="range" min="1" max="10" value={config.rows_per_floor} onChange={e => setConfig({...config, rows_per_floor: parseInt(e.target.value)})} className="w-full accent-blue-500" />
+              <input 
+                type="range" 
+                min="1" 
+                max="10" 
+                value={config.rows_per_floor} 
+                onChange={e => setConfig({...config, rows_per_floor: parseInt(e.target.value)})} 
+                className="w-full accent-blue-500 cursor-pointer" 
+              />
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-400 flex justify-between">
-                <span>Columns per Row</span> <span className="text-blue-400">{config.cols_per_row}</span>
+                <span>Columns per Row</span> <span className="text-blue-400 font-bold">{config.cols_per_row}</span>
               </label>
-              <input type="range" min="1" max="20" value={config.cols_per_row} onChange={e => setConfig({...config, cols_per_row: parseInt(e.target.value)})} className="w-full accent-blue-500" />
+              <input 
+                type="range" 
+                min="1" 
+                max="20" 
+                value={config.cols_per_row} 
+                onChange={e => setConfig({...config, cols_per_row: parseInt(e.target.value)})} 
+                className="w-full accent-blue-500 cursor-pointer" 
+              />
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-400 flex justify-between">
-                <span>Shelves per Rack</span> <span className="text-blue-400">{config.shelves_per_rack}</span>
+                <span>Shelves per Rack</span> <span className="text-blue-400 font-bold">{config.shelves_per_rack}</span>
               </label>
-              <input type="range" min="1" max="8" value={config.shelves_per_rack} onChange={e => setConfig({...config, shelves_per_rack: parseInt(e.target.value)})} className="w-full accent-blue-500" />
+              <input 
+                type="range" 
+                min="1" 
+                max="8" 
+                value={config.shelves_per_rack} 
+                onChange={e => setConfig({...config, shelves_per_rack: parseInt(e.target.value)})} 
+                className="w-full accent-blue-500 cursor-pointer" 
+              />
             </div>
           </div>
 
-          <div className="glass rounded-2xl border border-gray-800 p-6 space-y-4">
-             <h2 className="text-lg font-semibold text-white mb-4">Rack Labels</h2>
-             <p className="text-xs text-gray-400 mb-2">Assign custom names to racks (e.g. Science Fiction). This will be displayed on the map.</p>
-             
-             <div className="space-y-3 bg-gray-900/50 p-4 rounded-xl border border-gray-700">
-                <div className="flex gap-2">
-                  <select value={customRackCode} onChange={e => setCustomRackCode(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2">
-                    {generatedRacks.map(rack => <option key={rack} value={rack}>Rack {rack}</option>)}
-                  </select>
-                </div>
-                <div className="flex gap-2">
-                  <input type="text" placeholder="Custom Name (e.g. Sci-Fi)" value={customRackName} onChange={e => setCustomRackName(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2" />
-                </div>
-                <button onClick={handleAddCustomRack} className="w-full bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 rounded-lg py-2 text-sm flex items-center justify-center gap-2">
-                  <Plus size={16} /> Assign Name
-                </button>
-             </div>
-
-             <div className="space-y-2 mt-4">
-                {Object.entries(config.custom_racks).map(([code, name]) => (
-                  <div key={code} className="flex items-center justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-800">
-                    <div className="flex items-center gap-3">
-                      <Tag size={16} className="text-blue-400" />
-                      <div className="text-sm">
-                        <p className="text-white font-medium">{name}</p>
-                        <p className="text-gray-400 text-xs">Rack {code}</p>
-                      </div>
-                    </div>
-                    <button onClick={() => handleRemoveCustomRack(code)} className="text-red-400 hover:text-red-300 p-1">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-                {Object.keys(config.custom_racks).length === 0 && <p className="text-xs text-gray-500 italic text-center">No custom labels.</p>}
-             </div>
-          </div>
-
-          <div className="glass rounded-2xl border border-gray-800 p-6 space-y-4">
-             <h2 className="text-lg font-semibold text-white mb-4">Points of Interest</h2>
-             
-             <div className="space-y-3 bg-gray-900/50 p-4 rounded-xl border border-gray-700">
-                <div className="flex gap-2">
-                  <select value={poiType} onChange={e => setPoiType(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2">
-                    <option value="entrance">Entrance</option>
-                    <option value="stairs">Stairs</option>
-                  </select>
-                  <select value={poiFloor} onChange={e => setPoiFloor(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2">
-                    {[...Array(config.floors)].map((_, i) => <option key={i} value={i+1}>Floor {i+1}</option>)}
-                  </select>
-                </div>
-
-                <div className="flex gap-2">
-                  <input type="text" placeholder="Anchor Rack (e.g. A1)" value={poiAnchor} onChange={e => setPoiAnchor(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2 uppercase" />
-                  <select value={poiOffset} onChange={e => setPoiOffset(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2">
-                    <option value="left">Left</option>
-                    <option value="right">Right</option>
-                    <option value="front">Front</option>
-                    <option value="back">Back</option>
-                  </select>
-                </div>
-
-                {poiType === 'stairs' && (
-                  <div className="flex gap-2 items-center">
-                    <span className="text-sm text-gray-400">Connects to:</span>
-                    <select value={poiConnectsTo} onChange={e => setPoiConnectsTo(e.target.value)} className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg flex-1 p-2">
-                      {[...Array(config.floors)].map((_, i) => <option key={i} value={i+1}>Floor {i+1}</option>)}
-                    </select>
-                  </div>
-                )}
-
-                <button onClick={handleAddPoi} className="w-full bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 rounded-lg py-2 text-sm flex items-center justify-center gap-2">
-                  <Plus size={16} /> Add POI
-                </button>
-             </div>
-
-             <div className="space-y-2 mt-4">
-                {config.pois.map((poi, idx) => (
-                  <div key={idx} className="flex items-center justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-800">
-                    <div className="flex items-center gap-3">
-                      <MapPin size={16} className={poi.type === 'entrance' ? 'text-red-400' : 'text-orange-400'} />
-                      <div className="text-sm">
-                        <p className="text-white font-medium capitalize">{poi.type} (Floor {poi.floor})</p>
-                        <p className="text-gray-400 text-xs">{poi.offset} of {poi.anchorRack}</p>
-                      </div>
-                    </div>
-                    <button onClick={() => handleRemovePoi(idx)} className="text-red-400 hover:text-red-300 p-1">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-                {config.pois.length === 0 && <p className="text-xs text-gray-500 italic text-center">No custom POIs added.</p>}
-             </div>
-          </div>
         </div>
 
-        {/* Right Col: Live 3D Map Preview */}
-        <div className="col-span-2 glass rounded-2xl border border-gray-800 overflow-hidden relative shadow-inner">
+        {/* Right Column: Immersive Full-Height Live 3D Map Preview */}
+        <div className="col-span-2 glass rounded-2xl border border-white/10 overflow-hidden relative shadow-2xl">
            <div className="absolute top-4 left-4 z-10 flex items-center gap-3">
-             <div className="bg-gray-950/80 backdrop-blur border border-gray-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-lg flex items-center gap-2">
-               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Live 3D Architecture Preview
+             <div className="bg-gray-950/85 backdrop-blur-md border border-white/15 text-white text-xs px-3.5 py-2 rounded-xl font-semibold shadow-lg flex items-center gap-2">
+               <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div> Live 3D Architecture View
              </div>
-             <button 
-                onClick={() => setShow2DEditor(true)}
-                className="text-xs px-3 py-1.5 rounded-lg font-bold shadow-lg flex items-center gap-1.5 transition-all bg-blue-600/90 hover:bg-blue-500 text-white border border-blue-400/50 shadow-blue-500/20"
-              >
-                <LayoutTemplate size={13} /> 2D Visual Editor
-             </button>
-             <button 
-                onClick={() => setEditMode(!editMode)}
-                className={`text-xs px-3 py-1.5 rounded-lg font-medium shadow-lg flex items-center gap-2 transition-colors border ${editMode ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-gray-950/80 backdrop-blur border-gray-800 text-gray-400 hover:text-white'}`}
-              >
-                {editMode ? 'Disable Click-to-Edit' : 'Enable 3D Click-to-Edit'}
-             </button>
            </div>
            
            <div className="h-full w-full bg-[#05080f]">
-              <LibraryWayfinder key={mapKey} routeFrom={null} routeTo={null} onRackClick={handleMapRackClick} overrideConfig={config} />
+              <LibraryWayfinder key={mapKey} routeFrom={null} routeTo={null} overrideConfig={config} />
            </div>
         </div>
 
@@ -386,5 +267,3 @@ const Architecture = () => {
 };
 
 export default Architecture;
-
-
