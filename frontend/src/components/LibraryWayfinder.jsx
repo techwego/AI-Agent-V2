@@ -373,7 +373,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   const cameraRef = useRef(null);
   const minimapCameraRef = useRef(null);
   const clockRef = useRef(new THREE.Clock());
-  const orbitRef = useRef({ theta: Math.PI * 0.28, phi: 1.02, radius: 46, target: new THREE.Vector3(0, 4, 0), minPhi: 0.15, maxPhi: 1.55, minR: 4, maxR: 100 });
+  const orbitRef = useRef({ theta: Math.PI * 0.28, phi: 1.02, radius: 46, target: new THREE.Vector3(0, 4, 0), minPhi: 0.15, maxPhi: 1.55, minR: 2, maxR: 100 });
   const rackMeshByCodeRef = useRef({});
   const rackGroupsRef = useRef({});
   const routeObjsRef = useRef({ ribbon: null, beacon: null, animId: null, userMarker: null });
@@ -606,7 +606,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const tubeGeo = new THREE.TubeGeometry(curve, Math.min(96, Math.max(32, result.path.length * 8)), 0.16, 6, false);
     const tubeMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.92, depthTest: false });
     const routeTube = new THREE.Mesh(tubeGeo, tubeMat);
-    routeTube.geometry.setDrawRange(0, 0);
+    routeTube.geometry.setDrawRange(0, Infinity);
     routeTube.renderOrder = 999;
     scene.add(routeTube);
     routeObjsRef.current.tube = routeTube;
@@ -615,7 +615,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const glowGeo = new THREE.TubeGeometry(curve, Math.min(96, Math.max(32, result.path.length * 8)), 0.32, 6, false);
     const glowMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.18, depthTest: false });
     const glowTube = new THREE.Mesh(glowGeo, glowMat);
-    glowTube.geometry.setDrawRange(0, 0);
+    glowTube.geometry.setDrawRange(0, Infinity);
     glowTube.renderOrder = 998;
     scene.add(glowTube);
     routeObjsRef.current.glow = glowTube;
@@ -726,18 +726,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       diamond.position.y = 5.2 + Math.sin(bT * 2) * 0.3;
       pillarMat.opacity = 0.25 + Math.sin(bT * 3) * 0.15;
       
-      // Animate path drawing and continuous looping comet
-      const maxCount = tubeGeo.index ? tubeGeo.index.count : tubeGeo.attributes.position.count;
-      if (bT < duration) {
-        const t = bT / duration;
-        const drawCount = Math.floor(maxCount * t);
-        routeTube.geometry.setDrawRange(0, drawCount);
-        glowTube.geometry.setDrawRange(0, drawCount);
-      } else {
-        routeTube.geometry.setDrawRange(0, maxCount);
-        glowTube.geometry.setDrawRange(0, maxCount);
-      }
-      
+      // Route tube is now drawn entirely at once to guarantee visibility
       const cometT = (bT % duration) / duration;
       const p = curve.getPointAt(cometT);
       cometGroup.position.copy(p);
@@ -787,7 +776,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     scene.fog = new THREE.FogExp2(0x0a0e1a, 0.008);
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 500);
+    const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.05, 500);
     cameraRef.current = camera;
     
     const minimapCamera = new THREE.OrthographicCamera(-20, 20, 20, -20, 1, 100);
@@ -831,12 +820,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         floorLabel.position.set(-(slabWidth/2) + 2, fy + 2.2, -(slabDepth/2) + 0.5);
         rackGroupsRef.current[f+1].add(floorLabel);
         
-        const ceilGeo = new THREE.PlaneGeometry(slabWidth, slabDepth);
-        const ceilMat = new THREE.MeshBasicMaterial({ color: 0x1a2030, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
-        const ceil = new THREE.Mesh(ceilGeo, ceilMat);
-        ceil.rotation.x = Math.PI / 2;
-        ceil.position.set(0, fy + 4.0, 0);
-        rackGroupsRef.current[f+1].add(ceil);
+        // Ceiling mesh removed to improve WebGL alpha-sorting performance
         
         for(let r=0; r<config.rows_per_floor; r++) {
             const rz = rowZOffsets[r];
@@ -1025,33 +1009,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         }
     }
 
-    const topFloorY = floorHeights.length > 0 ? floorHeights[floorHeights.length - 1] : 0;
-    const envelopeHeight = topFloorY + 6;
-    // Removed expensive transmission (which forces multi-pass rendering) for a huge performance boost
-    const glassMat = new THREE.MeshStandardMaterial({ color: 0x9fd7ff, transparent: true, opacity: 0.15, side: THREE.DoubleSide, roughness: 0.1, metalness: 0.8 });
-    
-    const wGeo = new THREE.BoxGeometry(slabWidth + 2, envelopeHeight, 0.1);
-    const frontWall = new THREE.Mesh(wGeo, glassMat);
-    frontWall.position.set(0, envelopeHeight/2 - 0.5, slabDepth/2 + 1);
-    scene.add(frontWall);
-    const backWall = new THREE.Mesh(wGeo, glassMat);
-    backWall.position.set(0, envelopeHeight/2 - 0.5, -(slabDepth/2 + 1));
-    scene.add(backWall);
-    const sideGeo = new THREE.BoxGeometry(0.1, envelopeHeight, slabDepth + 2);
-    const leftWall = new THREE.Mesh(sideGeo, glassMat);
-    leftWall.position.set(-(slabWidth/2 + 1), envelopeHeight/2 - 0.5, 0);
-    scene.add(leftWall);
-    const rightWall = new THREE.Mesh(sideGeo, glassMat);
-    rightWall.position.set(slabWidth/2 + 1, envelopeHeight/2 - 0.5, 0);
-    scene.add(rightWall);
-
-    const frameMat = new THREE.LineBasicMaterial({ color: 0x888888 });
-    const addFrame = (mesh, geo) => {
-      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), frameMat);
-      edges.position.copy(mesh.position);
-      scene.add(edges);
-    };
-    addFrame(frontWall, wGeo); addFrame(backWall, wGeo); addFrame(leftWall, sideGeo); addFrame(rightWall, sideGeo);
+    // Removed outer glass walls and transmission meshes for huge performance boost
 
     if (graphData && graphData.nodes) {
        Object.keys(graphData.nodes).forEach(k => {
@@ -1156,7 +1114,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     const onClick = (e) => {
-      if (Math.abs(e.clientX - drag.startX) > 4 || Math.abs(e.clientY - drag.startY) > 4) return;
+      if (Math.abs(e.clientX - drag.startX) > 15 || Math.abs(e.clientY - drag.startY) > 15) return;
       if (cameraModeRef.current === 'walk') return;
       const rect = container.getBoundingClientRect();
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
