@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, Send, Sparkles, Search, Mic, Map, X, MessageSquare } from 'lucide-react';
+import { 
+  LogOut, User, Send, Sparkles, Search, Mic, Map, X, MessageSquare, 
+  Maximize2, Minimize2, Compass, Layers, Navigation, ArrowRight, CornerDownRight 
+} from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import LibraryWayfinder from '../components/LibraryWayfinder';
 import UniversityHeader from '../components/UniversityHeader';
@@ -17,8 +20,6 @@ import stateManager, { State } from '../voice/ConversationStateManager';
 import ttsManager from '../voice/SpeechSynthesisManager';
 import sttManager from '../voice/SpeechRecognitionManager';
 
-// INTRO inlined to fix Vite minifier bug
-
 const VoiceAssistant = () => {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
@@ -33,6 +34,9 @@ const VoiceAssistant = () => {
   const [routeTo, setRouteTo] = useState(null);
   const [hasIntroduced, setHasIntroduced] = useState(false);
   const [activeTab, setActiveTab] = useState('chat'); // 'chat', 'map', or 'search'
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [activeFloor, setActiveFloor] = useState('both');
+  const [routeSteps, setRouteSteps] = useState([]);
   
   const messagesEndRef = useRef(null);
   const messagesRef = useRef(messages);
@@ -41,10 +45,9 @@ const VoiceAssistant = () => {
   }, [messages]);
   const analyserRef = useRef(null);
   const wayfindRef = useRef(null);
+  const fullscreenWayfindRef = useRef(null);
   const inputRef = useRef(null);
   const rightPanelRef = useRef(null);
-
-  // 3D Parallax effect removed for scrolling performance
 
   useEffect(() => {
     const unsubscribe = stateManager.subscribe((newState) => {
@@ -84,12 +87,22 @@ const VoiceAssistant = () => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
-      if (e.code === 'Space') { e.preventDefault(); handleOrbClick(); }
-      else if (e.code === 'Escape') { e.preventDefault(); handleInterrupt(); }
+      if (e.code === 'Space') { 
+        e.preventDefault(); 
+        handleOrbClick(); 
+      }
+      else if (e.code === 'Escape') { 
+        e.preventDefault(); 
+        if (isMapFullscreen) {
+          setIsMapFullscreen(false);
+        } else {
+          handleInterrupt();
+        }
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [conversationState, hasIntroduced]);
+  }, [conversationState, hasIntroduced, isMapFullscreen]);
 
   const handleLogout = () => {
     ttsManager.cancel();
@@ -219,8 +232,9 @@ const VoiceAssistant = () => {
         });
         
         if (isValid) {
-          showToast(`Routing to Rack ${currentRackCode}`, 'success');
-          setActiveTab('map'); // Automatically show map on route
+          showToast(`Opening Fullscreen Navigation to Rack ${currentRackCode}`, 'success');
+          setActiveTab('map');
+          setIsMapFullscreen(true); // Automatically open in fullscreen mode for better interaction!
         }
       }
 
@@ -246,7 +260,7 @@ const VoiceAssistant = () => {
       showToast('Backend Error. Check terminal logs.', 'error');
       stateManager.reset();
     }
-  }, []);
+  }, [showToast]);
 
   const handleTextSend = async (e) => {
     if (e) e.preventDefault();
@@ -274,14 +288,132 @@ const VoiceAssistant = () => {
     }, 0);
   }, [streamAIResponse]);
 
-  const isActive = conversationState !== State.IDLE;
-  const isListeningState = conversationState === State.LISTENING;
+  const handleRouteComplete = (destination, steps) => {
+    if (steps && steps.length > 0) {
+      setRouteSteps(steps);
+    }
+  };
+
+  const handleCloseFullscreenMap = () => {
+    setIsMapFullscreen(false);
+    setActiveTab('chat');
+  };
 
   return (
     <div className="flex flex-col h-screen bg-[#05070a] text-white overflow-hidden relative selection:bg-purple-500/30">
       <AnimatedBackground />
       
-      {/* Header */}
+      {/* IMMERSIVE FULLSCREEN 3D MAP OVERLAY */}
+      {isMapFullscreen && (
+        <div className="fixed inset-0 z-50 bg-[#060912] flex flex-col animate-in fade-in duration-200">
+          
+          {/* Fullscreen Map Header Bar */}
+          <div className="h-16 px-6 bg-[#0c1222]/95 backdrop-blur-md border-b border-white/10 flex items-center justify-between z-30 shrink-0 shadow-2xl">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-blue-500/20 border border-blue-500/30 shadow-sm">
+                <Compass className="text-blue-400 animate-spin-slow" size={18} />
+                <span className="text-sm font-bold tracking-wide text-blue-200">3D Indoor Wayfinder</span>
+              </div>
+
+              {routeTo && (
+                <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-amber-300">
+                  <Navigation size={14} className="text-amber-400" />
+                  <span>Navigating: <strong>{routeFrom || 'Entrance'}</strong></span>
+                  <ArrowRight size={12} className="text-amber-400/60" />
+                  <span className="font-bold text-amber-200">Rack {routeTo}</span>
+                </div>
+              )}
+
+              {/* Floor Switcher */}
+              <div className="flex items-center bg-black/40 p-1 rounded-xl border border-white/10 gap-1">
+                <button
+                  onClick={() => setActiveFloor('both')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    activeFloor === 'both' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  All Floors
+                </button>
+                <button
+                  onClick={() => setActiveFloor('1')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    activeFloor === '1' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  Floor 1
+                </button>
+                <button
+                  onClick={() => setActiveFloor('2')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    activeFloor === '2' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  Floor 2
+                </button>
+              </div>
+            </div>
+
+            {/* Header Right Actions */}
+            <div className="flex items-center gap-3">
+              {/* Mini Voice Orb in Header */}
+              <button
+                onClick={handleOrbClick}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white transition-all shadow-sm"
+                title="Tap to speak with Assistant"
+              >
+                <Mic size={14} className={conversationState === State.LISTENING ? 'text-red-400 animate-pulse' : 'text-blue-400'} />
+                <span>{conversationState === State.LISTENING ? 'Listening...' : conversationState === State.SPEAKING ? 'Speaking...' : 'Talk to AI'}</span>
+              </button>
+
+              {/* Close / Return to Assistant Button */}
+              <button
+                onClick={handleCloseFullscreenMap}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-red-600/80 to-rose-600/80 hover:from-red-600 hover:to-rose-600 border border-red-400/40 transition-all flex items-center gap-2 shadow-lg shadow-red-600/20 active:scale-95"
+              >
+                <X size={15} /> Close Fullscreen Map
+              </button>
+            </div>
+          </div>
+
+          {/* Fullscreen 3D Canvas Area */}
+          <div className="flex-1 relative overflow-hidden bg-[#05080f]">
+            <LibraryWayfinder 
+              ref={fullscreenWayfindRef}
+              routeFrom={routeFrom}
+              routeTo={routeTo} 
+              activeFloor={activeFloor}
+              onRackClick={handleRackClick}
+              onRouteComplete={handleRouteComplete}
+            />
+
+            {/* Turn-by-Turn Guidance Overlay Card */}
+            {routeSteps.length > 0 && (
+              <div className="absolute bottom-6 left-6 max-w-md bg-[#0c1222]/90 backdrop-blur-md border border-white/15 rounded-2xl p-4 shadow-2xl z-20 space-y-2 animate-in slide-in-from-bottom duration-200">
+                <div className="flex items-center gap-2 text-xs font-bold text-blue-300 uppercase tracking-wider">
+                  <Navigation size={14} /> Turn-by-Turn Guidance
+                </div>
+                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
+                  {routeSteps.map((step, idx) => (
+                    <div key={idx} className="flex items-start gap-2 text-xs text-gray-200">
+                      <CornerDownRight size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                      <span>{step}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Floating Hint */}
+            <div className="absolute bottom-6 right-6 z-20 pointer-events-none">
+              <div className="bg-black/70 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 text-xs font-medium text-gray-300 shadow-xl">
+                Left Drag: Orbit · Right Drag: Pan · Scroll: Zoom · Press <strong>Esc</strong> to exit
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Main Header */}
       <header className="glass flex items-center justify-between px-5 py-2.5 z-20 relative border-b border-white/5 shadow-2xl" role="banner">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-[0_0_20px_rgba(79,70,229,0.4)] border border-white/10">
@@ -335,10 +467,13 @@ const VoiceAssistant = () => {
                   <MessageSquare size={14} /> Chat
                 </button>
                 <button 
-                  onClick={() => setActiveTab('map')}
+                  onClick={() => {
+                    setActiveTab('map');
+                    setIsMapFullscreen(true);
+                  }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'map' ? 'bg-purple-600/30 text-purple-300 shadow-md' : 'text-gray-400 hover:text-gray-200'}`}
                 >
-                  <Map size={14} /> Map
+                  <Map size={14} /> Map (3D)
                 </button>
                 <button 
                   onClick={() => setActiveTab('search')}
@@ -396,7 +531,7 @@ const VoiceAssistant = () => {
                 </div>
               </div>
 
-              {/* MAP VIEW */}
+              {/* MAP VIEW (PANEL FALLBACK) */}
               <div className={`absolute inset-0 flex flex-col bg-black/40 transition-opacity duration-300 ${activeTab !== 'map' ? 'opacity-0 pointer-events-none z-0' : 'opacity-100 z-10'}`}>
                 <div className="flex-1 relative">
                   <LibraryWayfinder 
@@ -404,14 +539,15 @@ const VoiceAssistant = () => {
                     routeFrom={routeFrom}
                     routeTo={routeTo} 
                     activeFloor="both"
+                    onRackClick={handleRackClick}
                   />
                   
-                  {/* Close Map button floating over map */}
+                  {/* Fullscreen expand button */}
                   <button 
-                    onClick={() => setActiveTab('chat')}
-                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-gray-300 hover:bg-white/10 hover:text-white backdrop-blur-md transition-all shadow-xl"
+                    onClick={() => setIsMapFullscreen(true)}
+                    className="absolute top-4 right-4 px-3 py-1.5 rounded-xl bg-black/60 border border-white/15 flex items-center gap-1.5 text-xs font-semibold text-gray-200 hover:bg-white/10 hover:text-white backdrop-blur-md transition-all shadow-xl"
                   >
-                    <X size={16} />
+                    <Maximize2 size={14} /> Fullscreen
                   </button>
 
                   <div className="absolute bottom-4 left-4 right-4 pointer-events-none">
@@ -427,7 +563,8 @@ const VoiceAssistant = () => {
                 <BookSearch onShowOnMap={(rack) => {
                   setRouteTo(rack);
                   setActiveTab('map');
-                  showToast(`Showing Rack ${rack} on map`, 'success');
+                  setIsMapFullscreen(true);
+                  showToast(`Showing Rack ${rack} in Fullscreen Map`, 'success');
                 }} />
               </div>
 
