@@ -604,7 +604,21 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     if (pts.length === 1) {
        pts.push(pts[0].clone().add(new THREE.Vector3(0, 0.1, 0))); // Prevent curve crash for single-node paths
     }
-    const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.15);
+    
+    // Insert points every 0.8 meters to force the CatmullRomCurve to stay strictly on the straight grid lines
+    const densePts = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p1 = pts[i];
+      const p2 = pts[i+1];
+      const dist = p1.distanceTo(p2);
+      const segments = Math.max(2, Math.ceil(dist / 0.8));
+      for (let j = 0; j < segments; j++) {
+        densePts.push(p1.clone().lerp(p2, j / segments));
+      }
+    }
+    densePts.push(pts[pts.length - 1]);
+    
+    const curve = new THREE.CatmullRomCurve3(densePts, false, 'catmullrom', 0.05); // low tension for tight corners
     routeCurveRef.current = curve;
 
     const totalLen = curve.getLength();
@@ -629,15 +643,15 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     // Comet (optimized to 4 trailing spheres)
     const cometGroup = new THREE.Group();
-    const headMat = new THREE.MeshBasicMaterial({ color: 0xfff2d8, depthTest: false });
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), headMat);
+    const headMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false }); // small white ball
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), headMat);
     head.renderOrder = 1000;
     cometGroup.add(head);
     const trail = [];
     for (let i = 1; i <= 4; i++) {
       const m = new THREE.Mesh(
-        new THREE.SphereGeometry(0.26 - i * 0.04, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.6 - i * 0.12, depthTest: false })
+        new THREE.SphereGeometry(0.26 - i * 0.04, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 - i * 0.1, depthTest: false })
       );
       m.renderOrder = 1000 - i;
       cometGroup.add(m);
@@ -764,8 +778,13 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     }
     animate();
     
+    // Automatically start the virtual walkthrough!
+    setTimeout(() => {
+      handleSetCameraMode('walk');
+    }, 400); // Small delay to let the map zoom slightly before diving in
+    
     if (onRouteComplete) onRouteComplete(destCode, steps);
-  }, [clearRoute, onRouteComplete, graphData]);;
+  }, [clearRoute, onRouteComplete, graphData, handleSetCameraMode]);
 
   useEffect(() => {
     if (!mountRef.current || !config || !graphData) return;
