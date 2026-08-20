@@ -985,7 +985,7 @@ class LibraryRAG:
             # 4. Direct title / book lookup (e.g. "Harry Potter", "Goodnight Moon", "Python programming")
             if not metadata_results and clean_input:
                 # Strip conversational fluff to isolate title
-                potential_title = re.sub(r'^(?:do\s+you\s+have|we\s+have|is\s+there|find|search|get|book|the)\s+', '', clean_input, flags=re.IGNORECASE).strip()
+                potential_title = re.sub(r'^(?:where\s+is|where\s+are|where|do\s+you\s+have|we\s+have|is\s+there|find|search|get|book|the)\s+', '', clean_input, flags=re.IGNORECASE).strip()
                 potential_title = re.sub(r'\s+book$', '', potential_title, flags=re.IGNORECASE).strip()
                 
                 title_results = self._metadata_lookup(potential_title if potential_title else clean_input, field="title")
@@ -1054,7 +1054,7 @@ class LibraryRAG:
                 "INTENT RULES:\n"
                 "1. BOOK INFO INTENT: If the user is asking about a book (availability, author, title, number of copies, description, etc.), respond with the relevant book details in the chat. Do NOT ask for their location. Do NOT output any `<ROUTE_...>` tags. The map will stay closed.\n"
                 "2. PATH / LOCATION INTENT: If the user is asking where the book/rack physically is, or asking for directions/route/path (e.g. 'where is this book', 'where is it kept', 'show me the path', 'take me to it', 'how do I get there', 'route me to rack B2', 'path from floor 1 to floor 2'):\n"
-                "   a) If their current location is UNKNOWN in this conversation, ask: 'Where are you currently located? At the entrance, or on a specific floor?'. Do NOT output a `<ROUTE_...>` tag yet.\n"
+                "   a) If their current location is UNKNOWN in this conversation, ask: 'Where are you currently located? At the entrance, or near a specific rack or floor?'. Do NOT output a `<ROUTE_...>` tag yet.\n"
                 "   b) If their current location is KNOWN (or stated in the message), respond with guidance and ALWAYS append the routing tag at the VERY END: `<ROUTE_FROM:start_TO:destination>`. Examples: `<ROUTE_FROM:stairs1_TO:B2>`, `<ROUTE_FROM:entrance_TO:F1>`, `<ROUTE_FROM:stairs1_TO:stairs2>`.\n"
                 "3. CONVERSATION CONTEXT: If the user previously asked about a book and then asks 'where is it kept' or 'show me the path', resolve 'it' to the last book discussed. Do not ask them to repeat the book name.\n"
 
@@ -1120,24 +1120,36 @@ class LibraryRAG:
             if is_path_intent or was_asking_location:
                 # Only inject route tag if missing and location prompt is NOT being asked
                 if not re.search(r'<ROUTE_', full_output, re.IGNORECASE) and "where are you" not in full_output.lower() and "currently located" not in full_output.lower():
-                    user_loc = "entrance" # Default to entrance
+                    user_loc = None
                     
-                    # Extract user location if specified
-                    floor_m = re.search(r'(?:from\s+)?floor\s*(\d+)', lower_input)
-                    if floor_m and "to floor" not in lower_input[:floor_m.start()]: 
-                        user_loc = f"stairs{floor_m.group(1)}"
-                    elif "first floor" in lower_input: 
-                        user_loc = "stairs1"
-                    elif "second floor" in lower_input: 
-                        user_loc = "stairs2"
-                    elif "third floor" in lower_input: 
-                        user_loc = "stairs3"
-                    elif "entrance" in lower_input: 
-                        user_loc = "entrance"
-                    elif history:
+                    # 1. Extract rack location from current input
+                    rack_loc_m = re.search(r'(?:at|from|near|by)\s+(?:rack|shelf)\s*([a-z0-9\-]+)', lower_input)
+                    if rack_loc_m:
+                        user_loc = rack_loc_m.group(1).upper()
+                    
+                    # 2. Extract floor/entrance from current input
+                    if not user_loc:
+                        floor_m = re.search(r'(?:from\s+)?floor\s*(\d+)', lower_input)
+                        if floor_m and "to floor" not in lower_input[:floor_m.start()]: 
+                            user_loc = f"stairs{floor_m.group(1)}"
+                        elif "first floor" in lower_input: 
+                            user_loc = "stairs1"
+                        elif "second floor" in lower_input: 
+                            user_loc = "stairs2"
+                        elif "third floor" in lower_input: 
+                            user_loc = "stairs3"
+                        elif "entrance" in lower_input: 
+                            user_loc = "entrance"
+                            
+                    # 3. Extract from history
+                    if not user_loc and history:
                         for msg in reversed(history):
                             if msg.get("role") == "user":
                                 past_input = msg.get("content", "").lower()
+                                past_rack = re.search(r'(?:at|from|near|by)\s+(?:rack|shelf)\s*([a-z0-9\-]+)', past_input)
+                                if past_rack:
+                                    user_loc = past_rack.group(1).upper()
+                                    break
                                 past_floor = re.search(r'floor\s*(\d+)', past_input)
                                 if past_floor:
                                     user_loc = f"stairs{past_floor.group(1)}"
@@ -1197,6 +1209,9 @@ class LibraryRAG:
                         if dest_rack:
                             print(f"Injecting programmatic route tag: <ROUTE_FROM:{user_loc}_TO:{dest_rack}>")
                             yield f" <ROUTE_FROM:{user_loc}_TO:{dest_rack}>"
+                    else:
+                        print("User location unknown. Forcing LLM to ask.")
+                        yield " Where are you currently located? (e.g. Entrance, Floor 1, or a specific Rack)"
             
         except Exception as e:
             import traceback
