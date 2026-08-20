@@ -588,12 +588,19 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     setDirections(steps);
     setRouteInfo({ destination: destCode, distance: Math.round(result.distance), steps: steps.length, floor: nodes[endNode] ? nodes[endNode].floor : 1 });
 
-    const nodePos = (id) => {
+    const pts = result.path.map((id, index) => {
       const n = nodes[id];
+      // Keep path in empty space: if this is the final node and it's a rack, pull the point 80% towards the previous aisle node
+      if (index === result.path.length - 1 && n.type === 'rack' && index > 0) {
+        const prevN = nodes[result.path[index - 1]];
+        return new THREE.Vector3(
+           n.x * 0.15 + prevN.x * 0.85,
+           n.y + 0.9,
+           n.z * 0.15 + prevN.z * 0.85
+        );
+      }
       return new THREE.Vector3(n.x, n.y + 0.9, n.z);
-    };
-
-    const pts = result.path.map(nodePos);
+    });
     if (pts.length === 1) {
        pts.push(pts[0].clone().add(new THREE.Vector3(0, 0.1, 0))); // Prevent curve crash for single-node paths
     }
@@ -737,19 +744,21 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         if (trailPts[idx]) m.position.copy(trailPts[idx]).sub(p);
       });
 
-      // Camera fly-to animation
-      const fly = flyToRef.current;
-      if (fly && fly.progress < 1) {
-        fly.progress = Math.min(1, fly.progress + 0.012);
-        const ease = 1 - Math.pow(1 - fly.progress, 3); // ease-out cubic
-        if (orbitRef.current && orbitRef.current.target) {
-            orbitRef.current.target.lerp(fly.target, ease * 0.04);
-            orbitRef.current.radius += (fly.radius - orbitRef.current.radius) * ease * 0.04;
+      // Camera fly-to animation (only in orbit mode)
+      if (cameraModeRef.current !== 'walk') {
+        const fly = flyToRef.current;
+        if (fly && fly.progress < 1) {
+          fly.progress = Math.min(1, fly.progress + 0.012);
+          const ease = 1 - Math.pow(1 - fly.progress, 3); // ease-out cubic
+          if (orbitRef.current && orbitRef.current.target) {
+              orbitRef.current.target.lerp(fly.target, ease * 0.04);
+              orbitRef.current.radius += (fly.radius - orbitRef.current.radius) * ease * 0.04;
+          }
+        } else if (orbitRef.current && orbitRef.current.target) {
+          orbitRef.current.target.lerp(p, 0.015);
         }
-      } else if (orbitRef.current && orbitRef.current.target) {
-        orbitRef.current.target.lerp(p, 0.015);
+        updateCamera();
       }
-      updateCamera();
       
       routeObjsRef.current.animId = requestAnimationFrame(animate);
     }
