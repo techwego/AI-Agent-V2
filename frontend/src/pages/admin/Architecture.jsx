@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Layers, Save, RefreshCw, Plus, Trash2, MapPin, Tag, LayoutTemplate, Sparkles, CheckCircle2 } from 'lucide-react';
 import LibraryWayfinder from '../../components/LibraryWayfinder';
 import FloorPlanEditor2D from '../../components/admin/FloorPlanEditor2D';
+import { getArchitecture, updateArchitecture } from '../../api/client';
 
 const Architecture = () => {
   const [config, setConfig] = useState({
@@ -40,18 +41,17 @@ const Architecture = () => {
   const fetchConfig = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/architecture', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if(!data.pois) data.pois = [];
-        if(!data.custom_racks) data.custom_racks = {};
-        if(!data.custom_layout) data.custom_layout = {};
-        setConfig(data);
-      }
+      const response = await getArchitecture();
+      const data = response.data;
+      if(!data.pois) data.pois = [];
+      if(!data.custom_racks) data.custom_racks = {};
+      if(!data.custom_layout) data.custom_layout = {};
+      setConfig(data);
     } catch (error) {
       console.error('Failed to fetch architecture config:', error);
+      if (error.response && error.response.status === 401) {
+        setMessage('Session expired. Please log in again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -62,27 +62,20 @@ const Architecture = () => {
     setSaving(true);
     setMessage('');
     try {
-      const response = await fetch('/api/admin/architecture', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` 
-        },
-        body: JSON.stringify(cfgToSave)
-      });
-      
-      if (response.ok) {
-        const resData = await response.json();
-        setMessage('Architecture configured successfully. 3D Map updated.');
-        if (resData.config) {
-          setConfig(resData.config);
-        }
-        setMapKey(prev => prev + 1); // trigger map reload
-      } else {
-        setMessage('Failed to save configuration.');
+      const response = await updateArchitecture(cfgToSave);
+      const resData = response.data;
+      setMessage('Architecture configured successfully. 3D Map updated.');
+      if (resData.config) {
+        setConfig(resData.config);
       }
+      setMapKey(prev => prev + 1); // trigger map reload
     } catch (error) {
-      setMessage('Error saving configuration.');
+      console.error('Failed to save configuration:', error);
+      if (error.response && error.response.status === 401) {
+        setMessage('Session expired. Please log in again.');
+      } else {
+        setMessage(error.response?.data?.detail || 'Error saving configuration.');
+      }
     } finally {
       setSaving(false);
     }

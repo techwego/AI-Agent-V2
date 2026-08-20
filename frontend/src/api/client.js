@@ -79,4 +79,7 @@ export const getSystemStatus = () => api.get('/admin/system-status');
 export const blockUser = (id) => api.put(`/admin/users/${id}/block`);
 export const unblockUser = (id) => api.put(`/admin/users/${id}/unblock`);
 
+export const getArchitecture = () => api.get('/admin/architecture');
+export const updateArchitecture = (data) => api.post('/admin/architecture', data);
+
 export default api;
