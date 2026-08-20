@@ -572,6 +572,134 @@ class LibraryRAG:
             
         return True
 
+    def search_catalog(self, query: str, limit: int = 15) -> list[dict]:
+        """
+        Enterprise-grade catalog search:
+        1. Exact/Substring Title & Author SQL search on book_index
+        2. Rack/Location search
+        3. Hybrid Vector + BM25 search with relevance thresholding
+        4. Deduplication and normalized score scaling (0.0 to 1.0)
+        """
+        if not query or not query.strip():
+            return []
+
+        raw_q = query.strip()
+        clean_q = re.sub(r'[^\w\s]', ' ', raw_q).strip()
+        lower_q = clean_q.lower()
+        stopwords = {"the", "a", "an", "is", "in", "of", "for", "to", "on", "at", "by", "book", "books"}
+        words = [w for w in lower_q.split() if len(w) > 1 and w not in stopwords]
+        if not words:
+            words = [w for w in lower_q.split() if len(w) > 0]
+
+        results = []
+        seen_keys = set()
+
+        if hasattr(self, 'sqlite_conn') and self.sqlite_conn:
+            cursor = self.sqlite_conn.cursor()
+
+            # A. Check Exact Title
+            cursor.execute("SELECT title, author, subject, call_number, location, copies FROM book_index WHERE normalized_title = ?", (lower_q,))
+            exact_title_rows = cursor.fetchall()
+
+            # B. Check Substring / Multi-word Title
+            if words:
+                conditions = " AND ".join(["normalized_title LIKE ?"] * len(words))
+                params = tuple(f'%{w}%' for w in words)
+                cursor.execute(f"SELECT title, author, subject, call_number, location, copies FROM book_index WHERE {conditions}", params)
+                multi_title_rows = cursor.fetchall()
+            else:
+                multi_title_rows = []
+
+            # C. Check Author
+            if words:
+                conditions = " AND ".join(["normalized_author LIKE ?"] * len(words))
+                params = tuple(f'%{w}%' for w in words)
+                cursor.execute(f"SELECT title, author, subject, call_number, location, copies FROM book_index WHERE {conditions}", params)
+                author_rows = cursor.fetchall()
+            else:
+                author_rows = []
+
+            # D. Check Location / Rack
+            cursor.execute("SELECT title, author, subject, call_number, location, copies FROM book_index WHERE location LIKE ?", (f'%{raw_q}%',))
+            rack_rows = cursor.fetchall()
+
+            all_sql = []
+            for row in exact_title_rows:
+                all_sql.append((row, 1.0, "Exact Match"))
+            for row in multi_title_rows:
+                if row not in [r[0] for r in all_sql]:
+                    all_sql.append((row, 0.95, "Title Match"))
+            for row in author_rows:
+                if row not in [r[0] for r in all_sql]:
+                    all_sql.append((row, 0.90, "Author Match"))
+            for row in rack_rows:
+                if row not in [r[0] for r in all_sql]:
+                    all_sql.append((row, 0.88, "Rack Match"))
+
+            for row, score, match_type in all_sql:
+                title, author, subject, call_num, loc, copies = row
+                key = f"{str(title).lower()}_{str(author).lower()}"
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+
+                text = f"Title: {title}\nAuthor: {author}\nSubject: {subject}\nCall Number: {call_num}\nRack: {loc}\nAvailable Copies: {copies}"
+                results.append({
+                    "id": key,
+                    "score": score,
+                    "match_type": match_type,
+                    "text": text,
+                    "metadata": {
+                        "title": title,
+                        "author": author,
+                        "subject": subject,
+                        "call_number": call_num,
+                        "location": loc,
+                        "rack": loc,
+                        "copies": copies,
+                        "source": "Library Catalog"
+                    }
+                })
+
+        # If direct SQL metadata search found relevant results, return them! (No noise)
+        if results:
+            return results[:limit]
+
+        # E. Hybrid Vector + BM25 search fallback if no direct SQL match
+        vector_hits = self._vector_search(query, top_k=20)
+        bm25_hits = self._bm25_search(query, top_k=20)
+        combined = self._reciprocal_rank_fusion(vector_hits, bm25_hits)
+
+        for c in combined[:20]:
+            meta = c.get("metadata", {})
+            title = meta.get("title") or meta.get("Title") or ""
+            author = meta.get("author") or meta.get("Author") or ""
+            key = f"{str(title).lower()}_{str(author).lower()}"
+            if key in seen_keys:
+                continue
+
+            if self._validate_record(query, c):
+                seen_keys.add(key)
+                raw_score = c.get("rerank_score", 0.5)
+                norm_score = max(0.70, min(0.92, raw_score * 35))
+                results.append({
+                    "id": key,
+                    "score": round(norm_score, 2),
+                    "match_type": "Semantic Match",
+                    "text": c.get("text", ""),
+                    "metadata": {
+                        "title": title if title else "Library Document",
+                        "author": author,
+                        "subject": meta.get("subject", ""),
+                        "location": meta.get("location") or meta.get("rack") or "",
+                        "rack": meta.get("location") or meta.get("rack") or "",
+                        "copies": meta.get("copies", ""),
+                        "source": "Library Catalog"
+                    }
+                })
+
+        return results[:limit]
+
     # ------------------------------------------------------------------
     # BM25 Index
     # ------------------------------------------------------------------

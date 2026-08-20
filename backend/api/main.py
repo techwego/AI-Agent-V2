@@ -174,23 +174,10 @@ async def search_books(request: SearchRequest, current_user: User = Depends(requ
     if not rag.ready:
         raise HTTPException(status_code=503, detail="RAG not ready")
     
-    vector_results = rag._vector_search(request.query, top_k=20)
-    bm25_results = rag._bm25_search(request.query, top_k=20)
-    combined = rag._reciprocal_rank_fusion(vector_results, bm25_results)
-    
-    top_chunks = combined[:10]
-    output = []
-    for c in top_chunks:
-        output.append({
-            "id": c.get("id"),
-            "score": c.get("rerank_score", 0),
-            "metadata": c.get("metadata", {}),
-            "text": c.get("text", "")
-        })
-        
+    results = rag.search_catalog(request.query, limit=15)
     return {
-        "count": len(output),
-        "chunks": output
+        "count": len(results),
+        "chunks": results
     }
 
 class ChatRequest(BaseModel):
