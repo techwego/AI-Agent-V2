@@ -264,7 +264,8 @@ const VoiceAssistant = () => {
     setMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
     setTimeout(async () => {
       stateManager.setState(State.RETRIEVING);
-      await streamAIResponse(text, history, true); // true = Text Only (No Speech)
+      const shouldSpeak = isMapFullscreen; // If in map, speak the response so they can hear it
+      await streamAIResponse(text, history, !shouldSpeak);
     }, 0);
   };
 
