@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Save, RefreshCw, Plus, Trash2, MapPin, Tag } from 'lucide-react';
+import { Layers, Save, RefreshCw, Plus, Trash2, MapPin, Tag, LayoutTemplate, Sparkles, CheckCircle2 } from 'lucide-react';
 import LibraryWayfinder from '../../components/LibraryWayfinder';
+import FloorPlanEditor2D from '../../components/admin/FloorPlanEditor2D';
 
 const Architecture = () => {
   const [config, setConfig] = useState({
@@ -9,11 +10,13 @@ const Architecture = () => {
     cols_per_row: 6,
     shelves_per_rack: 4,
     pois: [],
-    custom_racks: {}
+    custom_racks: {},
+    custom_layout: {}
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [show2DEditor, setShow2DEditor] = useState(false);
 
   // POI Form state
   const [poiType, setPoiType] = useState('entrance');
@@ -44,6 +47,7 @@ const Architecture = () => {
         const data = await response.json();
         if(!data.pois) data.pois = [];
         if(!data.custom_racks) data.custom_racks = {};
+        if(!data.custom_layout) data.custom_layout = {};
         setConfig(data);
       }
     } catch (error) {
@@ -53,7 +57,8 @@ const Architecture = () => {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (overrideCfg = null) => {
+    const cfgToSave = overrideCfg || config;
     setSaving(true);
     setMessage('');
     try {
@@ -63,11 +68,15 @@ const Architecture = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}` 
         },
-        body: JSON.stringify(config)
+        body: JSON.stringify(cfgToSave)
       });
       
       if (response.ok) {
-        setMessage('Architecture configured successfully. Map is live.');
+        const resData = await response.json();
+        setMessage('Architecture configured successfully. 3D Map updated.');
+        if (resData.config) {
+          setConfig(resData.config);
+        }
         setMapKey(prev => prev + 1); // trigger map reload
       } else {
         setMessage('Failed to save configuration.');
@@ -77,6 +86,12 @@ const Architecture = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSaveFrom2D = async (newConfig) => {
+    setConfig(newConfig);
+    setShow2DEditor(false);
+    await handleSave(newConfig);
   };
 
   const handleAddPoi = () => {
@@ -151,7 +166,17 @@ const Architecture = () => {
   if (loading) return <div className="p-8 text-gray-400">Loading Enterprise Layout...</div>;
 
   return (
-    <div className="p-8 h-full flex flex-col gap-6 overflow-hidden">
+    <div className="p-8 h-full flex flex-col gap-6 overflow-hidden relative">
+      {/* FULLSCREEN 2D FLOOR PLAN EDITOR MODAL */}
+      {show2DEditor && (
+        <FloorPlanEditor2D
+          initialConfig={config}
+          onSave={handleSaveFrom2D}
+          onClose={() => setShow2DEditor(false)}
+        />
+      )}
+
+      {/* HEADER SECTION */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
@@ -159,20 +184,31 @@ const Architecture = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Enterprise Architecture</h1>
-            <p className="text-sm text-gray-400">Configure Grid & Points of Interest</p>
+            <p className="text-sm text-gray-400">Configure Library Floor Plans, Racks & Wayfinding POIs</p>
           </div>
         </div>
+
         <div className="flex items-center gap-3">
           {message && (
-            <span className={`text-sm px-3 py-1 rounded-full ${message.includes('success') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-              {message}
+            <span className={`text-sm px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${message.includes('success') ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300' : 'bg-red-500/20 border-red-500/30 text-red-300'}`}>
+              <CheckCircle2 size={15} /> {message}
             </span>
           )}
-          <button onClick={fetchConfig} className="px-4 py-2 text-gray-400 bg-gray-900/50 hover:bg-gray-800 hover:text-white rounded-lg transition-colors text-sm border border-gray-700 flex items-center gap-2">
-            <RefreshCw size={16} /> Discard Changes
+
+          {/* OPEN 2D FULLSCREEN EDITOR BUTTON */}
+          <button
+            onClick={() => setShow2DEditor(true)}
+            className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_25px_rgba(59,130,246,0.6)] transition-all flex items-center gap-2 border border-blue-400/40 active:scale-95"
+          >
+            <LayoutTemplate size={16} /> 📐 Edit in 2D Fullscreen Mode
           </button>
-          <button onClick={handleSave} disabled={saving} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm flex items-center gap-2">
-            <Save size={16} /> Save & Apply Map
+
+          <button onClick={fetchConfig} className="px-4 py-2 text-gray-400 bg-gray-900/50 hover:bg-gray-800 hover:text-white rounded-xl transition-colors text-xs font-medium border border-gray-700 flex items-center gap-2">
+            <RefreshCw size={14} /> Discard Changes
+          </button>
+          
+          <button onClick={() => handleSave()} disabled={saving} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all font-semibold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/30">
+            <Save size={15} /> {saving ? 'Saving...' : 'Save & Apply 3D Map'}
           </button>
         </div>
       </div>
@@ -182,6 +218,23 @@ const Architecture = () => {
         {/* Left Col: Config */}
         <div className="col-span-1 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar pb-10">
           
+          {/* Quick 2D Banner */}
+          <div className="bg-gradient-to-br from-blue-900/40 via-indigo-900/20 to-purple-900/40 rounded-2xl border border-blue-500/30 p-5 space-y-2 shadow-lg">
+            <div className="flex items-center gap-2 text-blue-300 font-bold text-sm">
+              <Sparkles size={16} className="text-amber-400" />
+              <span>Interactive 2D Floor Plan Editor</span>
+            </div>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              Drag & drop racks, entrances, and stairs on a visual 2D millimeter-accurate grid to customize your library floor plan.
+            </p>
+            <button
+              onClick={() => setShow2DEditor(true)}
+              className="w-full mt-2 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+            >
+              <LayoutTemplate size={15} /> Open 2D Floor Plan Editor
+            </button>
+          </div>
+
           <div className="glass rounded-2xl border border-gray-800 p-6 space-y-4">
             <h2 className="text-lg font-semibold text-white mb-4">Base Grid Configuration</h2>
             
@@ -313,13 +366,19 @@ const Architecture = () => {
         <div className="col-span-2 glass rounded-2xl border border-gray-800 overflow-hidden relative shadow-inner">
            <div className="absolute top-4 left-4 z-10 flex items-center gap-3">
              <div className="bg-gray-950/80 backdrop-blur border border-gray-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-lg flex items-center gap-2">
-               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Live Architecture Preview
+               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Live 3D Architecture Preview
              </div>
              <button 
-                onClick={() => setEditMode(!editMode)}
-                className={`text-xs px-3 py-1.5 rounded-lg font-medium shadow-lg flex items-center gap-2 transition-colors border ${editMode ? 'bg-blue-600 border-blue-500 text-white' : 'bg-gray-950/80 backdrop-blur border-gray-800 text-gray-400 hover:text-white'}`}
+                onClick={() => setShow2DEditor(true)}
+                className="text-xs px-3 py-1.5 rounded-lg font-bold shadow-lg flex items-center gap-1.5 transition-all bg-blue-600/90 hover:bg-blue-500 text-white border border-blue-400/50 shadow-blue-500/20"
               >
-                {editMode ? 'Disable Click-to-Edit' : 'Enable Click-to-Edit'}
+                <LayoutTemplate size={13} /> 2D Visual Editor
+             </button>
+             <button 
+                onClick={() => setEditMode(!editMode)}
+                className={`text-xs px-3 py-1.5 rounded-lg font-medium shadow-lg flex items-center gap-2 transition-colors border ${editMode ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-gray-950/80 backdrop-blur border-gray-800 text-gray-400 hover:text-white'}`}
+              >
+                {editMode ? 'Disable Click-to-Edit' : 'Enable 3D Click-to-Edit'}
              </button>
            </div>
            
@@ -334,4 +393,5 @@ const Architecture = () => {
 };
 
 export default Architecture;
+
 

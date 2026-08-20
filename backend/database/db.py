@@ -23,3 +23,15 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # Ensure custom_layout column exists in library_config table for existing SQLite databases
+    if DATABASE_URL.startswith("sqlite"):
+        try:
+            with engine.connect() as conn:
+                from sqlalchemy import text
+                res = conn.execute(text("PRAGMA table_info(library_config)")).fetchall()
+                col_names = [r[1] for r in res]
+                if col_names and "custom_layout" not in col_names:
+                    conn.execute(text("ALTER TABLE library_config ADD COLUMN custom_layout JSON DEFAULT '{}'"))
+                    conn.commit()
+        except Exception as e:
+            print(f"DB Migration Note: {e}")

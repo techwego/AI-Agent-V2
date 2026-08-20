@@ -44,8 +44,92 @@ function buildDynamicGraph(config) {
   }
 
   const floorHeights = [];
-  for(let i=0; i<config.floors; i++) floorHeights.push(i * 6.4);
+  const numFloors = config.floors || 2;
+  for(let i=0; i<numFloors; i++) floorHeights.push(i * 6.4);
 
+  const hasCustomLayout = config && config.custom_layout && config.custom_layout.racks && Object.keys(config.custom_layout.racks).length > 0;
+
+  if (hasCustomLayout) {
+    const customRacks = config.custom_layout.racks;
+    const customPois = config.custom_layout.pois || [];
+
+    // 1. Add all custom rack nodes & aisle nodes
+    Object.values(customRacks).forEach(r => {
+      const f = r.floor || 1;
+      const fy = floorHeights[f - 1] || 0;
+      const rackId = 'r' + r.code;
+      const aisleId = 'aisle_r_' + r.code;
+      const customName = r.name || (config.custom_racks && config.custom_racks[r.code] ? config.custom_racks[r.code] : 'Rack ' + r.code);
+
+      addNode(rackId, r.x, fy, r.z, customName, 'rack', f, r.code);
+
+      // Place aisle waypoint offset by 1.8m
+      const isRotated = (r.rotation || 0) === 90 || (r.rotation || 0) === 270;
+      const aisleX = isRotated ? (r.x < 0 ? r.x + 1.8 : r.x - 1.8) : r.x;
+      const aisleZ = isRotated ? r.z : (r.z < 0 ? r.z + 1.8 : r.z - 1.8);
+
+      addNode(aisleId, aisleX, fy, aisleZ, 'Aisle ' + r.code, 'corridor', f);
+      addEdge(rackId, aisleId);
+    });
+
+    // 2. Connect nearby aisle nodes on the same floor
+    for (let f = 1; f <= numFloors; f++) {
+      const floorAisles = Object.keys(nodes).filter(k => nodes[k].floor === f && nodes[k].type === 'corridor');
+      for (let i = 0; i < floorAisles.length; i++) {
+        for (let j = i + 1; j < floorAisles.length; j++) {
+          const a = nodes[floorAisles[i]];
+          const b = nodes[floorAisles[j]];
+          const dist = Math.hypot(a.x - b.x, a.z - b.z);
+          // Connect if within walking proximity (up to 12m)
+          if (dist <= 12.0) {
+            addEdge(floorAisles[i], floorAisles[j]);
+          }
+        }
+      }
+    }
+
+    // 3. Add POIs (entrances, stairs)
+    customPois.forEach((poi, idx) => {
+      const f = poi.floor || 1;
+      const fy = floorHeights[f - 1] || 0;
+      const poiId = poi.id || (poi.type + '_' + idx);
+      const poiLabel = poi.name || (poi.type === 'entrance' ? 'Entrance' : 'Stairs Floor ' + f);
+
+      addNode(poiId, poi.x, fy, poi.z, poiLabel, poi.type, f);
+
+      // Connect POI to the closest aisle on this floor
+      const floorAisles = Object.keys(nodes).filter(k => nodes[k].floor === f && nodes[k].type === 'corridor');
+      let closestAisle = null;
+      let minD = Infinity;
+      floorAisles.forEach(aId => {
+        const d = Math.hypot(nodes[aId].x - poi.x, nodes[aId].z - poi.z);
+        if (d < minD) { minD = d; closestAisle = aId; }
+      });
+      if (closestAisle) addEdge(poiId, closestAisle);
+
+      // Stairs floor connection
+      if (poi.type === 'stairs' && poi.connectsToFloor) {
+        const destF = poi.connectsToFloor;
+        const destY = floorHeights[destF - 1] || 0;
+        const destId = poiId + '_dest';
+        addNode(destId, poi.x, destY, poi.z, 'Stairs Floor ' + destF, 'stairs', destF);
+        addEdge(poiId, destId, 9);
+
+        const destAisles = Object.keys(nodes).filter(k => nodes[k].floor === destF && nodes[k].type === 'corridor');
+        let closestDestAisle = null;
+        let minDestD = Infinity;
+        destAisles.forEach(aId => {
+          const d = Math.hypot(nodes[aId].x - poi.x, nodes[aId].z - poi.z);
+          if (d < minDestD) { minDestD = d; closestDestAisle = aId; }
+        });
+        if (closestDestAisle) addEdge(destId, closestDestAisle);
+      }
+    });
+
+    return { nodes, floorHeights, COLS_X: [], rowZOffsets: [], isCustom: true };
+  }
+
+  // Standard Mathematical Grid Fallback
   const COLS_X = [];
   const colSpacing = 5.2;
   const startX = -((config.cols_per_row - 1) * colSpacing) / 2;
@@ -150,7 +234,7 @@ function buildDynamicGraph(config) {
       }
   }
 
-  return { nodes, floorHeights, COLS_X, rowZOffsets };
+  return { nodes, floorHeights, COLS_X, rowZOffsets, isCustom: false };
 }
 
 function generateDirections(path, nodes) {
@@ -784,73 +868,143 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const sharedBookGeo = new THREE.BoxGeometry(1, 1, 1);
     const sharedBookMat = new THREE.MeshStandardMaterial({ roughness: 0.8 });
 
-    for(let f=0; f<config.floors; f++) {
-        const fy = floorHeights[f];
-        for(let r=0; r<config.rows_per_floor; r++) {
-            const rz = rowZOffsets[r];
-            const rowLetter = alphabet[rackCodeIndex % alphabet.length];
-            rackCodeIndex++;
+    if (graphData.isCustom && config.custom_layout && config.custom_layout.racks) {
+        Object.values(config.custom_layout.racks).forEach(r => {
+            const f = r.floor || 1;
+            const fy = floorHeights[f - 1] || 0;
+            const code = r.code;
+            const customName = r.name || (config.custom_racks && config.custom_racks[code] ? config.custom_racks[code] : 'Rack ' + code);
 
-            for(let c=0; c<config.cols_per_row; c++) {
-               const cx = COLS_X[c];
-               const code = rowLetter + (c+1);
-               const customName = config.custom_racks && config.custom_racks[code] ? config.custom_racks[code] : code;
+            const rackGroup = new THREE.Group();
+            
+            const backPanel = new THREE.Mesh(sharedBackGeo, woodMat.clone());
+            backPanel.position.set(0, 1.25, -0.53);
+            rackGroup.add(backPanel);
 
-               const rackGroup = new THREE.Group();
-               
-               const backPanel = new THREE.Mesh(sharedBackGeo, woodMat.clone());
-               backPanel.position.set(0, 1.25, -0.53);
-               rackGroup.add(backPanel);
+            const leftPanel = new THREE.Mesh(sharedPanelGeo, woodMat);
+            leftPanel.position.set(-1.62, 1.25, 0);
+            const rightPanel = new THREE.Mesh(sharedPanelGeo, woodMat);
+            rightPanel.position.set(1.62, 1.25, 0);
+            rackGroup.add(leftPanel);
+            rackGroup.add(rightPanel);
+            
+            const shelves = new THREE.Group();
+            for(let s=0; s<4; s++) {
+              const shelf = new THREE.Mesh(sharedShelfGeo, woodMat);
+              shelf.position.y = 0.4 + s * 0.6;
+              shelves.add(shelf);
+            }
+            rackGroup.add(shelves);
 
-               const leftPanel = new THREE.Mesh(sharedPanelGeo, woodMat);
-               leftPanel.position.set(-1.62, 1.25, 0);
-               const rightPanel = new THREE.Mesh(sharedPanelGeo, woodMat);
-               rightPanel.position.set(1.62, 1.25, 0);
-               rackGroup.add(leftPanel);
-               rackGroup.add(rightPanel);
-               
-               const shelves = new THREE.Group();
-               for(let s=0; s<4; s++) {
-                 const shelf = new THREE.Mesh(sharedShelfGeo, woodMat);
-                 shelf.position.y = 0.4 + s * 0.6;
-                 shelves.add(shelf);
-               }
-               rackGroup.add(shelves);
+            const instMesh = new THREE.InstancedMesh(sharedBookGeo, sharedBookMat, 60);
+            let bookIdx = 0;
+            const matrix = new THREE.Matrix4();
+            const q = new THREE.Quaternion();
+            for(let s=0; s<4; s++) {
+              let bx = -1.4;
+              const sy = 0.4 + s * 0.6 + 0.02;
+              while(bx < 1.4 && bookIdx < 60) {
+                const thickness = 0.08 + Math.random() * 0.04;
+                const height = 0.22 + Math.random() * 0.12;
+                const depth = 0.6 + Math.random() * 0.3;
+                let rotZ = 0;
+                if (Math.random() < 0.06) rotZ = (Math.random() > 0.5 ? 1 : -1) * 0.15;
+                q.setFromAxisAngle(new THREE.Vector3(0, 0, 1), rotZ);
+                matrix.compose(new THREE.Vector3(bx + thickness/2, sy + height/2, 0), q, new THREE.Vector3(thickness, height, depth));
+                instMesh.setMatrixAt(bookIdx, matrix);
+                instMesh.setColorAt(bookIdx, bookColors[bookIdx % bookColors.length]);
+                bx += thickness + 0.01;
+                bookIdx++;
+              }
+            }
+            instMesh.count = bookIdx;
+            instMesh.instanceMatrix.needsUpdate = true;
+            if (instMesh.instanceColor) instMesh.instanceColor.needsUpdate = true;
+            rackGroup.add(instMesh);
 
-               const instMesh = new THREE.InstancedMesh(sharedBookGeo, sharedBookMat, 60);
-               let bookIdx = 0;
-               const matrix = new THREE.Matrix4();
-               const q = new THREE.Quaternion();
-               for(let s=0; s<4; s++) {
-                 let bx = -1.4;
-                 const sy = 0.4 + s * 0.6 + 0.02;
-                 while(bx < 1.4 && bookIdx < 60) {
-                   const thickness = 0.08 + Math.random() * 0.04;
-                   const height = 0.22 + Math.random() * 0.12;
-                   const depth = 0.6 + Math.random() * 0.3;
-                   let rotZ = 0;
-                   if (Math.random() < 0.06) rotZ = (Math.random() > 0.5 ? 1 : -1) * 0.15;
-                   q.setFromAxisAngle(new THREE.Vector3(0, 0, 1), rotZ);
-                   matrix.compose(new THREE.Vector3(bx + thickness/2, sy + height/2, 0), q, new THREE.Vector3(thickness, height, depth));
-                   instMesh.setMatrixAt(bookIdx, matrix);
-                   instMesh.setColorAt(bookIdx, bookColors[bookIdx % bookColors.length]);
-                   bx += thickness + 0.01;
-                   bookIdx++;
-                 }
-               }
-               instMesh.count = bookIdx;
-               instMesh.instanceMatrix.needsUpdate = true;
-               if (instMesh.instanceColor) instMesh.instanceColor.needsUpdate = true;
-               rackGroup.add(instMesh);
+            const sign = createSignSprite(customName);
+            sign.position.set(0, 2.8, 0);
+            rackGroup.add(sign);
 
-               const sign = createSignSprite(customName);
-               sign.position.set(0, 2.8, 0);
-               rackGroup.add(sign);
+            rackGroup.position.set(r.x, fy, r.z);
+            if (r.rotation) {
+              rackGroup.rotation.y = (r.rotation * Math.PI) / 180;
+            }
+            rackGroup.userData = { rackCode: code, floor: f };
+            rackMeshByCodeRef.current[code] = rackGroup;
+            if (rackGroupsRef.current[f]) {
+              rackGroupsRef.current[f].add(rackGroup);
+            }
+        });
+    } else {
+        for(let f=0; f<config.floors; f++) {
+            const fy = floorHeights[f];
+            for(let r=0; r<config.rows_per_floor; r++) {
+                const rz = rowZOffsets[r];
+                const rowLetter = alphabet[rackCodeIndex % alphabet.length];
+                rackCodeIndex++;
 
-               rackGroup.position.set(cx, fy, rz);
-               rackGroup.userData = { rackCode: code, floor: f+1 };
-               rackMeshByCodeRef.current[code] = rackGroup;
-               rackGroupsRef.current[f+1].add(rackGroup);
+                for(let c=0; c<config.cols_per_row; c++) {
+                   const cx = COLS_X[c];
+                   const code = rowLetter + (c+1);
+                   const customName = config.custom_racks && config.custom_racks[code] ? config.custom_racks[code] : code;
+
+                   const rackGroup = new THREE.Group();
+                   
+                   const backPanel = new THREE.Mesh(sharedBackGeo, woodMat.clone());
+                   backPanel.position.set(0, 1.25, -0.53);
+                   rackGroup.add(backPanel);
+
+                   const leftPanel = new THREE.Mesh(sharedPanelGeo, woodMat);
+                   leftPanel.position.set(-1.62, 1.25, 0);
+                   const rightPanel = new THREE.Mesh(sharedPanelGeo, woodMat);
+                   rightPanel.position.set(1.62, 1.25, 0);
+                   rackGroup.add(leftPanel);
+                   rackGroup.add(rightPanel);
+                   
+                   const shelves = new THREE.Group();
+                   for(let s=0; s<4; s++) {
+                     const shelf = new THREE.Mesh(sharedShelfGeo, woodMat);
+                     shelf.position.y = 0.4 + s * 0.6;
+                     shelves.add(shelf);
+                   }
+                   rackGroup.add(shelves);
+
+                   const instMesh = new THREE.InstancedMesh(sharedBookGeo, sharedBookMat, 60);
+                   let bookIdx = 0;
+                   const matrix = new THREE.Matrix4();
+                   const q = new THREE.Quaternion();
+                   for(let s=0; s<4; s++) {
+                     let bx = -1.4;
+                     const sy = 0.4 + s * 0.6 + 0.02;
+                     while(bx < 1.4 && bookIdx < 60) {
+                       const thickness = 0.08 + Math.random() * 0.04;
+                       const height = 0.22 + Math.random() * 0.12;
+                       const depth = 0.6 + Math.random() * 0.3;
+                       let rotZ = 0;
+                       if (Math.random() < 0.06) rotZ = (Math.random() > 0.5 ? 1 : -1) * 0.15;
+                       q.setFromAxisAngle(new THREE.Vector3(0, 0, 1), rotZ);
+                       matrix.compose(new THREE.Vector3(bx + thickness/2, sy + height/2, 0), q, new THREE.Vector3(thickness, height, depth));
+                       instMesh.setMatrixAt(bookIdx, matrix);
+                       instMesh.setColorAt(bookIdx, bookColors[bookIdx % bookColors.length]);
+                       bx += thickness + 0.01;
+                       bookIdx++;
+                     }
+                   }
+                   instMesh.count = bookIdx;
+                   instMesh.instanceMatrix.needsUpdate = true;
+                   if (instMesh.instanceColor) instMesh.instanceColor.needsUpdate = true;
+                   rackGroup.add(instMesh);
+
+                   const sign = createSignSprite(customName);
+                   sign.position.set(0, 2.8, 0);
+                   rackGroup.add(sign);
+
+                   rackGroup.position.set(cx, fy, rz);
+                   rackGroup.userData = { rackCode: code, floor: f+1 };
+                   rackMeshByCodeRef.current[code] = rackGroup;
+                   rackGroupsRef.current[f+1].add(rackGroup);
+                }
             }
         }
     }

@@ -188,12 +188,13 @@ class LibraryConfigUpdate(BaseModel):
     shelves_per_rack: int
     pois: list = []
     custom_racks: dict = {}
+    custom_layout: dict = {}
 
 @router.get("/architecture")
 def get_architecture(db: Session = Depends(get_db)):
     config = db.query(LibraryConfig).first()
     if not config:
-        config = LibraryConfig(floors=2, rows_per_floor=2, cols_per_row=6, shelves_per_rack=4)
+        config = LibraryConfig(floors=2, rows_per_floor=2, cols_per_row=6, shelves_per_rack=4, pois=[], custom_racks={}, custom_layout={})
         db.add(config)
         db.commit()
         db.refresh(config)
@@ -212,6 +213,7 @@ def update_architecture(config_update: LibraryConfigUpdate, db: Session = Depend
     config.shelves_per_rack = config_update.shelves_per_rack
     config.pois = config_update.pois
     config.custom_racks = config_update.custom_racks
+    config.custom_layout = config_update.custom_layout
     
     # Log the action
     admin_log = AdminLog(admin_id=current_user.id, action="Update Architecture", details=f"Floors: {config.floors}, Rows: {config.rows_per_floor}, Cols: {config.cols_per_row}")
