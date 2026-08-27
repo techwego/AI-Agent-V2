@@ -60,16 +60,22 @@ def create_book(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
+    def sanitize(v):
+        if isinstance(v, str):
+            v_str = v.strip()
+            return v_str if v_str else None
+        return v
+
     new_book = Book(
-        title=book_in.title,
-        author=book_in.author,
-        department=book_in.department,
-        rack=book_in.rack,
-        floor=book_in.floor,
-        copies=book_in.copies,
-        available=book_in.available,
-        isbn=book_in.isbn,
-        description=book_in.description
+        title=book_in.title.strip(),
+        author=book_in.author.strip(),
+        department=sanitize(book_in.department),
+        rack=sanitize(book_in.rack).upper() if sanitize(book_in.rack) else None,
+        floor=sanitize(book_in.floor),
+        copies=book_in.copies if book_in.copies is not None else 1,
+        available=book_in.available if book_in.available is not None else (book_in.copies if book_in.copies is not None else 1),
+        isbn=sanitize(book_in.isbn),
+        description=sanitize(book_in.description)
     )
     db.add(new_book)
     db.commit()
@@ -104,6 +110,11 @@ def update_book(
     
     update_data = book_in.dict(exclude_unset=True)
     for key, value in update_data.items():
+        if isinstance(value, str):
+            v_str = value.strip()
+            value = v_str if v_str else None
+            if key == "rack" and value:
+                value = value.upper()
         setattr(book, key, value)
         
     db.commit()

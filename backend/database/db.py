@@ -42,6 +42,14 @@ def init_db():
                     conn.execute(text("ALTER TABLE library_config ADD COLUMN library_policies VARCHAR DEFAULT 'Students can borrow up to 3 books for 14 days.'"))
                 if col_names and "voice_preset" not in col_names:
                     conn.execute(text("ALTER TABLE library_config ADD COLUMN voice_preset VARCHAR DEFAULT 'en-US-AriaNeural'"))
+                
+                # Ensure books.isbn index is non-unique to support empty/multiple duplicate values
+                try:
+                    conn.execute(text("DROP INDEX IF EXISTS ix_books_isbn"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_books_isbn ON books (isbn)"))
+                    conn.execute(text("UPDATE books SET isbn = NULL WHERE isbn = ''"))
+                except Exception:
+                    pass
                     
                 conn.commit()
         except Exception as e:

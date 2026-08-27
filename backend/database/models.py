@@ -30,7 +30,7 @@ class Book(Base):
     floor = Column(String, nullable=True)
     copies = Column(Integer, default=1)
     available = Column(Integer, default=1)
-    isbn = Column(String, unique=True, index=True, nullable=True)
+    isbn = Column(String, index=True, nullable=True)
     keywords_json = Column(JSON, nullable=True)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
