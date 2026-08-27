@@ -33,7 +33,8 @@ const VoiceAssistant = () => {
   const [fsInput, setFsInput] = useState('');
   const [routeFrom, setRouteFrom] = useState('entrance');
   const [routeTo, setRouteTo] = useState(null);
-  const [hasIntroduced, setHasIntroduced] = useState(true);
+  const [hasIntroduced, setHasIntroduced] = useState(false);
+  const hasIntroducedRef = useRef(false);
   const [activeTab, setActiveTab] = useState('chat'); // 'chat', 'map', or 'search'
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [activeFloor, setActiveFloor] = useState('both');
@@ -113,60 +114,6 @@ const VoiceAssistant = () => {
     navigate('/login');
   };
 
-  const toggleListening = useCallback(() => {
-    const currentState = stateManager.getState();
-    if (currentState === State.SPEAKING) {
-      handleInterrupt();
-      return;
-    }
-    if (currentState === State.LISTENING) { 
-      sttManager.stopListening(); 
-      stateManager.setState(State.IDLE); 
-      return; 
-    }
-    if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) return;
-    
-    // First time greeting
-    if (messages.length === 0 && currentState === State.IDLE) {
-      const hour = new Date().getHours();
-      let greeting = 'Good evening';
-      if (hour < 12) greeting = 'Good morning';
-      else if (hour < 17) greeting = 'Good afternoon';
-      
-      const welcomeText = `${greeting}! Welcome to the library. How can I help you today?`;
-      
-      setMessages([{ role: 'assistant', content: welcomeText }]);
-      stateManager.setState(State.SPEAKING);
-      
-      ttsManager.speak(welcomeText, () => {
-        // After speaking greeting, immediately start listening
-        if (stateManager.getState() === State.SPEAKING) { // Make sure it wasn't interrupted
-          stateManager.setState(State.IDLE);
-          startListening();
-        }
-      });
-      return;
-    }
-    
-    startListening();
-  }, [conversationState, messages.length]);
-
-  const handleOrbClick = useCallback(() => {
-    const currentState = stateManager.getState();
-    if (currentState === State.SPEAKING || currentState === State.INTRODUCING) { 
-      handleInterrupt(); 
-      return; 
-    }
-    if (currentState === State.LISTENING) { 
-      sttManager.stopListening(); 
-      stateManager.setState(State.IDLE); 
-      return; 
-    }
-    if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) return;
-    
-    startListening();
-  }, [conversationState]);
-
   const handleInterrupt = useCallback(() => {
     ttsManager.cancel();
     sttManager.stopListening();
@@ -181,6 +128,46 @@ const VoiceAssistant = () => {
       if (sttManager.analyser) analyserRef.current = sttManager.analyser;
     }, 200);
   }, []);
+
+  const handleOrbClick = useCallback(() => {
+    const currentState = stateManager.getState();
+    if (currentState === State.SPEAKING || currentState === State.INTRODUCING) { 
+      handleInterrupt(); 
+      return; 
+    }
+    if (currentState === State.LISTENING) { 
+      sttManager.stopListening(); 
+      stateManager.setState(State.IDLE); 
+      return; 
+    }
+    if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) return;
+    
+    // First time click: Introduce herself via TTS
+    if (!hasIntroducedRef.current && currentState === State.IDLE) {
+      hasIntroducedRef.current = true;
+      setHasIntroduced(true);
+
+      const hour = new Date().getHours();
+      let greeting = 'Good evening';
+      if (hour < 12) greeting = 'Good morning';
+      else if (hour < 17) greeting = 'Good afternoon';
+      
+      const welcomeText = `${greeting}! I am Sam, your AI Library Assistant. How can I help you today?`;
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: welcomeText, timestamp: Date.now() }]);
+      stateManager.setState(State.INTRODUCING);
+      
+      ttsManager.speak(welcomeText, () => {
+        if (stateManager.getState() === State.INTRODUCING) {
+          stateManager.setState(State.IDLE);
+        }
+      });
+      return;
+    }
+    
+    // Subsequent clicks: Start listening to the user's voice
+    startListening();
+  }, [handleInterrupt, startListening]);
 
   const handleVoiceInput = useCallback(async (text) => {
     stateManager.setState(State.PROCESSING);
