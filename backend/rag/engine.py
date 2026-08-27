@@ -1049,9 +1049,29 @@ class LibraryRAG:
             if len(context) > 12000:
                 context = context[:12000] + "\n...[CONTENT TRUNCATED DUE TO SIZE LIMITS]..."
 
+            # Fetch Global Library Settings
+            library_name = "the University Library"
+            opening_hours = ""
+            library_policies = ""
+            try:
+                from backend.database.db import SessionLocal
+                from backend.database.models import LibraryConfig
+                db = SessionLocal()
+                config = db.query(LibraryConfig).first()
+                if config:
+                    library_name = config.library_name or "the University Library"
+                    opening_hours = config.opening_hours or ""
+                    library_policies = config.library_policies or ""
+                db.close()
+            except Exception as e:
+                print(f"Failed to load LibraryConfig for prompt: {e}")
+
             system_prompt = (
-                "You are Sam, a virtual library assistant for the University Library. "
+                f"You are Sam, a virtual library assistant for {library_name}. "
+                f"Library Opening Hours: {opening_hours}. "
+                f"Library Policies & Rules: {library_policies}. "
                 "You MUST answer ONLY from the retrieved context records below. Never guess or invent metadata. "
+                "If the user asks about general library rules or hours, answer based on the Policies & Rules above. "
                 "If the user asks about a book and the retrieved records are completely unrelated, say 'I could not find an exact match for that book.' "
                 "However, if the user is simply answering your previous question about their location (e.g. 'I am on Floor 1'), acknowledge it naturally and tell them you are showing the path based on the conversation history. Do not say you can't find a book in this case. "
                 "CRITICAL: The user is speaking through a speech-to-text engine. You MUST be extremely forgiving of typos! If their words sound even slightly similar to a book in the context (e.g. 'good night moon look' -> 'Goodnight Moon', 'harry port' -> 'Harry Potter'), you MUST assume it is a match and answer using the context. DO NOT say you couldn't find a match if there is a similar sounding book. "
@@ -1065,7 +1085,7 @@ class LibraryRAG:
                 "1. BOOK INFO INTENT: If the user is asking about a book (availability, author, title, number of copies, description, etc.), respond with the relevant book details in the chat. Do NOT ask for their location. Do NOT output any `<ROUTE_...>` tags. The map will stay closed.\n"
                 "2. PATH / LOCATION INTENT: If the user is asking where the book/rack physically is, or asking for directions/route/path (e.g. 'where is this book', 'where is it kept', 'show me the path', 'take me to it', 'how do I get there', 'route me to rack B2', 'path from floor 1 to floor 2'):\n"
                 "   a) If their current location is UNKNOWN in this conversation, ask: 'Where are you currently located? At the entrance, or near a specific rack or floor?'. Do NOT output a `<ROUTE_...>` tag yet.\n"
-                "   b) If their current location is KNOWN (or stated in the message), respond with guidance and ALWAYS append the routing tag at the VERY END: `<ROUTE_FROM:start_TO:destination>`. Examples: `<ROUTE_FROM:stairs1_TO:B2>`, `<ROUTE_FROM:entrance_TO:F1>`, `<ROUTE_FROM:stairs1_TO:stairs2>`.\n"
+                "   b) If their current location is KNOWN (or stated in the message), respond with guidance and ALWAYS append the routing tag at the VERY END: `<ROUTE_FROM:start_TO:destination>`. Examples: `<ROUTE_FROM:entrance_TO:B2>`, `<ROUTE_FROM:entrance_TO:F1>`, `<ROUTE_FROM:stairs1_TO:stairs2>`.\n"
                 "3. CONVERSATION CONTEXT: If the user previously asked about a book and then asks 'where is it kept' or 'show me the path', resolve 'it' to the last book discussed. Do not ask them to repeat the book name.\n"
 
             )

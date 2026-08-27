@@ -32,6 +32,15 @@ def init_db():
                 col_names = [r[1] for r in res]
                 if col_names and "custom_layout" not in col_names:
                     conn.execute(text("ALTER TABLE library_config ADD COLUMN custom_layout JSON DEFAULT '{}'"))
-                    conn.commit()
+                
+                # Global Settings migrations
+                if col_names and "library_name" not in col_names:
+                    conn.execute(text("ALTER TABLE library_config ADD COLUMN library_name VARCHAR DEFAULT 'University Library'"))
+                if col_names and "opening_hours" not in col_names:
+                    conn.execute(text("ALTER TABLE library_config ADD COLUMN opening_hours VARCHAR DEFAULT 'Mon-Fri: 8AM-8PM, Sat-Sun: 10AM-4PM'"))
+                if col_names and "library_policies" not in col_names:
+                    conn.execute(text("ALTER TABLE library_config ADD COLUMN library_policies VARCHAR DEFAULT 'Students can borrow up to 3 books for 14 days.'"))
+                    
+                conn.commit()
         except Exception as e:
             print(f"DB Migration Note: {e}")

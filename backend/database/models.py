@@ -117,4 +117,10 @@ class LibraryConfig(Base):
     pois = Column(JSON, default=list)
     custom_racks = Column(JSON, default=dict)
     custom_layout = Column(JSON, default=dict)
+    
+    # Global Settings
+    library_name = Column(String, default="University Library")
+    opening_hours = Column(String, default="Mon-Fri: 8AM-8PM, Sat-Sun: 10AM-4PM")
+    library_policies = Column(String, default="Students can borrow up to 3 books for 14 days.")
+    
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
