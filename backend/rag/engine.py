@@ -507,40 +507,79 @@ class LibraryRAG:
         try:
             from backend.database.db import SessionLocal
             from backend.database.models import Book
+            from sqlalchemy import or_
             db = SessionLocal()
             query_norm = query.lower().strip()
-            words = query_norm.split()
+            stopwords = {"where", "is", "are", "the", "a", "an", "in", "of", "for", "to", "on", "at", "by", "book", "books", "find", "search", "get", "tell", "me", "about", "show", "path", "locate", "available", "copies", "rack", "written", "author", "do", "you", "have", "can", "i", "please", "we"}
+            words = [w for w in query_norm.split() if w not in stopwords and len(w) > 1]
             
-            if not words:
+            if not words and not query_norm:
                 db.close()
                 return []
                 
-            q = db.query(Book)
+            matched_books = []
+            seen_ids = set()
             
             if field == "author":
-                for w in words:
+                q = db.query(Book)
+                for w in (words if words else [query_norm]):
                     q = q.filter(Book.author.ilike(f"%{w}%"))
+                matched_books = q.limit(10).all()
             elif field == "location":
-                q = q.filter(Book.rack.ilike(f"%{query_norm}%"))
+                matched_books = db.query(Book).filter(Book.rack.ilike(f"%{query_norm}%")).limit(10).all()
             elif field == "call_number":
-                q = q.filter(Book.isbn.ilike(f"%{query_norm}%"))
+                matched_books = db.query(Book).filter(Book.isbn.ilike(f"%{query_norm}%")).limit(10).all()
             elif field == "title":
-                for w in words:
-                    q = q.filter(Book.title.ilike(f"%{w}%"))
+                # 1. Exact or substring full title match
+                if query_norm:
+                    for b in db.query(Book).filter(Book.title.ilike(f"%{query_norm}%")).limit(10).all():
+                        if b.id not in seen_ids:
+                            seen_ids.add(b.id)
+                            matched_books.append(b)
+                # 2. All keywords match title
+                if words and not matched_books:
+                    q = db.query(Book)
+                    for w in words:
+                        q = q.filter(Book.title.ilike(f"%{w}%"))
+                    for b in q.limit(10).all():
+                        if b.id not in seen_ids:
+                            seen_ids.add(b.id)
+                            matched_books.append(b)
+                # 3. Any keyword matches title or author
+                if words and not matched_books:
+                    for w in words:
+                        if len(w) >= 3:
+                            for b in db.query(Book).filter(or_(Book.title.ilike(f"%{w}%"), Book.author.ilike(f"%{w}%"))).limit(5).all():
+                                if b.id not in seen_ids:
+                                    seen_ids.add(b.id)
+                                    matched_books.append(b)
             else:
-                db.close()
-                return []
+                # General search across title, author, and rack
+                if query_norm:
+                    for b in db.query(Book).filter(or_(Book.title.ilike(f"%{query_norm}%"), Book.author.ilike(f"%{query_norm}%"), Book.rack.ilike(f"%{query_norm}%"))).limit(10).all():
+                        if b.id not in seen_ids:
+                            seen_ids.add(b.id)
+                            matched_books.append(b)
+                if words and not matched_books:
+                    q = db.query(Book)
+                    for w in words:
+                        q = q.filter(or_(Book.title.ilike(f"%{w}%"), Book.author.ilike(f"%{w}%"), Book.rack.ilike(f"%{w}%")))
+                    for b in q.limit(10).all():
+                        if b.id not in seen_ids:
+                            seen_ids.add(b.id)
+                            matched_books.append(b)
                 
-            rows = q.all()
-            
             results = []
-            for b in rows:
-                title, author, subject, call_num, loc, copies = b.title, b.author, b.department, b.isbn, b.rack, b.copies
+            for b in matched_books:
+                title, author, subject, call_num, loc, floor, copies, desc = b.title, b.author, b.department, b.isbn, b.rack, b.floor, b.copies, b.description
                 text_content = f"Title: {title}\nAuthor: {author}\n"
-                if subject: text_content += f"Subject: {subject}\n"
-                if call_num: text_content += f"Call Number: {call_num}\n"
+                if subject: text_content += f"Subject / Department: {subject}\n"
+                if call_num: text_content += f"ISBN / Call Number: {call_num}\n"
                 if loc: text_content += f"Rack: {loc}\n"
-                if copies: text_content += f"Available Copies: {copies}\n"
+                if floor: text_content += f"Floor: {floor}\n"
+                text_content += f"Available Copies: {copies}\n"
+                text_content += f"Total Copies: {copies}\n"
+                if desc: text_content += f"Description: {desc}\n"
                 
                 results.append({
                     "text": text_content,
@@ -549,15 +588,18 @@ class LibraryRAG:
                         "author": author,
                         "location": loc,
                         "rack": loc,
+                        "floor": floor,
                         "copies": copies,
-                        "source": "live_db_metadata"
+                        "source": "live_database"
                     },
-                    "score": 0.95
+                    "score": 0.98
                 })
                 
             db.close()
             return results
         except Exception as e:
+            print(f"SQL lookup failed: {e}")
+            return []
             print(f"SQL lookup failed: {e}")
             return []
 
@@ -1008,6 +1050,18 @@ class LibraryRAG:
                         print(f"Intent Router: Raw title match found for '{clean_input}'")
                         metadata_results = fallback_title_results
 
+            # If no direct match yet, try searching for any mentioned title in conversation history
+            if not metadata_results and history:
+                for h_msg in reversed(history[-3:]):
+                    c_text = h_msg.get('content', '')
+                    t_match = re.search(r'["\']([^"\']+)["\']', c_text)
+                    if t_match:
+                        hist_title_results = self._metadata_lookup(t_match.group(1), field="title")
+                        if hist_title_results:
+                            print(f"Intent Router: Resolved title from history: '{t_match.group(1)}'")
+                            metadata_results = hist_title_results
+                            break
+
             if metadata_results:
                 top_chunks = metadata_results[:10]
                 print(f"Intent Router: Fast-path metadata lookup retrieved {len(top_chunks)} records in {time.time() - t_embed:.3f}s")
@@ -1028,6 +1082,41 @@ class LibraryRAG:
                         valid_chunks.append(chunk)
                 
                 top_chunks = valid_chunks[:5] if valid_chunks else merged[:5]
+
+            # GUARANTEE REAL-TIME SYNC: Re-query the live database for any retrieved book chunks to ensure updated Rack/Copies
+            try:
+                from backend.database.db import SessionLocal
+                from backend.database.models import Book
+                db_sync = SessionLocal()
+                for chunk in top_chunks:
+                    c_meta = chunk.get("metadata", {})
+                    b_title = c_meta.get("title")
+                    if not b_title:
+                        m_title = re.search(r'Title:\s*(.+)', chunk.get("text", ""))
+                        if m_title:
+                            b_title = m_title.group(1).strip()
+                    
+                    if b_title:
+                        live_book = db_sync.query(Book).filter(Book.title.ilike(f"%{b_title}%")).first()
+                        if live_book:
+                            chunk["text"] = (
+                                f"Title: {live_book.title}\n"
+                                f"Author: {live_book.author}\n"
+                                f"Rack: {live_book.rack}\n"
+                                f"Floor: {live_book.floor or '1'}\n"
+                                f"Available Copies: {live_book.copies}\n"
+                                f"Total Copies: {live_book.copies}\n"
+                            )
+                            if live_book.department: chunk["text"] += f"Subject / Department: {live_book.department}\n"
+                            if live_book.isbn: chunk["text"] += f"Call Number / ISBN: {live_book.isbn}\n"
+                            if live_book.description: chunk["text"] += f"Description: {live_book.description}\n"
+                            chunk["metadata"]["rack"] = live_book.rack
+                            chunk["metadata"]["copies"] = live_book.copies
+                            chunk["metadata"]["floor"] = live_book.floor
+                            chunk["metadata"]["source"] = "live_database_synced"
+                db_sync.close()
+            except Exception as e:
+                print(f"Warning: Live database resync failed: {e}")
                 
             print(f"Final retrieved chunks: {len(top_chunks)} in {time.time() - t_embed:.3f}s")
 
