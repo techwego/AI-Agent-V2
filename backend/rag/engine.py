@@ -936,10 +936,14 @@ class LibraryRAG:
         if not history:
             return query
             
-        # Check if current query is likely a follow-up
+        # Check if current query is a general library/count question (NOT a follow up on a single book)
         lower_query = " " + query.lower() + " "
-        follow_up_keywords = [" it ", " this ", " that ", " these ", " those ", " copies ", " copy ", " author ", " he ", " she ", " his ", " her ", " they ", " them ", " where ", " which ", " how many "]
-        
+        general_patterns = ["how many books", "total books", "all books", "collection size", "number of books", "books do we have", "books we have", "books available in library", "books in the library"]
+        if any(p in lower_query for p in general_patterns):
+            return query
+            
+        # Check if current query is likely a follow-up about the PREVIOUS specific book
+        follow_up_keywords = [" it ", " this book ", " that book ", " these books ", " those books ", " its author ", " author of it ", " where is it ", " how to get there ", " path to it ", " take me there "]
         is_follow_up = any(kw in lower_query for kw in follow_up_keywords)
         
         expanded = query
@@ -1120,47 +1124,59 @@ class LibraryRAG:
                 
             print(f"Final retrieved chunks: {len(top_chunks)} in {time.time() - t_embed:.3f}s")
 
-            context_blocks = []
-            
-            for chunk in top_chunks:
-                meta = chunk.get("metadata", {})
-                source = meta.get("source", "Library Database")
-                section = meta.get("section", "")
-                sec_str = f" - Section: {section}" if section else ""
-                context_blocks.append(f"[Source: {source}{sec_str}]\n{chunk['text']}")
-                
-            if not context_blocks:
-                context_blocks.append("No relevant information found in the library catalog.")
-                
-            context = "\n\n".join(context_blocks)
-            
-            # HARD LIMIT: Ensure context doesn't exceed limits to stay within reasonable limits
-            if len(context) > 12000:
-                context = context[:12000] + "\n...[CONTENT TRUNCATED DUE TO SIZE LIMITS]..."
-
-            # Fetch Global Library Settings
+            # Fetch Global Library Settings & Collection Statistics
             library_name = "the University Library"
             opening_hours = ""
             library_policies = ""
+            total_books_count = 0
+            total_physical_copies = 0
             try:
                 from backend.database.db import SessionLocal
-                from backend.database.models import LibraryConfig
+                from backend.database.models import LibraryConfig, Book
+                from sqlalchemy import func
                 db = SessionLocal()
                 config = db.query(LibraryConfig).first()
                 if config:
                     library_name = config.library_name or "the University Library"
                     opening_hours = config.opening_hours or ""
                     library_policies = config.library_policies or ""
+                total_books_count = db.query(Book).count()
+                total_physical_copies = db.query(func.sum(Book.copies)).scalar() or total_books_count
                 db.close()
             except Exception as e:
-                print(f"Failed to load LibraryConfig for prompt: {e}")
+                print(f"Failed to load LibraryConfig/Stats for prompt: {e}")
+
+            # If user is asking a general collection/count question, provide collection summary as context
+            clean_lower = clean_input.lower()
+            general_count_phrases = ["how many books", "total books", "all books", "collection size", "number of books", "books do we have", "books we have", "books available in library", "books in the library"]
+            if any(p in clean_lower for p in general_count_phrases):
+                context_blocks = [f"Library Collection Summary: {library_name} currently has {total_books_count} unique book titles with a total of {total_physical_copies} physical copies available across all sections and floors."]
+                context = "\n\n".join(context_blocks)
+            else:
+                context_blocks = []
+                for chunk in top_chunks:
+                    meta = chunk.get("metadata", {})
+                    source = meta.get("source", "Library Database")
+                    section = meta.get("section", "")
+                    sec_str = f" - Section: {section}" if section else ""
+                    context_blocks.append(f"[Source: {source}{sec_str}]\n{chunk['text']}")
+                    
+                if not context_blocks:
+                    context_blocks.append("No relevant information found in the library catalog.")
+                    
+                context = "\n\n".join(context_blocks)
+            
+            # HARD LIMIT: Ensure context doesn't exceed limits to stay within reasonable limits
+            if len(context) > 12000:
+                context = context[:12000] + "\n...[CONTENT TRUNCATED DUE TO SIZE LIMITS]..."
 
             system_prompt = (
                 f"You are Sam, a virtual library assistant for {library_name}. "
                 f"Library Opening Hours: {opening_hours}. "
                 f"Library Policies & Rules: {library_policies}. "
+                f"Total Library Collection: {total_books_count} unique book titles ({total_physical_copies} total physical copies). "
                 "You MUST answer ONLY from the retrieved context records below. Never guess or invent metadata. "
-                "If the user asks about general library rules or hours, answer based on the Policies & Rules above. "
+                "If the user asks about general library rules, hours, or how many books the library has, answer directly and accurately based on the Policies & Collection stats above. DO NOT mention a single specific book or rack unless the user asked for one. "
                 "If the user asks about a book and the retrieved records are completely unrelated, say 'I could not find an exact match for that book.' "
                 "However, if the user is simply answering your previous question about their location (e.g. 'I am on Floor 1'), acknowledge it naturally and tell them you are showing the path based on the conversation history. Do not say you can't find a book in this case. "
                 "CRITICAL: The user is speaking through a speech-to-text engine. You MUST be extremely forgiving of typos! If their words sound even slightly similar to a book in the context (e.g. 'good night moon look' -> 'Goodnight Moon', 'harry port' -> 'Harry Potter'), you MUST assume it is a match and answer using the context. DO NOT say you couldn't find a match if there is a similar sounding book. "
@@ -1171,11 +1187,12 @@ class LibraryRAG:
                 "Adopt a professional, calm, friendly, confident, and efficient female persona. "
                 "Use clear, neutral Indian English or international English. "
                 "INTENT RULES:\n"
-                "1. BOOK INFO INTENT: If the user is asking about a book (availability, author, title, number of copies, description, etc.), respond with the relevant book details in the chat. Do NOT ask for their location. Do NOT output any `<ROUTE_...>` tags. The map will stay closed.\n"
-                "2. PATH / LOCATION INTENT: If the user is asking where the book/rack physically is, or asking for directions/route/path (e.g. 'where is this book', 'where is it kept', 'show me the path', 'take me to it', 'how do I get there', 'route me to rack B2', 'path from floor 1 to floor 2'):\n"
+                "1. GENERAL LIBRARY INTENT: If the user asks general questions about the library (e.g. 'how many books do we have', 'how many books are there', 'total books', 'library hours', 'rules', 'policies'): Answer naturally with the total count or policies. NEVER output any `<ROUTE_...>` tags. The map must stay closed.\n"
+                "2. BOOK INFO INTENT: If the user is asking about a specific book (availability, author, title, number of copies, description, etc.), respond with the relevant book details in the chat. Do NOT ask for their location. Do NOT output any `<ROUTE_...>` tags. The map will stay closed.\n"
+                "3. PATH / LOCATION INTENT: If the user is asking where a specific book/rack physically is, or asking for directions/route/path (e.g. 'where is this book', 'where is it kept', 'show me the path', 'take me to it', 'how do I get there', 'route me to rack B2', 'path from floor 1 to floor 2'):\n"
                 "   a) If their current location is UNKNOWN in this conversation, ask: 'Where are you currently located? At the entrance, or near a specific rack or floor?'. Do NOT output a `<ROUTE_...>` tag yet.\n"
                 "   b) If their current location is KNOWN (or stated in the message), respond with guidance and ALWAYS append the routing tag at the VERY END: `<ROUTE_FROM:start_TO:destination>`. Examples: `<ROUTE_FROM:entrance_TO:B2>`, `<ROUTE_FROM:entrance_TO:F1>`, `<ROUTE_FROM:stairs1_TO:stairs2>`.\n"
-                "3. CONVERSATION CONTEXT: If the user previously asked about a book and then asks 'where is it kept' or 'show me the path', resolve 'it' to the last book discussed. Do not ask them to repeat the book name.\n"
+                "4. CONVERSATION CONTEXT: If the user previously asked about a book and then asks 'where is it kept' or 'show me the path', resolve 'it' to the last book discussed. Do not ask them to repeat the book name.\n"
 
             )
 
@@ -1207,8 +1224,11 @@ class LibraryRAG:
             # Helper: Path/Location intent check
             lower_input = user_input.lower().strip()
             
+            # If this is a general library/count question or policy question, NEVER inject a route tag
+            is_general_question = any(p in lower_input for p in ["how many books", "total books", "all books", "collection size", "number of books", "books do we have", "books we have", "hours", "timings", "rules", "policies", "who are you"])
+            
             path_intent_patterns = [
-                r'\bwhere\s+(?:is|are)\b',
+                r'\bwhere\s+(?:is|are)\s+(?!the\s+library|we|our)\b',
                 r'\bwhere\s+.*(?:kept|located|placed|shelved)\b',
                 r'\bshow\s+me\s+(?:the\s+)?path\b',
                 r'\bshow\s+me\s+(?:the\s+)?(?:way|route|direction)',
@@ -1225,18 +1245,18 @@ class LibraryRAG:
                 r'\bfloor\s*\d+\s*(?:to|towards)\s*floor\s*\d+\b',
                 r'^(?:floor\s*\d+|entrance|first\s+floor|second\s+floor|third\s+floor)$'
             ]
-            is_path_intent = any(re.search(p, lower_input) for p in path_intent_patterns)
+            is_path_intent = not is_general_question and any(re.search(p, lower_input) for p in path_intent_patterns)
             
-            # Also check if the previous assistant message was asking for the user's location
-            was_asking_location = False
-            if history:
-                for msg in reversed(history):
-                    if msg.get("role") == "assistant":
-                        if "where are you" in msg.get("content", "").lower() or "currently located" in msg.get("content", "").lower():
-                            was_asking_location = True
-                        break
+            # Check if the user is answering a location question (e.g. "I am on floor 1", "near C4", "at entrance")
+            is_answering_location = False
+            if not is_general_question and history:
+                last_asst_msg = next((m.get("content", "").lower() for m in reversed(history) if m.get("role") == "assistant"), "")
+                if "where are you" in last_asst_msg or "currently located" in last_asst_msg:
+                    # Only treat as location answer if they actually mention a location
+                    if re.search(r'\b(?:entrance|floor\s*\d+|rack\s*[a-z0-9\-]+|stairs\s*\d+|near|at|by|from)\b', lower_input):
+                        is_answering_location = True
             
-            if is_path_intent or was_asking_location:
+            if (is_path_intent or is_answering_location) and not is_general_question:
                 # Only inject route tag if missing and location prompt is NOT being asked
                 if not re.search(r'<ROUTE_', full_output, re.IGNORECASE) and "where are you" not in full_output.lower() and "currently located" not in full_output.lower():
                     user_loc = None
