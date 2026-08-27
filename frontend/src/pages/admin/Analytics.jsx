@@ -74,9 +74,9 @@ const Analytics = () => {
     
     if (analytics.top_missing_books) {
       analytics.top_missing_books.forEach((b, index) => {
-        // Escape commas in book names
-        const safeName = b.book_name.replace(/,/g, '');
-        csvContent += `${index + 1},${safeName},${b.count}\n`;
+        const safeName = String(b.title || b.book_name || '').replace(/,/g, '');
+        const count = b.searches !== undefined ? b.searches : (b.count || 0);
+        csvContent += `${index + 1},${safeName},${count}\n`;
       });
     }
     
