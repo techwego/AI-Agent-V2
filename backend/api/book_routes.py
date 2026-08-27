@@ -82,12 +82,12 @@ def create_book(
     ))
     db.commit()
     
-    # Trigger RAG Engine rebuild or update if necessary
+    # Trigger RAG Engine rebuild
     try:
         from backend.api.main import rag_engine
-        rag_engine._build_sqlite_index() # Rebuild local sqlite index for fast path
+        rag_engine._build_or_load_sqlite_index()
     except Exception as e:
-        print(f"Failed to update RAG engine for new book: {e}")
+        print(f"Failed to update RAG engine for book: {e}")
 
     return {"message": "Book created successfully", "book": new_book}
 
@@ -119,7 +119,7 @@ def update_book(
     # Trigger RAG Engine rebuild
     try:
         from backend.api.main import rag_engine
-        rag_engine._build_sqlite_index()
+        rag_engine._build_or_load_sqlite_index()
     except Exception as e:
         print(f"Failed to update RAG engine for book update: {e}")
 
@@ -148,7 +148,7 @@ def delete_book(
     # Trigger RAG Engine rebuild
     try:
         from backend.api.main import rag_engine
-        rag_engine._build_sqlite_index()
+        rag_engine._build_or_load_sqlite_index()
     except Exception as e:
         print(f"Failed to update RAG engine for book deletion: {e}")
 

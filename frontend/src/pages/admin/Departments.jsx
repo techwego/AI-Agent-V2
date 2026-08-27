@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, X, Building, MapPin } from 'lucide-react';
 import { getDepartments, createDepartment, updateDepartment, deleteDepartment } from '../../api/client';
+import { useToast } from '../../components/Toast';
 
 export default function Departments() {
+  const { showToast } = useToast();
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState(null);
   const [formData, setFormData] = useState({ name: '', hod: '', building: '', floor: '' });
@@ -20,6 +23,7 @@ export default function Departments() {
       setDepartments(res.data || []);
     } catch (err) {
       console.error('Failed to fetch departments:', err);
+      showToast('Failed to fetch departments', 'error');
     } finally {
       setLoading(false);
     }
@@ -28,10 +32,13 @@ export default function Departments() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSaving(true);
       if (editingDept) {
         await updateDepartment(editingDept.id, formData);
+        showToast('Department updated successfully', 'success');
       } else {
         await createDepartment(formData);
+        showToast('Department created successfully', 'success');
       }
       setIsModalOpen(false);
       setEditingDept(null);
@@ -39,6 +46,9 @@ export default function Departments() {
       fetchDepartments();
     } catch (err) {
       console.error('Failed to save department:', err);
+      showToast(err.response?.data?.detail || 'Failed to save department', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -46,9 +56,11 @@ export default function Departments() {
     if (window.confirm('Are you sure you want to delete this department?')) {
       try {
         await deleteDepartment(id);
+        showToast('Department deleted', 'success');
         fetchDepartments();
       } catch (err) {
         console.error('Failed to delete department:', err);
+        showToast('Failed to delete department', 'error');
       }
     }
   };

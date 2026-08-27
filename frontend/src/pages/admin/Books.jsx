@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit, Trash2, X, BookOpen, Filter } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, X, BookOpen, Filter, RefreshCw } from 'lucide-react';
 import { getBooks, createBook, updateBook, deleteBook } from '../../api/client';
 import { useToast } from '../../components/Toast';
 
@@ -7,11 +7,12 @@ const Books = () => {
   const { showToast } = useToast();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingBook, setEditingBook] = useState(null);
   const [formData, setFormData] = useState({
-    title: '', author: '', department: '', rack: '', floor: '', copies: '', isbn: ''
+    title: '', author: '', department: '', rack: '', floor: '', copies: '1', available: '1', isbn: '', description: ''
   });
   const [page, setPage] = useState(1);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -37,7 +38,8 @@ const Books = () => {
 
   const filteredBooks = books.filter(book => 
     (book.title?.toLowerCase().includes(searchTerm.toLowerCase())) || 
-    (book.author?.toLowerCase().includes(searchTerm.toLowerCase()))
+    (book.author?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (book.rack?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const totalItems = filteredBooks.length;
@@ -48,7 +50,9 @@ const Books = () => {
 
   const openAddModal = () => {
     setEditingBook(null);
-    setFormData({ title: '', author: '', department: '', rack: '', floor: '', copies: '', isbn: '' });
+    setFormData({
+      title: '', author: '', department: '', rack: '', floor: '1', copies: '1', available: '1', isbn: '', description: ''
+    });
     setShowModal(true);
   };
 
@@ -59,36 +63,66 @@ const Books = () => {
       author: book.author || '',
       department: book.department || '',
       rack: book.rack || '',
-      floor: book.floor || '',
-      copies: book.copies || '',
-      isbn: book.isbn || ''
+      floor: book.floor || '1',
+      copies: book.copies !== undefined ? String(book.copies) : '1',
+      available: book.available !== undefined ? String(book.available) : (book.copies !== undefined ? String(book.copies) : '1'),
+      isbn: book.isbn || '',
+      description: book.description || ''
     });
     setShowModal(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.title.trim() || !formData.author.trim()) {
+      showToast('Title and Author are required', 'error');
+      return;
+    }
+
     try {
-      const data = { ...formData, copies: Number(formData.copies) || 0 };
+      setSaving(true);
+      const totalCopies = Math.max(0, parseInt(formData.copies, 10) || 1);
+      const availCopies = Math.max(0, parseInt(formData.available, 10) || totalCopies);
+
+      const payload = {
+        title: formData.title.trim(),
+        author: formData.author.trim(),
+        department: formData.department.trim() || null,
+        rack: formData.rack.trim().toUpperCase() || null,
+        floor: formData.floor.trim() || '1',
+        copies: totalCopies,
+        available: availCopies,
+        isbn: formData.isbn.trim() || null,
+        description: formData.description.trim() || null
+      };
+
       if (editingBook) {
-        await updateBook(editingBook.id, data);
+        await updateBook(editingBook.id, payload);
+        showToast(`Book "${payload.title}" updated successfully!`, 'success');
       } else {
-        await createBook(data);
+        await createBook(payload);
+        showToast(`Book "${payload.title}" added to catalog!`, 'success');
       }
       setShowModal(false);
-      fetchBooks();
+      await fetchBooks();
     } catch (err) {
       console.error('Error saving book:', err);
+      const msg = err.response?.data?.detail || err.message || 'Failed to save book';
+      showToast(msg, 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
     try {
       await deleteBook(id);
+      showToast('Book deleted successfully', 'success');
       setConfirmDelete(null);
       fetchBooks();
     } catch (err) {
       console.error('Error deleting book:', err);
+      showToast('Failed to delete book', 'error');
     }
   };
 
@@ -98,9 +132,21 @@ const Books = () => {
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <BookOpen className="text-blue-500" /> Books Management
         </h1>
-        <button onClick={openAddModal} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-lg shadow-blue-900/20 transition-colors">
-          <Plus size={16} /> Add Book
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={fetchBooks} 
+            disabled={loading}
+            className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg border border-gray-700 transition-colors"
+          >
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+          <button 
+            onClick={openAddModal} 
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-lg shadow-blue-900/20 transition-colors"
+          >
+            <Plus size={16} /> Add Book
+          </button>
+        </div>
       </div>
 
       <div className="glass-card rounded-2xl border border-gray-800 flex-1 flex flex-col overflow-hidden bg-gray-900/30">
@@ -109,18 +155,15 @@ const Books = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
             <input 
               type="text" 
-              placeholder="Search books by title or author..."
+              placeholder="Search books by title, author, or rack..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setPage(1); // Reset page on search
+                setPage(1);
               }}
               className="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg border border-gray-700 transition-colors">
-            <Filter size={16} /> Filters
-          </button>
         </div>
 
         <div className="flex-1 overflow-auto">
@@ -130,13 +173,12 @@ const Books = () => {
                 <th className="px-6 py-4 font-medium text-gray-400">Title & Author</th>
                 <th className="px-6 py-4 font-medium text-gray-400">Department</th>
                 <th className="px-6 py-4 font-medium text-gray-400">Location</th>
-                <th className="px-6 py-4 font-medium text-gray-400">Copies</th>
+                <th className="px-6 py-4 font-medium text-gray-400">Copies (Avail / Total)</th>
                 <th className="px-6 py-4 font-medium text-gray-400 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
               {loading ? (
-                // Skeletons
                 [...Array(10)].map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
                     <td className="px-6 py-4"><div className="h-4 bg-gray-800 rounded w-3/4 mb-2"></div><div className="h-3 bg-gray-800 rounded w-1/2"></div></td>
@@ -155,20 +197,28 @@ const Books = () => {
                     </td>
                     <td className="px-6 py-4 text-gray-300">{book.department || '-'}</td>
                     <td className="px-6 py-4">
-                      <div className="text-gray-300">Rack {book.rack || '-'}</div>
-                      <div className="text-gray-500 text-xs">Floor {book.floor || '-'}</div>
+                      <div className="text-emerald-400 font-semibold">{book.rack ? `Rack ${book.rack}` : '-'}</div>
+                      <div className="text-gray-500 text-xs">Floor {book.floor || '1'}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-gray-800 text-gray-300 text-xs font-medium border border-gray-700">
+                      <span className="inline-flex items-center justify-center px-2.5 py-1 rounded bg-gray-800 text-gray-200 text-xs font-semibold border border-gray-700">
                         {book.available !== undefined ? book.available : book.copies} / {book.copies || 0}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEditModal(book)} className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors" title="Edit Book">
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => openEditModal(book)} 
+                          className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors" 
+                          title="Edit Book"
+                        >
                           <Edit size={16} />
                         </button>
-                        <button onClick={() => setConfirmDelete(book.id)} className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors" title="Delete Book">
+                        <button 
+                          onClick={() => setConfirmDelete(book.id)} 
+                          className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors" 
+                          title="Delete Book"
+                        >
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -200,7 +250,7 @@ const Books = () => {
               Prev
             </button>
             <div className="flex items-center px-2 text-white font-medium">
-              {page}
+              {page} / {totalPages || 1}
             </div>
             <button 
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
@@ -215,8 +265,8 @@ const Books = () => {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-white">
                 {editingBook ? 'Edit Book' : 'Add New Book'}
@@ -228,44 +278,111 @@ const Books = () => {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Title</label>
-                <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Enter book title" />
+                <label className="block text-sm font-medium text-gray-300 mb-1">Title *</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={formData.title} 
+                  onChange={e => setFormData({...formData, title: e.target.value})} 
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                  placeholder="Enter book title" 
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Author</label>
-                <input required type="text" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Enter author name" />
+                <label className="block text-sm font-medium text-gray-300 mb-1">Author *</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={formData.author} 
+                  onChange={e => setFormData({...formData, author: e.target.value})} 
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                  placeholder="Enter author name" 
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Department</label>
-                  <input type="text" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="e.g. Computer Science" />
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Department</label>
+                  <input 
+                    type="text" 
+                    value={formData.department} 
+                    onChange={e => setFormData({...formData, department: e.target.value})} 
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                    placeholder="e.g. Computer Science" 
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">ISBN</label>
-                  <input type="text" value={formData.isbn} onChange={e => setFormData({...formData, isbn: e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="ISBN number" />
+                  <label className="block text-sm font-medium text-gray-300 mb-1">ISBN / Call No.</label>
+                  <input 
+                    type="text" 
+                    value={formData.isbn} 
+                    onChange={e => setFormData({...formData, isbn: e.target.value})} 
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                    placeholder="ISBN number" 
+                  />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Rack</label>
-                  <input type="text" value={formData.rack} onChange={e => setFormData({...formData, rack: e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="e.g. A1" />
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Rack Location</label>
+                  <input 
+                    type="text" 
+                    value={formData.rack} 
+                    onChange={e => setFormData({...formData, rack: e.target.value})} 
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                    placeholder="e.g. C4 or A1" 
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Floor</label>
-                  <input type="text" value={formData.floor} onChange={e => setFormData({...formData, floor: e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="e.g. 1" />
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Floor</label>
+                  <input 
+                    type="text" 
+                    value={formData.floor} 
+                    onChange={e => setFormData({...formData, floor: e.target.value})} 
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                    placeholder="e.g. 1 or 2" 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Available Copies</label>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    value={formData.available} 
+                    onChange={e => setFormData({...formData, available: e.target.value})} 
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Copies</label>
-                  <input required type="number" min="0" value={formData.copies} onChange={e => setFormData({...formData, copies: e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Total Copies</label>
+                  <input 
+                    required 
+                    type="number" 
+                    min="0" 
+                    value={formData.copies} 
+                    onChange={e => setFormData({...formData, copies: e.target.value})} 
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                  />
                 </div>
               </div>
               
               <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-800">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors">
+                <button 
+                  type="button" 
+                  onClick={() => setShowModal(false)} 
+                  disabled={saving}
+                  className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg font-medium transition-colors"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                  {editingBook ? 'Save Changes' : 'Add Book'}
+                <button 
+                  type="submit" 
+                  disabled={saving}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/30"
+                >
+                  {saving && <RefreshCw size={16} className="animate-spin" />}
+                  {saving ? 'Saving...' : (editingBook ? 'Save Changes' : 'Add Book')}
                 </button>
               </div>
             </form>
@@ -275,15 +392,21 @@ const Books = () => {
 
       {/* Delete Confirmation Modal */}
       {confirmDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm">
-            <h2 className="text-xl font-bold text-white mb-4">Confirm Delete</h2>
-            <p className="text-gray-300 mb-6">Are you sure you want to delete this book? This action cannot be undone.</p>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h2 className="text-xl font-bold text-white mb-3">Confirm Delete</h2>
+            <p className="text-gray-300 text-sm mb-6">Are you sure you want to delete this book? This will remove it from the catalog and AI knowledge base.</p>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setConfirmDelete(null)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors">
+              <button 
+                onClick={() => setConfirmDelete(null)} 
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg font-medium transition-colors"
+              >
                 Cancel
               </button>
-              <button onClick={() => handleDelete(confirmDelete)} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">
+              <button 
+                onClick={() => handleDelete(confirmDelete)} 
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-lg shadow-red-900/30"
+              >
                 Delete
               </button>
             </div>
