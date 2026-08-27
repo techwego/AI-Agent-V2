@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trash2, Clock, ShieldOff, Shield, Plus, X } from 'lucide-react';
 import api, { getUsers, deleteUser, register } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
-import { useToast } from '../../contexts/ToastContext';
+import { useToast } from '../../components/Toast';
 
 export default function Users() {
   const [users, setUsers] = useState([]);

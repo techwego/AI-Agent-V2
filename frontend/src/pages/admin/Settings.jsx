@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getArchitecture, updateArchitecture } from '../../api/client';
 import { Save, RefreshCw, Settings2, ShieldAlert, Clock, Book } from 'lucide-react';
-import { useToast } from '../../contexts/ToastContext';
+import { useToast } from '../../components/Toast';
 
 const Settings = () => {
   const { showToast } = useToast();
