@@ -61,22 +61,24 @@ const Analytics = () => {
   ];
 
   const handleExportCSV = () => {
-    if (!analyticsData) return;
+    if (!analytics) return;
     
     // Create CSV content for Top Missing Books
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "Type,Metric,Value\n";
-    csvContent += `Stat,Total Books,${analyticsData.total_books}\n`;
-    csvContent += `Stat,Total Users,${analyticsData.total_users}\n`;
-    csvContent += `Stat,Total AI Chats,${analyticsData.total_chats}\n`;
+    csvContent += `Stat,Total Books,${analytics.total_books}\n`;
+    csvContent += `Stat,Total Users,${analytics.total_users}\n`;
+    csvContent += `Stat,Total AI Chats,${analytics.total_chats}\n`;
     csvContent += "\n--- TOP MISSING BOOKS ---\n";
     csvContent += "Rank,Book Name,Search Count\n";
     
-    analyticsData.top_missing_books.forEach((b, index) => {
-      // Escape commas in book names
-      const safeName = b.book_name.replace(/,/g, '');
-      csvContent += `${index + 1},${safeName},${b.count}\n`;
-    });
+    if (analytics.top_missing_books) {
+      analytics.top_missing_books.forEach((b, index) => {
+        // Escape commas in book names
+        const safeName = b.book_name.replace(/,/g, '');
+        csvContent += `${index + 1},${safeName},${b.count}\n`;
+      });
+    }
     
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -94,7 +96,7 @@ const Analytics = () => {
         <div className="flex gap-3">
           <button 
             onClick={handleExportCSV}
-            disabled={loading || !analyticsData}
+            disabled={loading || !analytics}
             className="flex items-center space-x-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 rounded-lg transition-colors border border-emerald-500/30"
           >
             <Download className="w-4 h-4" />
