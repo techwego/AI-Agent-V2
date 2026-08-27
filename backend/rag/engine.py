@@ -571,14 +571,18 @@ class LibraryRAG:
                 
             results = []
             for b in matched_books:
-                title, author, subject, call_num, loc, floor, copies, desc = b.title, b.author, b.department, b.isbn, b.rack, b.floor, b.copies, b.description
+                title, author, subject, call_num, loc, floor, copies, avail, desc = (
+                    b.title, b.author, b.department, b.isbn, b.rack, b.floor, b.copies, b.available, b.description
+                )
+                total_copies = copies if copies is not None else 1
+                avail_copies = avail if avail is not None else total_copies
                 text_content = f"Title: {title}\nAuthor: {author}\n"
                 if subject: text_content += f"Subject / Department: {subject}\n"
                 if call_num: text_content += f"ISBN / Call Number: {call_num}\n"
                 if loc: text_content += f"Rack: {loc}\n"
                 if floor: text_content += f"Floor: {floor}\n"
-                text_content += f"Available Copies: {copies}\n"
-                text_content += f"Total Copies: {copies}\n"
+                text_content += f"Available Copies: {avail_copies}\n"
+                text_content += f"Total Copies: {total_copies}\n"
                 if desc: text_content += f"Description: {desc}\n"
                 
                 results.append({
@@ -586,10 +590,11 @@ class LibraryRAG:
                     "metadata": {
                         "title": title,
                         "author": author,
-                        "location": loc,
-                        "rack": loc,
-                        "floor": floor,
-                        "copies": copies,
+                        "location": loc or "",
+                        "rack": loc or "",
+                        "floor": floor or "1",
+                        "copies": total_copies,
+                        "available": avail_copies,
                         "source": "live_database"
                     },
                     "score": 0.98
@@ -598,8 +603,6 @@ class LibraryRAG:
             db.close()
             return results
         except Exception as e:
-            print(f"SQL lookup failed: {e}")
-            return []
             print(f"SQL lookup failed: {e}")
             return []
 
@@ -1103,20 +1106,25 @@ class LibraryRAG:
                     if b_title:
                         live_book = db_sync.query(Book).filter(Book.title.ilike(f"%{b_title}%")).first()
                         if live_book:
+                            total_c = live_book.copies if live_book.copies is not None else 1
+                            avail_c = live_book.available if live_book.available is not None else total_c
+                            live_rack = live_book.rack or ""
                             chunk["text"] = (
                                 f"Title: {live_book.title}\n"
                                 f"Author: {live_book.author}\n"
-                                f"Rack: {live_book.rack}\n"
+                                f"Rack: {live_rack}\n"
                                 f"Floor: {live_book.floor or '1'}\n"
-                                f"Available Copies: {live_book.copies}\n"
-                                f"Total Copies: {live_book.copies}\n"
+                                f"Available Copies: {avail_c}\n"
+                                f"Total Copies: {total_c}\n"
                             )
                             if live_book.department: chunk["text"] += f"Subject / Department: {live_book.department}\n"
                             if live_book.isbn: chunk["text"] += f"Call Number / ISBN: {live_book.isbn}\n"
                             if live_book.description: chunk["text"] += f"Description: {live_book.description}\n"
-                            chunk["metadata"]["rack"] = live_book.rack
-                            chunk["metadata"]["copies"] = live_book.copies
-                            chunk["metadata"]["floor"] = live_book.floor
+                            chunk["metadata"]["rack"] = live_rack
+                            chunk["metadata"]["location"] = live_rack
+                            chunk["metadata"]["copies"] = total_c
+                            chunk["metadata"]["available"] = avail_c
+                            chunk["metadata"]["floor"] = live_book.floor or "1"
                             chunk["metadata"]["source"] = "live_database_synced"
                 db_sync.close()
             except Exception as e:
@@ -1322,9 +1330,10 @@ class LibraryRAG:
                         if not dest_rack and top_chunks:
                             for chk in top_chunks:
                                 meta = chk.get("metadata", {})
-                                if meta.get("location"):
-                                    loc = str(meta["location"]).strip()
-                                    loc_m = re.search(r'([A-Z0-9\-]+)', loc)
+                                rk = meta.get("rack") or meta.get("location")
+                                if rk:
+                                    rk_str = str(rk).strip()
+                                    loc_m = re.search(r'([A-Z0-9\-]+)', rk_str)
                                     if loc_m:
                                         dest_rack = loc_m.group(1).upper()
                                         break
