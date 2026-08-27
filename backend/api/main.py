@@ -265,48 +265,54 @@ class TTSRequest(BaseModel):
 
 @app.post("/api/tts")
 async def generate_tts(request: TTSRequest, background_tasks: BackgroundTasks):
+    # Fetch the selected voice from the database
+    voice = "en-US-AriaNeural"
     try:
-        # Fetch the selected voice from the database
-        voice = "en-US-AriaNeural"
-        try:
-            db_gen = get_db()
-            db = next(db_gen)
-            from backend.database.models import LibraryConfig
-            config = db.query(LibraryConfig).first()
-            if config and config.voice_preset:
-                voice = config.voice_preset
-        except Exception as e:
-            print(f"Failed to fetch voice preset: {e}")
-            
-        temp_filename = f"temp_tts_{uuid.uuid4().hex}.mp3"
-        temp_filepath = os.path.join(tempfile.gettempdir(), temp_filename)
-        
-        # Add retry loop for intermittent edge-tts connection issues
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                communicate = edge_tts.Communicate(request.text, voice)
-                await communicate.save(temp_filepath)
-                break # Success
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    print(f"[TTS ERROR] Failed after {max_retries} attempts: {e}")
-                    raise HTTPException(status_code=500, detail="TTS service unavailable")
-                print(f"[TTS WARNING] Attempt {attempt+1} failed, retrying...")
-                await asyncio.sleep(1)
+        db_gen = get_db()
+        db = next(db_gen)
+        from backend.database.models import LibraryConfig
+        config = db.query(LibraryConfig).first()
+        if config and config.voice_preset:
+            voice = config.voice_preset
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Failed to fetch voice preset: {e}")
+        
+    temp_filename = f"temp_tts_{uuid.uuid4().hex}.mp3"
+    temp_filepath = os.path.join(tempfile.gettempdir(), temp_filename)
+    
+    tts_generated = False
+    # 1. Try Edge TTS with a 3.0s strict timeout
+    try:
+        communicate = edge_tts.Communicate(request.text, voice)
+        await asyncio.wait_for(communicate.save(temp_filepath), timeout=3.0)
+        tts_generated = True
+    except Exception as e:
+        print(f"[TTS] Edge-TTS timeout or error ({e}), trying gTTS fallback...")
+
+    # 2. Fallback to gTTS if Edge TTS failed
+    if not tts_generated:
+        try:
+            from gtts import gTTS
+            tts = gTTS(text=request.text, lang='en')
+            tts.save(temp_filepath)
+            tts_generated = True
+            print("[TTS] gTTS fallback generated successfully.")
+        except Exception as e:
+            print(f"[TTS] gTTS error: {e}")
+
+    if not tts_generated or not os.path.exists(temp_filepath):
+        raise HTTPException(status_code=503, detail="TTS service temporarily unavailable, fallback to browser synthesis")
         
     def cleanup():
         try:
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
+            if os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
         except:
             pass
             
     background_tasks.add_task(cleanup)
     # Return file and ensure it is cleaned up afterwards
-    return FileResponse(temp_path, media_type="audio/mpeg", background=background_tasks)
+    return FileResponse(temp_filepath, media_type="audio/mpeg", background=background_tasks)
 
 frontend_dist = os.path.join(BASE_DIR, "frontend", "dist")
 if os.path.isdir(frontend_dist):

@@ -875,17 +875,18 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       }
 
       const cometT = Math.min(1, bT / duration);
+      const currentPoint = curve.getPointAt(Math.min(0.999, cometT));
+      
       if (cometT >= 1) {
           cometGroup.visible = false;
       } else {
           cometGroup.visible = true;
-          const p = curve.getPointAt(cometT);
-          cometGroup.position.copy(p);
-          trailPts.unshift(p.clone());
+          cometGroup.position.copy(currentPoint);
+          trailPts.unshift(currentPoint.clone());
           if (trailPts.length > 60) trailPts.pop();
           trail.forEach((m, i) => {
             const idx = Math.min(trailPts.length - 1, (i + 1) * 4);
-            if (trailPts[idx]) m.position.copy(trailPts[idx]).sub(p);
+            if (trailPts[idx]) m.position.copy(trailPts[idx]).sub(currentPoint);
           });
       }
 
@@ -900,7 +901,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
               orbitRef.current.radius += (fly.radius - orbitRef.current.radius) * ease * 0.04;
           }
         } else if (orbitRef.current && orbitRef.current.target) {
-          orbitRef.current.target.lerp(p, 0.015);
+          orbitRef.current.target.lerp(currentPoint, 0.015);
         }
         updateCamera();
       }
