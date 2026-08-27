@@ -2,6 +2,9 @@ class SpeechSynthesisManager {
   constructor() {
     this.audioElement = null;
     this.speaking = false;
+    this.queue = [];
+    this.isProcessingQueue = false;
+    this.onAllFinished = null;
   }
 
   stripMarkdown(text) {
@@ -10,8 +13,8 @@ class SpeechSynthesisManager {
       .replace(/\*\*/g, '')
       .replace(/_/g, '')
       .replace(/#/g, '')
-      .replace(/<ROUTE_TO:[^>]+>/g, '')
-      .replace(/<ROUTE_[^>]+>/g, '')
+      .replace(/<ROUTE_TO:[^>]+>/gi, '')
+      .replace(/<ROUTE_[^>]+>/gi, '')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Strip markdown links, keep text
       .trim();
   }
@@ -19,21 +22,20 @@ class SpeechSynthesisManager {
   speakWithWebSpeech(cleanText, onEnd) {
     if (!('speechSynthesis' in window)) {
       console.warn('Web Speech API is not supported in this browser.');
-      this.cleanup();
+      this.speaking = false;
       if (onEnd) onEnd();
       return;
     }
 
     try {
-      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.rate = 1.0;
+      utterance.rate = 1.05; // Slightly brisk, natural tempo
       utterance.pitch = 1.0;
 
-      // Try to pick a natural English voice
+      // Select a natural high quality English voice
       const voices = window.speechSynthesis.getVoices();
       const preferredVoice = voices.find(v => 
-        (v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Neural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Ava')))
+        (v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Neural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Ava') || v.name.includes('Jenny')))
       ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
 
       if (preferredVoice) {
@@ -41,13 +43,11 @@ class SpeechSynthesisManager {
       }
 
       utterance.onend = () => {
-        this.cleanup();
         if (onEnd) onEnd();
       };
 
       utterance.onerror = (e) => {
         console.warn('Web Speech error:', e);
-        this.cleanup();
         if (onEnd) onEnd();
       };
 
@@ -55,13 +55,44 @@ class SpeechSynthesisManager {
       window.speechSynthesis.speak(utterance);
     } catch (err) {
       console.error('Web Speech exception:', err);
-      this.cleanup();
       if (onEnd) onEnd();
     }
   }
 
-  async speak(text, onEnd) {
+  enqueue(sentence) {
+    const clean = this.stripMarkdown(sentence);
+    if (!clean) return;
+    this.queue.push(clean);
+    if (!this.isProcessingQueue) {
+      this.processQueue();
+    }
+  }
+
+  async processQueue() {
+    if (this.queue.length === 0) {
+      this.isProcessingQueue = false;
+      this.speaking = false;
+      if (this.onAllFinished) {
+        const cb = this.onAllFinished;
+        this.onAllFinished = null;
+        cb();
+      }
+      return;
+    }
+
+    this.isProcessingQueue = true;
+    this.speaking = true;
+    const nextSentence = this.queue.shift();
+
+    // Use Web Speech for instant, zero-latency sentence-by-sentence speaking
+    this.speakWithWebSpeech(nextSentence, () => {
+      this.processQueue();
+    });
+  }
+
+  speak(text, onEnd) {
     this.cancel();
+    this.onAllFinished = onEnd;
 
     const cleanText = this.stripMarkdown(text);
     if (!cleanText) {
@@ -69,58 +100,24 @@ class SpeechSynthesisManager {
       return;
     }
 
-    this.speaking = true;
-    const token = localStorage.getItem('token') || '';
-
-    // Attempt backend TTS with a strict 4-second timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-    try {
-      const response = await fetch('/api/tts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ text: cleanText }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`TTS API failed with status ${response.status}`);
+    // Split text into natural sentences (. ! ? or newlines)
+    const sentences = cleanText.match(/[^.!?\n]+[.!?\n]+|[^.!?\n]+$/g) || [cleanText];
+    for (const s of sentences) {
+      const trimmed = s.trim();
+      if (trimmed) {
+        this.queue.push(trimmed);
       }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-
-      this.audioElement = new Audio(url);
-
-      this.audioElement.onended = () => {
-        URL.revokeObjectURL(url);
-        this.cleanup();
-        if (onEnd) onEnd();
-      };
-
-      this.audioElement.onerror = (e) => {
-        console.warn("Audio playback error, falling back to Web Speech", e);
-        URL.revokeObjectURL(url);
-        this.cleanup();
-        this.speakWithWebSpeech(cleanText, onEnd);
-      };
-
-      await this.audioElement.play();
-    } catch (err) {
-      clearTimeout(timeoutId);
-      console.warn("Backend TTS failed or timed out. Falling back to browser Web Speech API.", err.message);
-      // Seamless browser TTS fallback
-      this.speakWithWebSpeech(cleanText, onEnd);
     }
+
+    this.processQueue();
   }
 
   cancel() {
+    this.queue = [];
+    this.isProcessingQueue = false;
+    this.speaking = false;
+    this.onAllFinished = null;
+
     if (this.audioElement) {
       this.audioElement.pause();
       this.audioElement.currentTime = 0;
@@ -128,15 +125,14 @@ class SpeechSynthesisManager {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
-    this.cleanup();
   }
 
   cleanup() {
-    this.speaking = false;
+    this.cancel();
   }
 
   isSpeaking() {
-    return this.speaking || (this.audioElement && !this.audioElement.paused) || (('speechSynthesis' in window) && window.speechSynthesis.speaking);
+    return this.speaking || (('speechSynthesis' in window) && window.speechSynthesis.speaking);
   }
 }
 

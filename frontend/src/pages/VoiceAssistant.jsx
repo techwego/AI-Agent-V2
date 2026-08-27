@@ -142,7 +142,7 @@ const VoiceAssistant = () => {
     }
     if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) return;
     
-    // First time click: Introduce herself via TTS
+    // First time click: Introduce herself via TTS (without sending text into chat)
     if (!hasIntroducedRef.current && currentState === State.IDLE) {
       hasIntroducedRef.current = true;
       setHasIntroduced(true);
@@ -154,9 +154,7 @@ const VoiceAssistant = () => {
       
       const welcomeText = `${greeting}! I am Sam, your AI Library Assistant. How can I help you today?`;
       
-      setMessages(prev => [...prev, { role: 'assistant', content: welcomeText, timestamp: Date.now() }]);
       stateManager.setState(State.INTRODUCING);
-      
       ttsManager.speak(welcomeText, () => {
         if (stateManager.getState() === State.INTRODUCING) {
           stateManager.setState(State.IDLE);
@@ -200,8 +198,16 @@ const VoiceAssistant = () => {
       const decoder = new TextDecoder('utf-8');
       let done = false;
       let fullResponse = '';
+      let speechBuffer = '';
 
       setMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: Date.now() }]);
+
+      if (!isTextOnly) {
+        ttsManager.cancel();
+        ttsManager.onAllFinished = () => {
+          stateManager.reset();
+        };
+      }
 
       while (!done) {
         const { value, done: readerDone } = await reader.read();
@@ -209,12 +215,37 @@ const VoiceAssistant = () => {
         if (value) {
           const chunk = decoder.decode(value, { stream: true });
           fullResponse += chunk;
+          speechBuffer += chunk;
+
           const displayResponse = fullResponse.replace(/<ROUTE_[^>]*>?/gi, '');
           setMessages(prev => {
             const newMessages = [...prev];
             newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], content: displayResponse };
             return newMessages;
           });
+
+          // Zero-latency sentence streaming speech: start speaking as soon as first sentence is ready!
+          if (!isTextOnly) {
+            const cleanBuf = speechBuffer.replace(/<ROUTE_[^>]*>?/gi, '');
+            const sentenceMatch = cleanBuf.match(/^([^.!?\n]+[.!?\n]+)\s*(.*)$/s);
+            if (sentenceMatch) {
+              const sentenceToSpeak = sentenceMatch[1].trim();
+              speechBuffer = sentenceMatch[2]; // keep remainder for next sentence
+              if (sentenceToSpeak) {
+                stateManager.setState(State.SPEAKING);
+                ttsManager.enqueue(sentenceToSpeak);
+              }
+            }
+          }
+        }
+      }
+
+      // Speak any remaining text at the end of the stream
+      if (!isTextOnly && speechBuffer.trim()) {
+        const remainingToSpeak = speechBuffer.replace(/<ROUTE_[^>]*>?/gi, '').trim();
+        if (remainingToSpeak) {
+          stateManager.setState(State.SPEAKING);
+          ttsManager.enqueue(remainingToSpeak);
         }
       }
 
@@ -252,21 +283,14 @@ const VoiceAssistant = () => {
         if (isValid) {
           showToast(`Opening Navigation to Rack ${currentRackCode}`, 'success');
           setActiveTab('map');
-          setIsMapFullscreen(true); // Open in full screen for better view and interaction!
+          setIsMapFullscreen(true);
         }
       }
 
-      if (fullResponse.trim()) {
-        if (!isTextOnly) {
-          stateManager.setState(State.SPEAKING);
-          ttsManager.speak(fullResponse, () => {
-            stateManager.reset();
-          });
-        } else {
-          stateManager.reset();
+      if (isTextOnly || !fullResponse.trim()) {
+        if (!fullResponse.trim()) {
+          setMessages(prev => prev.filter((msg, i) => i !== prev.length - 1 || msg.content.trim() !== ''));
         }
-      } else {
-        setMessages(prev => prev.filter((msg, i) => i !== prev.length - 1 || msg.content.trim() !== ''));
         stateManager.reset();
       }
 
