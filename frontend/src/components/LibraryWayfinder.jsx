@@ -392,9 +392,9 @@ function createTileMaterial() {
   canvas.width = 256;
   canvas.height = 256;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#dbe0e6';
+  ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, 256, 256);
-  ctx.strokeStyle = '#a9b0ba';
+  ctx.strokeStyle = '#cbd5e1';
   ctx.lineWidth = 2;
   const tileSize = 64;
   for(let x=0; x<=256; x+=tileSize) {
@@ -409,8 +409,8 @@ function createTileMaterial() {
   texture.repeat.set(4, 4);
   _cachedTileMat = new THREE.MeshStandardMaterial({
     map: texture,
-    roughness: 0.22,
-    metalness: 0.04
+    roughness: 0.3,
+    metalness: 0.02
   });
   return _cachedTileMat;
 }
@@ -932,8 +932,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     renderer.domElement.style.display = 'block';
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0e1a);
-    scene.fog = new THREE.FogExp2(0x0a0e1a, 0.008);
+    scene.background = new THREE.Color(0xf8fafc);
+    scene.fog = new THREE.FogExp2(0xf8fafc, 0.005);
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.05, 500);
@@ -944,12 +944,12 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     minimapCamera.lookAt(0, 0, 0);
     minimapCameraRef.current = minimapCamera;
 
-    scene.add(new THREE.AmbientLight(0x8892b0, 0.8));
-    const sun = new THREE.DirectionalLight(0xfff2d8, 0.8);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.65);
     sun.position.set(30, 50, 20);
     scene.add(sun);
     
-    const hemi = new THREE.HemisphereLight(0x87ceeb, 0x362a1f, 0.3);
+    const hemi = new THREE.HemisphereLight(0xe0f2fe, 0xf1f5f9, 0.4);
     scene.add(hemi);
 
     const { floorHeights, COLS_X, rowZOffsets } = graphData;

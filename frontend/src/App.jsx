@@ -28,12 +28,12 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="h-screen w-screen flex flex-col items-center justify-center bg-gray-950 text-white gap-4">
-          <h2 className="text-xl font-bold text-red-400">Something went wrong</h2>
-          <p className="text-gray-400 text-sm max-w-md text-center">{this.state.error?.message}</p>
+        <div className="h-screen w-screen flex flex-col items-center justify-center bg-blue-50 text-gray-800 gap-4">
+          <h2 className="text-xl font-bold text-red-500">Something went wrong</h2>
+          <p className="text-gray-500 text-sm max-w-md text-center">{this.state.error?.message}</p>
           <button 
             onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white transition-colors"
           >
             Reload Page
           </button>
@@ -46,16 +46,16 @@ class ErrorBoundary extends React.Component {
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div className="h-screen w-screen flex items-center justify-center bg-gray-950 text-white">Loading...</div>;
+  if (loading) return <div className="h-screen w-screen flex items-center justify-center bg-blue-50 text-gray-700">Loading...</div>;
   if (!isAuthenticated) return <Navigate to="/login" />;
   return children;
 };
 
 const AdminRoute = ({ children }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
-  if (loading) return <div className="h-screen w-screen flex items-center justify-center bg-gray-950 text-white">Loading...</div>;
+  if (loading) return <div className="h-screen w-screen flex items-center justify-center bg-blue-50 text-gray-700">Loading...</div>;
   if (!isAuthenticated) return <Navigate to="/login" />;
-  if (!isAdmin) return <Navigate to="/voice" />;
+  if (!isAdmin) return <Navigate to="/assistant" />;
   return children;
 };
 
@@ -63,7 +63,7 @@ const App = () => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
 
   if (loading) {
-    return <div className="h-screen w-screen flex items-center justify-center bg-gray-950 text-white">Loading...</div>;
+    return <div className="h-screen w-screen flex items-center justify-center bg-blue-50 text-gray-700">Loading...</div>;
   }
 
   return (
@@ -75,13 +75,20 @@ const App = () => {
           element={
             !isAuthenticated ? <Navigate to="/login" /> : 
             isAdmin ? <Navigate to="/admin/dashboard" /> : 
-            <Navigate to="/voice" />
+            <Navigate to="/assistant" />
           } 
         />
         
         <Route path="/login" element={<LoginPage />} />
         
+        {/* Keep /voice as an alias that redirects to /assistant for backward compat */}
         <Route path="/voice" element={
+          <ProtectedRoute>
+            <Navigate to="/assistant?mode=voice" replace />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/assistant" element={
           <ProtectedRoute>
             <VoiceAssistant />
           </ProtectedRoute>

@@ -1,1 +1,0 @@
-const fs = require('fs'); const code = fs.readFileSync('./dist/assets/index-D8GqeHKC.js', 'utf8'); const start = code.indexOf('X8=()=>{'); const end = code.indexOf('export{X8 as default}'); console.log(code.substring(start, end).match(/.{0,20}\bT\b.{0,20}/g));

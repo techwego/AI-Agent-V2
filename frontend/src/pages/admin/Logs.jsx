@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getLogs, getChatLogs } from '../../api/client';
-import { RefreshCw, Search, Terminal, MessageSquare } from 'lucide-react';
+import { RefreshCw, Search, Terminal, MessageSquare, ScrollText } from 'lucide-react';
 
 const Logs = () => {
-  const [activeTab, setActiveTab] = useState('system'); // 'system' or 'chat'
+  const [activeTab, setActiveTab] = useState('system');
   const [logs, setLogs] = useState([]);
   const [chatLogs, setChatLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,14 +31,14 @@ const Logs = () => {
   }, [activeTab]);
 
   const getActionColor = (action) => {
-    if (!action) return 'text-gray-400';
-    if (action.startsWith('CREATE_')) return 'text-green-500';
-    if (action.startsWith('DELETE_')) return 'text-red-500';
-    if (action.startsWith('UPDATE_')) return 'text-amber-500';
-    if (action.startsWith('BLOCK_')) return 'text-red-500';
-    if (action.startsWith('UPLOAD_')) return 'text-blue-500';
-    if (action === 'LOGIN') return 'text-cyan-500';
-    return 'text-gray-400';
+    if (!action) return 'text-slate-600';
+    if (action.startsWith('CREATE_')) return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+    if (action.startsWith('DELETE_')) return 'text-red-700 bg-red-50 border-red-200';
+    if (action.startsWith('UPDATE_')) return 'text-amber-700 bg-amber-50 border-amber-200';
+    if (action.startsWith('BLOCK_')) return 'text-red-700 bg-red-50 border-red-200';
+    if (action.startsWith('UPLOAD_')) return 'text-blue-700 bg-blue-50 border-blue-200';
+    if (action === 'LOGIN') return 'text-purple-700 bg-purple-50 border-purple-200';
+    return 'text-slate-700 bg-slate-100 border-slate-200';
   };
 
   const filteredSystemLogs = logs.filter(log => {
@@ -66,69 +66,82 @@ const Logs = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto h-full flex flex-col">
+    <div className="space-y-6 max-w-7xl mx-auto h-full flex flex-col pb-10">
+      
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-white">System Logs</h1>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <ScrollText className="text-blue-600" /> Audit & System Logs
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">Immutable security trail for administrative actions and student AI interactions.</p>
+        </div>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search logs..."
+              placeholder="Search audit trail..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 text-white rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full bg-white border border-slate-200 text-slate-900 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all font-medium"
             />
           </div>
           <button
             onClick={fetchLogs}
             disabled={loading}
-            className="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors border border-gray-700 whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all whitespace-nowrap"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 pb-2 border-b border-gray-800">
+      {/* Tabs */}
+      <div className="flex items-center gap-2">
         <button
           onClick={() => setActiveTab('system')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'system' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-gray-400 hover:text-white'}`}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${
+            activeTab === 'system' 
+              ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm' 
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+          }`}
         >
-          <Terminal size={16} /> Admin Activity
+          <Terminal size={14} /> Admin Activity Logs
         </button>
         <button
           onClick={() => setActiveTab('chat')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'chat' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-gray-400 hover:text-white'}`}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${
+            activeTab === 'chat' 
+              ? 'bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm' 
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+          }`}
         >
-          <MessageSquare size={16} /> AI Chat Audit
+          <MessageSquare size={14} /> AI Query Audit
         </button>
       </div>
 
-      <div className="flex justify-between items-center text-sm text-gray-400">
-        <span>Showing {activeTab === 'system' ? filteredSystemLogs.length : filteredChatLogs.length} entries</span>
-      </div>
-
-      <div className="glass-card rounded-2xl border border-gray-800 p-4 flex-1 overflow-auto bg-gray-950 font-mono text-sm">
+      {/* Log Terminal Container */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-5 flex-1 overflow-auto font-mono text-xs shadow-sm">
         {loading ? (
-          <div className="space-y-2">
-            {[...Array(10)].map((_, i) => (
-              <div key={i} className="h-5 bg-gray-900 rounded animate-pulse w-3/4"></div>
+          <div className="space-y-3">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="h-4 bg-slate-100 rounded animate-pulse w-3/4" />
             ))}
           </div>
         ) : activeTab === 'system' ? (
           filteredSystemLogs.length === 0 ? (
-            <div className="text-gray-500 text-center py-10">No system logs found.</div>
+            <div className="text-slate-400 text-center py-12 font-sans text-xs">No admin logs recorded.</div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-2">
               {filteredSystemLogs.map((log) => (
-                <div key={log.id} className="flex gap-2 hover:bg-gray-900/50 p-1 rounded transition-colors break-words">
-                  <span className="text-gray-500 shrink-0">{formatDate(log.created_at)}</span>
-                  <span className={`font-semibold shrink-0 ${getActionColor(log.action)}`}>
+                <div key={log.id} className="flex flex-wrap items-center gap-2.5 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors">
+                  <span className="text-slate-400 font-semibold">{formatDate(log.created_at)}</span>
+                  <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] border ${getActionColor(log.action)}`}>
                     {log.action}
                   </span>
-                  <span className="text-gray-300 break-all sm:break-normal">
+                  <span className="text-slate-800 font-medium">
                     {log.details}
                   </span>
                 </div>
@@ -137,19 +150,19 @@ const Logs = () => {
           )
         ) : (
           filteredChatLogs.length === 0 ? (
-            <div className="text-gray-500 text-center py-10">No AI chat logs found.</div>
+            <div className="text-slate-400 text-center py-12 font-sans text-xs">No AI chat queries recorded.</div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 font-sans">
               {filteredChatLogs.map((log) => (
-                <div key={log.id} className="border border-gray-800 rounded-lg p-3 bg-gray-900/40">
-                  <div className="text-gray-500 text-xs mb-2">{formatDate(log.created_at)}</div>
-                  <div className="flex gap-2 mb-2">
-                    <span className="text-blue-400 font-semibold shrink-0">User:</span>
-                    <span className="text-gray-200">{log.query}</span>
+                <div key={log.id} className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors space-y-2">
+                  <div className="text-slate-400 text-[10px] font-mono">{formatDate(log.created_at)}</div>
+                  <div className="flex gap-2 text-xs">
+                    <span className="text-blue-700 font-bold shrink-0">User Query:</span>
+                    <span className="text-slate-800 font-medium">{log.query}</span>
                   </div>
-                  <div className="flex gap-2">
-                    <span className="text-purple-400 font-semibold shrink-0">AI:</span>
-                    <span className="text-gray-400 whitespace-pre-wrap">{log.response}</span>
+                  <div className="flex gap-2 text-xs">
+                    <span className="text-indigo-700 font-bold shrink-0">AI Response:</span>
+                    <span className="text-slate-600 leading-relaxed">{log.response}</span>
                   </div>
                 </div>
               ))}
@@ -157,6 +170,7 @@ const Logs = () => {
           )
         )}
       </div>
+
     </div>
   );
 };

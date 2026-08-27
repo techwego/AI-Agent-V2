@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+const API_ROOT = import.meta.env.VITE_API_URL 
+  ? (import.meta.env.VITE_API_URL.endsWith('/api') ? import.meta.env.VITE_API_URL : `${import.meta.env.VITE_API_URL}/api`)
+  : '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_ROOT,
 });
 
 api.interceptors.request.use((config) => {
@@ -33,7 +37,8 @@ export const changePassword = (data) => api.put('/auth/change-password', data);
 // Voice / Chat endpoints
 // Chat uses streaming fetch usually, but this is for non-streaming or if we wrap fetch
 export const sendChat = async (data) => {
-  const response = await fetch('/api/chat', {
+  const chatUrl = `${API_ROOT}/chat`;
+  const response = await fetch(chatUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

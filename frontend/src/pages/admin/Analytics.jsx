@@ -1,28 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getAnalytics } from '../../api/client';
-import { BookOpen, Users, Building2, MessageSquare, UploadCloud, UserCheck, RefreshCw, Download } from 'lucide-react';
-
-const data = [
-  { name: 'Jan', queries: 0 },
-  { name: 'Feb', queries: 0 },
-  { name: 'Mar', queries: 0 },
-  { name: 'Apr', queries: 0 },
-  { name: 'May', queries: 0 },
-  { name: 'Jun', queries: 0 },
-];
+import { BookOpen, Users, Building2, MessageSquare, UploadCloud, UserCheck, RefreshCw, Download, BarChart3, TrendingUp, AlertTriangle } from 'lucide-react';
 
 const StatCard = ({ title, value, icon: Icon, colorClass, isLoading }) => (
-  <div className={`glass-card rounded-2xl border border-gray-800 p-6 flex items-center space-x-4`}>
-    <div className={`p-4 rounded-xl bg-opacity-20 ${colorClass.bg} ${colorClass.text}`}>
-      <Icon className="w-6 h-6" />
+  <div className="bg-white rounded-3xl border border-slate-200 p-6 flex items-center space-x-4 shadow-sm">
+    <div className={`p-3.5 rounded-2xl ${colorClass.bg} ${colorClass.text}`}>
+      <Icon className="w-5 h-5" />
     </div>
     <div>
-      <p className="text-sm font-medium text-gray-400">{title}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</p>
       {isLoading ? (
-        <div className="h-8 w-20 bg-gray-800 rounded animate-pulse mt-1"></div>
+        <div className="h-7 w-20 bg-slate-100 rounded animate-pulse mt-1" />
       ) : (
-        <p className="text-2xl font-bold text-white mt-1">{value}</p>
+        <p className="text-2xl font-bold text-slate-900 mt-0.5">{value}</p>
       )}
     </div>
   </div>
@@ -49,21 +40,20 @@ const Analytics = () => {
   }, []);
 
   const stats1 = [
-    { title: 'Total Books', value: analytics?.total_books || 0, icon: BookOpen, colorClass: { bg: 'bg-blue-500/20', text: 'text-blue-500' } },
-    { title: 'Total Users', value: analytics?.total_users || 0, icon: Users, colorClass: { bg: 'bg-purple-500/20', text: 'text-purple-500' } },
-    { title: 'Total Departments', value: analytics?.total_departments || 0, icon: Building2, colorClass: { bg: 'bg-green-500/20', text: 'text-green-500' } },
-    { title: 'Today\'s Queries', value: analytics?.today_queries || 0, icon: MessageSquare, colorClass: { bg: 'bg-amber-500/20', text: 'text-amber-500' } },
+    { title: 'Total Books', value: analytics?.total_books || 0, icon: BookOpen, colorClass: { bg: 'bg-blue-50', text: 'text-blue-600' } },
+    { title: 'Total Users', value: analytics?.total_users || 0, icon: Users, colorClass: { bg: 'bg-indigo-50', text: 'text-indigo-600' } },
+    { title: 'Departments', value: analytics?.total_departments || 0, icon: Building2, colorClass: { bg: 'bg-emerald-50', text: 'text-emerald-600' } },
+    { title: "Today's Queries", value: analytics?.today_queries || 0, icon: MessageSquare, colorClass: { bg: 'bg-amber-50', text: 'text-amber-600' } },
   ];
 
   const stats2 = [
-    { title: 'Total Uploads', value: analytics?.total_uploads || 0, icon: UploadCloud, colorClass: { bg: 'bg-rose-500/20', text: 'text-rose-500' } },
-    { title: 'Active Users', value: analytics?.active_users || 0, icon: UserCheck, colorClass: { bg: 'bg-cyan-500/20', text: 'text-cyan-500' } },
+    { title: 'Vector Datasets Ingested', value: analytics?.total_uploads || 0, icon: UploadCloud, colorClass: { bg: 'bg-purple-50', text: 'text-purple-600' } },
+    { title: 'Active Monthly Researchers', value: analytics?.active_users || 0, icon: UserCheck, colorClass: { bg: 'bg-sky-50', text: 'text-sky-600' } },
   ];
 
   const handleExportCSV = () => {
     if (!analytics) return;
     
-    // Create CSV content for Top Missing Books
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "Type,Metric,Value\n";
     csvContent += `Stat,Total Books,${analytics.total_books}\n`;
@@ -90,87 +80,124 @@ const Analytics = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-white">System Analytics</h1>
-        <div className="flex gap-3">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <BarChart3 className="text-blue-600" /> Usage & Search Analytics
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">Real-time telemetry on voice interactions, catalog queries, and missing book requests.</p>
+        </div>
+        <div className="flex items-center gap-2.5">
           <button 
             onClick={handleExportCSV}
             disabled={loading || !analytics}
-            className="flex items-center space-x-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 rounded-lg transition-colors border border-emerald-500/30"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-xl border border-emerald-200 shadow-sm transition-all"
           >
-            <Download className="w-4 h-4" />
+            <Download size={13} />
             <span>Export CSV</span>
           </button>
           <button 
             onClick={fetchAnalytics}
             disabled={loading}
-            className="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors border border-gray-700"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             <span>Refresh</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Top 4 Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {stats1.map((stat, i) => (
           <StatCard key={i} {...stat} isLoading={loading} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Secondary 2 Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {stats2.map((stat, i) => (
           <StatCard key={i} {...stat} isLoading={loading} />
         ))}
       </div>
       
+      {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 glass-card rounded-2xl border border-gray-800 p-6 h-96">
-          <h3 className="text-lg font-medium text-white mb-6">Voice Queries Over Time (Last 7 Days)</h3>
-          {loading ? (
-             <div className="h-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>
-          ) : (
-             <ResponsiveContainer width="100%" height="100%">
-               <LineChart data={analytics?.trend_data || []}>
-                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                 <XAxis dataKey="date" stroke="#9ca3af" />
-                 <YAxis stroke="#9ca3af" />
-                 <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#fff' }} />
-                 <Line type="monotone" dataKey="queries" stroke="#3b82f6" strokeWidth={3} activeDot={{ r: 8 }} />
-               </LineChart>
-             </ResponsiveContainer>
-          )}
+        
+        {/* Line Chart */}
+        <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <TrendingUp size={14} className="text-blue-600" />
+                <span>Voice & Chat Queries (Last 7 Days)</span>
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">Interaction volume timeline across the campus network</p>
+            </div>
+          </div>
+          
+          <div className="h-64 w-full">
+            {loading ? (
+              <div className="h-full flex items-center justify-center">
+                <RefreshCw size={24} className="animate-spin text-blue-600" />
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={analytics?.trend_data || []}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                  <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', color: '#0f172a', fontSize: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Line type="monotone" dataKey="queries" stroke="#2563eb" strokeWidth={3} dot={{ fill: '#2563eb', r: 4 }} activeDot={{ r: 7 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </div>
         
-        <div className="glass-card rounded-2xl border border-gray-800 p-6 h-96 overflow-y-auto">
-          <h3 className="text-lg font-medium text-white mb-4">Top Missing Books (Unfound)</h3>
-          <p className="text-sm text-gray-400 mb-4">Books students searched for but the AI could not find in the catalog.</p>
-          
-          {loading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-12 bg-gray-800/50 animate-pulse rounded-lg"></div>
-              ))}
-            </div>
-          ) : (
-            <ul className="space-y-3">
-              {analytics?.top_missing_books?.length > 0 ? (
-                analytics.top_missing_books.map((book, index) => (
-                  <li key={index} className="flex items-center justify-between p-3 bg-gray-800/40 rounded-lg border border-gray-700/50 hover:bg-gray-800/80 transition-colors">
-                    <span className="font-medium text-gray-200 truncate pr-4">{book.title}</span>
-                    <span className="bg-red-500/20 text-red-400 py-1 px-2.5 rounded-full text-xs font-bold whitespace-nowrap">
-                      {book.searches} requests
-                    </span>
-                  </li>
-                ))
-              ) : (
-                <div className="text-center text-gray-500 py-8">No missing books logged yet!</div>
-              )}
-            </ul>
-          )}
+        {/* Top Missing Books Card */}
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-1">
+              <AlertTriangle size={14} className="text-amber-500" />
+              <span>Missing Book Demands</span>
+            </h3>
+            <p className="text-[11px] text-slate-400 mb-4">Books searched by students that are not currently in the catalog.</p>
+            
+            {loading ? (
+              <div className="space-y-2.5">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-10 bg-slate-100 animate-pulse rounded-xl" />
+                ))}
+              </div>
+            ) : (
+              <ul className="space-y-2 max-h-56 overflow-y-auto">
+                {analytics?.top_missing_books?.length > 0 ? (
+                  analytics.top_missing_books.map((book, index) => (
+                    <li key={index} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition-colors">
+                      <span className="font-semibold text-xs text-slate-800 truncate pr-3">{book.title}</span>
+                      <span className="bg-red-50 text-red-700 border border-red-200 py-0.5 px-2 rounded-full text-[10px] font-bold whitespace-nowrap">
+                        {book.searches} requests
+                      </span>
+                    </li>
+                  ))
+                ) : (
+                  <div className="text-center text-slate-400 text-xs py-8">No unfound search queries recorded.</div>
+                )}
+              </ul>
+            )}
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-400">
+            Use this data to acquire frequently demanded library resources.
+          </div>
         </div>
+
       </div>
+
     </div>
   );
 };

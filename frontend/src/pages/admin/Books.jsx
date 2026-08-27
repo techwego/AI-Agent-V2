@@ -64,8 +64,8 @@ const Books = () => {
       department: book.department || '',
       rack: book.rack || '',
       floor: book.floor || '1',
-      copies: book.copies !== undefined ? String(book.copies) : '1',
-      available: book.available !== undefined ? String(book.available) : (book.copies !== undefined ? String(book.copies) : '1'),
+      copies: String(book.copies || 1),
+      available: String(book.available !== undefined ? book.available : book.copies || 1),
       isbn: book.isbn || '',
       description: book.description || ''
     });
@@ -74,41 +74,26 @@ const Books = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.title.trim() || !formData.author.trim()) {
-      showToast('Title and Author are required', 'error');
-      return;
-    }
-
+    setSaving(true);
     try {
-      setSaving(true);
-      const totalCopies = Math.max(0, parseInt(formData.copies, 10) || 1);
-      const availCopies = Math.max(0, parseInt(formData.available, 10) || totalCopies);
-
       const payload = {
-        title: formData.title.trim(),
-        author: formData.author.trim(),
-        department: formData.department.trim() || null,
-        rack: formData.rack.trim().toUpperCase() || null,
-        floor: formData.floor.trim() || '1',
-        copies: totalCopies,
-        available: availCopies,
-        isbn: formData.isbn.trim() || null,
-        description: formData.description.trim() || null
+        ...formData,
+        copies: parseInt(formData.copies) || 1,
+        available: parseInt(formData.available) || 1,
       };
 
       if (editingBook) {
         await updateBook(editingBook.id, payload);
-        showToast(`Book "${payload.title}" updated successfully!`, 'success');
+        showToast('Book updated successfully', 'success');
       } else {
         await createBook(payload);
-        showToast(`Book "${payload.title}" added to catalog!`, 'success');
+        showToast('Book added successfully', 'success');
       }
       setShowModal(false);
-      await fetchBooks();
+      fetchBooks();
     } catch (err) {
       console.error('Error saving book:', err);
-      const msg = err.response?.data?.detail || err.message || 'Failed to save book';
-      showToast(msg, 'error');
+      showToast(err.response?.data?.detail || 'Failed to save book', 'error');
     } finally {
       setSaving(false);
     }
@@ -127,99 +112,112 @@ const Books = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto h-full flex flex-col">
+    <div className="space-y-6 max-w-7xl mx-auto h-full flex flex-col pb-10">
+      
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <BookOpen className="text-blue-500" /> Books Management
-        </h1>
-        <div className="flex gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <BookOpen className="text-blue-600" /> Books & Shelf Directory
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">Manage physical book locations, floor codes, and shelf allocations.</p>
+        </div>
+        <div className="flex gap-2.5">
           <button 
             onClick={fetchBooks} 
             disabled={loading}
-            className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg border border-gray-700 transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all"
           >
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
           </button>
           <button 
             onClick={openAddModal} 
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-lg shadow-blue-900/20 transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-600/20 transition-all active:scale-95"
           >
-            <Plus size={16} /> Add Book
+            <Plus size={15} />
+            <span>Add New Book</span>
           </button>
         </div>
       </div>
 
-      <div className="glass-card rounded-2xl border border-gray-800 flex-1 flex flex-col overflow-hidden bg-gray-900/30">
-        <div className="p-4 border-b border-gray-800 flex gap-4">
+      {/* Table Container */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden">
+        
+        {/* Search Filter Bar */}
+        <div className="p-4 border-b border-slate-100 flex gap-4 bg-slate-50/50">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
+            <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
             <input 
               type="text" 
-              placeholder="Search books by title, author, or rack..."
+              placeholder="Search catalog by title, author, or shelf rack code..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              className="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium"
             />
           </div>
         </div>
 
+        {/* Table Content */}
         <div className="flex-1 overflow-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-900/80 sticky top-0 z-10 backdrop-blur-sm border-b border-gray-800">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
               <tr>
-                <th className="px-6 py-4 font-medium text-gray-400">Title & Author</th>
-                <th className="px-6 py-4 font-medium text-gray-400">Department</th>
-                <th className="px-6 py-4 font-medium text-gray-400">Location</th>
-                <th className="px-6 py-4 font-medium text-gray-400">Copies (Avail / Total)</th>
-                <th className="px-6 py-4 font-medium text-gray-400 text-right">Actions</th>
+                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">Book & Author</th>
+                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">Department</th>
+                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">3D Wayfinder Rack</th>
+                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">Availability</th>
+                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-slate-100 font-medium">
               {loading ? (
-                [...Array(10)].map((_, idx) => (
+                [...Array(8)].map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-800 rounded w-3/4 mb-2"></div><div className="h-3 bg-gray-800 rounded w-1/2"></div></td>
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-800 rounded w-24"></div></td>
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-800 rounded w-20 mb-1"></div><div className="h-3 bg-gray-800 rounded w-12"></div></td>
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-800 rounded w-16"></div></td>
-                    <td className="px-6 py-4"><div className="h-8 bg-gray-800 rounded w-16 ml-auto"></div></td>
+                    <td className="px-6 py-4"><div className="h-3.5 bg-slate-200 rounded w-48 mb-1.5" /><div className="h-2.5 bg-slate-100 rounded w-24" /></td>
+                    <td className="px-6 py-4"><div className="h-3.5 bg-slate-200 rounded w-24" /></td>
+                    <td className="px-6 py-4"><div className="h-3.5 bg-slate-200 rounded w-16" /></td>
+                    <td className="px-6 py-4"><div className="h-3.5 bg-slate-200 rounded w-12" /></td>
+                    <td className="px-6 py-4"><div className="h-6 bg-slate-100 rounded w-14 ml-auto" /></td>
                   </tr>
                 ))
               ) : currentBooks.length > 0 ? (
                 currentBooks.map((book) => (
-                  <tr key={book.id} className="hover:bg-gray-800/30 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-white">{book.title}</div>
-                      <div className="text-gray-400 mt-0.5">{book.author}</div>
+                  <tr key={book.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-6 py-3.5">
+                      <div className="font-bold text-slate-900 text-xs">{book.title}</div>
+                      <div className="text-slate-400 text-[11px] mt-0.5">{book.author}</div>
                     </td>
-                    <td className="px-6 py-4 text-gray-300">{book.department || '-'}</td>
-                    <td className="px-6 py-4">
-                      <div className="text-emerald-400 font-semibold">{book.rack ? `Rack ${book.rack}` : '-'}</div>
-                      <div className="text-gray-500 text-xs">Floor {book.floor || '1'}</div>
+                    <td className="px-6 py-3.5 text-slate-600">{book.department || '—'}</td>
+                    <td className="px-6 py-3.5">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        {book.rack ? `Rack ${book.rack}` : '—'}
+                      </span>
+                      <div className="text-slate-400 text-[10px] mt-0.5">Floor {book.floor || '1'}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center justify-center px-2.5 py-1 rounded bg-gray-800 text-gray-200 text-xs font-semibold border border-gray-700">
-                        {book.available !== undefined ? book.available : book.copies} / {book.copies || 0}
+                    <td className="px-6 py-3.5">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200">
+                        {book.available !== undefined ? book.available : book.copies} / {book.copies || 0} copies
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-6 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button 
                           onClick={() => openEditModal(book)} 
-                          className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors" 
-                          title="Edit Book"
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
+                          title="Edit"
                         >
-                          <Edit size={16} />
+                          <Edit size={14} />
                         </button>
                         <button 
                           onClick={() => setConfirmDelete(book.id)} 
-                          className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors" 
-                          title="Delete Book"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
+                          title="Delete"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -227,8 +225,8 @@ const Books = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
-                    No books found.
+                  <td colSpan="5" className="px-6 py-12 text-center text-slate-400 text-xs">
+                    No books matched the search criteria.
                   </td>
                 </tr>
               )}
@@ -237,25 +235,25 @@ const Books = () => {
         </div>
         
         {/* Pagination */}
-        <div className="p-4 border-t border-gray-800 flex items-center justify-between text-sm text-gray-400 bg-gray-900/50">
+        <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-slate-50/50">
           <span>
-            Showing {totalItems > 0 ? startIndex + 1 : 0} to {endIndex} of {totalItems} entries
+            Showing <strong>{totalItems > 0 ? startIndex + 1 : 0}</strong> to <strong>{endIndex}</strong> of <strong>{totalItems}</strong> entries
           </span>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button 
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
-              className="px-3 py-1 rounded bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:hover:bg-gray-800 text-white transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 shadow-sm transition-colors"
             >
-              Prev
+              Previous
             </button>
-            <div className="flex items-center px-2 text-white font-medium">
+            <span className="px-2 font-semibold text-slate-800">
               {page} / {totalPages || 1}
-            </div>
+            </span>
             <button 
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages || totalPages === 0 || loading}
-              className="px-3 py-1 rounded bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:hover:bg-gray-800 text-white transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 shadow-sm transition-colors"
             >
               Next
             </button>
@@ -263,126 +261,126 @@ const Books = () => {
         </div>
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* Add / Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 w-full max-w-lg shadow-2xl animate-[fadeIn_0.2s_ease-out]">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-white">
-                {editingBook ? 'Edit Book' : 'Add New Book'}
+              <h2 className="text-lg font-bold text-slate-900">
+                {editingBook ? 'Edit Book Record' : 'Add New Book to Catalog'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white transition-colors">
-                <X size={20} />
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-700">
+                <X size={18} />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Title *</label>
+                <label className="block text-slate-700 mb-1 font-semibold">Book Title *</label>
                 <input 
                   required 
                   type="text" 
                   value={formData.title} 
                   onChange={e => setFormData({...formData, title: e.target.value})} 
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                  placeholder="Enter book title" 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                  placeholder="e.g. Introduction to Algorithms" 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Author *</label>
+                <label className="block text-slate-700 mb-1 font-semibold">Author *</label>
                 <input 
                   required 
                   type="text" 
                   value={formData.author} 
                   onChange={e => setFormData({...formData, author: e.target.value})} 
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                  placeholder="Enter author name" 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                  placeholder="e.g. Thomas H. Cormen" 
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Department</label>
+                  <label className="block text-slate-700 mb-1 font-semibold">Department</label>
                   <input 
                     type="text" 
                     value={formData.department} 
                     onChange={e => setFormData({...formData, department: e.target.value})} 
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                    placeholder="e.g. Computer Science" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                    placeholder="Computer Science" 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">ISBN / Call No.</label>
+                  <label className="block text-slate-700 mb-1 font-semibold">ISBN / Call No.</label>
                   <input 
                     type="text" 
                     value={formData.isbn} 
                     onChange={e => setFormData({...formData, isbn: e.target.value})} 
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                    placeholder="ISBN number" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                    placeholder="978-0262033848" 
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Rack Location</label>
+                  <label className="block text-slate-700 mb-1 font-semibold">3D Rack Location</label>
                   <input 
                     type="text" 
                     value={formData.rack} 
                     onChange={e => setFormData({...formData, rack: e.target.value})} 
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
                     placeholder="e.g. C4 or A1" 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Floor</label>
+                  <label className="block text-slate-700 mb-1 font-semibold">Floor Number</label>
                   <input 
                     type="text" 
                     value={formData.floor} 
                     onChange={e => setFormData({...formData, floor: e.target.value})} 
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                    placeholder="e.g. 1 or 2" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                    placeholder="1 or 2" 
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Available Copies</label>
+                  <label className="block text-slate-700 mb-1 font-semibold">Available Copies</label>
                   <input 
                     type="number" 
                     min="0" 
                     value={formData.available} 
                     onChange={e => setFormData({...formData, available: e.target.value})} 
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Total Copies</label>
+                  <label className="block text-slate-700 mb-1 font-semibold">Total Stock</label>
                   <input 
                     required 
                     type="number" 
                     min="0" 
                     value={formData.copies} 
                     onChange={e => setFormData({...formData, copies: e.target.value})} 
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
                   />
                 </div>
               </div>
               
-              <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-800">
+              <div className="flex gap-2.5 justify-end pt-4 border-t border-slate-100">
                 <button 
                   type="button" 
                   onClick={() => setShowModal(false)} 
                   disabled={saving}
-                  className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg font-medium transition-colors"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={saving}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/30"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5"
                 >
-                  {saving && <RefreshCw size={16} className="animate-spin" />}
-                  {saving ? 'Saving...' : (editingBook ? 'Save Changes' : 'Add Book')}
+                  {saving && <RefreshCw size={14} className="animate-spin" />}
+                  <span>{saving ? 'Saving...' : (editingBook ? 'Save Changes' : 'Create Book')}</span>
                 </button>
               </div>
             </form>
@@ -392,20 +390,20 @@ const Books = () => {
 
       {/* Delete Confirmation Modal */}
       {confirmDelete && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 className="text-xl font-bold text-white mb-3">Confirm Delete</h2>
-            <p className="text-gray-300 text-sm mb-6">Are you sure you want to delete this book? This will remove it from the catalog and AI knowledge base.</p>
-            <div className="flex gap-3 justify-end">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-[fadeIn_0.2s_ease-out]">
+            <h2 className="text-base font-bold text-slate-900 mb-2">Delete Book Record</h2>
+            <p className="text-slate-500 text-xs mb-6">Are you sure you want to remove this book? It will be removed from the catalog and vector index.</p>
+            <div className="flex gap-2.5 justify-end">
               <button 
                 onClick={() => setConfirmDelete(null)} 
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg font-medium transition-colors"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors"
               >
                 Cancel
               </button>
               <button 
                 onClick={() => handleDelete(confirmDelete)} 
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-lg shadow-red-900/30"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-red-600/20 transition-all"
               >
                 Delete
               </button>
@@ -413,6 +411,7 @@ const Books = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };

@@ -1,17 +1,15 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   LogOut, User, Send, Sparkles, Search, Mic, Map, X, MessageSquare, 
-  Maximize2, Minimize2, Compass, Layers, Navigation, ArrowRight, CornerDownRight, MicOff 
+  Compass, Navigation, ArrowRight, CornerDownRight, 
+  GraduationCap, Volume2
 } from 'lucide-react';
-import AnimatedBackground from '../components/AnimatedBackground';
 import LibraryWayfinder from '../components/LibraryWayfinder';
-import UniversityHeader from '../components/UniversityHeader';
 import VoiceOrb from '../components/VoiceOrb';
 import StatusIndicator from '../components/StatusIndicator';
 import ChatBubble from '../components/ChatBubble';
-import Waveform from '../components/Waveform';
 import BookSearch from '../components/BookSearch';
 import { useToast } from '../components/Toast';
 import { sendChat } from '../api/client';
@@ -23,33 +21,60 @@ import sttManager from '../voice/SpeechRecognitionManager';
 const VoiceAssistant = () => {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
+
+  // Mode: 'voice' | 'chat'
+  const initialMode = searchParams.get('mode') === 'chat' ? 'chat' : 'voice';
+  const [interactionMode, setInteractionMode] = useState(initialMode);
   
   const [conversationState, setConversationState] = useState(State.IDLE);
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: "Hello! I'm your AI Library Assistant. I can help you find books, navigate to library sections, and answer questions about the university. Just tap the orb or type below!", timestamp: Date.now() }
+  
+  // -------------------------------------------------------------
+  // SEPARATE CONVERSATION STATES (DO NOT COMBINE VOICE & CHAT)
+  // -------------------------------------------------------------
+  const [voiceMessages, setVoiceMessages] = useState([]);
+  
+  const [chatMessages, setChatMessages] = useState([
+    { 
+      role: 'assistant', 
+      content: "Hello! I'm Sam, your AI Library Assistant. I can help you search books, verify shelf availability, and guide you through the library. How can I help you today?", 
+      timestamp: Date.now() 
+    }
   ]);
+
   const [input, setInput] = useState('');
   const [fsInput, setFsInput] = useState('');
   const [routeFrom, setRouteFrom] = useState('entrance');
   const [routeTo, setRouteTo] = useState(null);
   const [hasIntroduced, setHasIntroduced] = useState(false);
   const hasIntroducedRef = useRef(false);
-  const [activeTab, setActiveTab] = useState('chat'); // 'chat', 'map', or 'search'
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'map' | 'search'
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [activeFloor, setActiveFloor] = useState('both');
   const [totalFloors, setTotalFloors] = useState(2);
   const [routeSteps, setRouteSteps] = useState([]);
   
-  const messagesEndRef = useRef(null);
-  const messagesRef = useRef(messages);
+  const chatMessagesEndRef = useRef(null);
+  const voiceMessagesRef = useRef(voiceMessages);
+  const chatMessagesRef = useRef(chatMessages);
+
   useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+    voiceMessagesRef.current = voiceMessages;
+  }, [voiceMessages]);
+
+  useEffect(() => {
+    chatMessagesRef.current = chatMessages;
+  }, [chatMessages]);
+
   const analyserRef = useRef(null);
   const wayfindRef = useRef(null);
   const inputRef = useRef(null);
-  const rightPanelRef = useRef(null);
+
+  const switchMode = useCallback((mode) => {
+    setInteractionMode(mode);
+    setSearchParams({ mode });
+  }, [setSearchParams]);
 
   useEffect(() => {
     const unsubscribe = stateManager.subscribe((newState) => {
@@ -59,8 +84,10 @@ const VoiceAssistant = () => {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, activeTab]);
+    if (interactionMode === 'chat') {
+      chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, activeTab, interactionMode]);
 
   useEffect(() => {
     sttManager.onTranscription((text) => {
@@ -68,7 +95,7 @@ const VoiceAssistant = () => {
         handleVoiceInput(text.trim());
       } else {
         stateManager.setState(State.IDLE);
-        showToast("I didn't hear anything. Try speaking again.", 'info');
+        showToast("I didn't catch that. Please speak again.", 'info');
       }
     });
 
@@ -142,7 +169,7 @@ const VoiceAssistant = () => {
     }
     if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) return;
     
-    // First time click: Introduce herself via TTS (without sending text into chat)
+    // Initial greeting
     if (!hasIntroducedRef.current && currentState === State.IDLE) {
       hasIntroducedRef.current = true;
       setHasIntroduced(true);
@@ -152,8 +179,11 @@ const VoiceAssistant = () => {
       if (hour < 12) greeting = 'Good morning';
       else if (hour < 17) greeting = 'Good afternoon';
       
-      const welcomeText = `${greeting}! I am Sam, your AI Library Assistant. How can I help you today?`;
+      const welcomeText = `${greeting}! I am Sam, your AI Library Assistant. Which book or rack are you looking for today?`;
       
+      // Update voice message state
+      setVoiceMessages([{ role: 'assistant', content: welcomeText, timestamp: Date.now() }]);
+
       stateManager.setState(State.INTRODUCING);
       ttsManager.speak(welcomeText, () => {
         if (stateManager.getState() === State.INTRODUCING) {
@@ -163,17 +193,19 @@ const VoiceAssistant = () => {
       return;
     }
     
-    // Subsequent clicks: Start listening to the user's voice
     startListening();
   }, [handleInterrupt, startListening]);
 
+  // -------------------------------------------------------------
+  // VOICE-ONLY INPUT HANDLER (ONLY MUTATES voiceMessages)
+  // -------------------------------------------------------------
   const handleVoiceInput = useCallback(async (text) => {
     stateManager.setState(State.PROCESSING);
-    const history = [...messagesRef.current];
-    setMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
+    const history = [...voiceMessagesRef.current];
+    setVoiceMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
     setTimeout(() => {
       stateManager.setState(State.RETRIEVING);
-      streamAIResponse(text, history);
+      streamVoiceAIResponse(text, history);
     }, 0);
   }, []);
 
@@ -185,7 +217,10 @@ const VoiceAssistant = () => {
     });
   }, [handleInterrupt]);
 
-  const streamAIResponse = useCallback(async (queryText, history = [], isTextOnly = false) => {
+  // -------------------------------------------------------------
+  // VOICE AI STREAM (SPEAKS WITH TTS & UPDATES voiceMessages)
+  // -------------------------------------------------------------
+  const streamVoiceAIResponse = useCallback(async (queryText, history = []) => {
     try {
       const recentHistory = history.slice(-5).map(m => ({ role: m.role, content: m.content }));
       const response = await sendChat({ message: queryText, history: recentHistory });
@@ -200,14 +235,12 @@ const VoiceAssistant = () => {
       let fullResponse = '';
       let speechBuffer = '';
 
-      setMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: Date.now() }]);
+      setVoiceMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: Date.now() }]);
 
-      if (!isTextOnly) {
-        ttsManager.cancel();
-        ttsManager.onAllFinished = () => {
-          stateManager.reset();
-        };
-      }
+      ttsManager.cancel();
+      ttsManager.onAllFinished = () => {
+        stateManager.reset();
+      };
 
       while (!done) {
         const { value, done: readerDone } = await reader.read();
@@ -218,30 +251,27 @@ const VoiceAssistant = () => {
           speechBuffer += chunk;
 
           const displayResponse = fullResponse.replace(/<ROUTE_[^>]*>?/gi, '');
-          setMessages(prev => {
+          setVoiceMessages(prev => {
             const newMessages = [...prev];
             newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], content: displayResponse };
             return newMessages;
           });
 
-          // Zero-latency sentence streaming speech: start speaking as soon as first sentence is ready!
-          if (!isTextOnly) {
-            const cleanBuf = speechBuffer.replace(/<ROUTE_[^>]*>?/gi, '');
-            const sentenceMatch = cleanBuf.match(/^([^.!?\n]+[.!?\n]+)\s*(.*)$/s);
-            if (sentenceMatch) {
-              const sentenceToSpeak = sentenceMatch[1].trim();
-              speechBuffer = sentenceMatch[2]; // keep remainder for next sentence
-              if (sentenceToSpeak) {
-                stateManager.setState(State.SPEAKING);
-                ttsManager.enqueue(sentenceToSpeak);
-              }
+          // Sentence-level speech streaming
+          const cleanBuf = speechBuffer.replace(/<ROUTE_[^>]*>?/gi, '');
+          const sentenceMatch = cleanBuf.match(/^([^.!?\n]+[.!?\n]+)\s*(.*)$/s);
+          if (sentenceMatch) {
+            const sentenceToSpeak = sentenceMatch[1].trim();
+            speechBuffer = sentenceMatch[2];
+            if (sentenceToSpeak) {
+              stateManager.setState(State.SPEAKING);
+              ttsManager.enqueue(sentenceToSpeak);
             }
           }
         }
       }
 
-      // Speak any remaining text at the end of the stream
-      if (!isTextOnly && speechBuffer.trim()) {
+      if (speechBuffer.trim()) {
         const remainingToSpeak = speechBuffer.replace(/<ROUTE_[^>]*>?/gi, '').trim();
         if (remainingToSpeak) {
           stateManager.setState(State.SPEAKING);
@@ -274,7 +304,7 @@ const VoiceAssistant = () => {
         }
         
         fullResponse = fullResponse.replace(/<ROUTE_[^>]+>/ig, '').trim();
-        setMessages(prev => {
+        setVoiceMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], content: fullResponse, hasRoute: isValid };
           return newMessages;
@@ -287,41 +317,109 @@ const VoiceAssistant = () => {
         }
       }
 
-      if (isTextOnly || !fullResponse.trim()) {
-        if (!fullResponse.trim()) {
-          setMessages(prev => prev.filter((msg, i) => i !== prev.length - 1 || msg.content.trim() !== ''));
-        }
-        stateManager.reset();
-      }
-
     } catch (error) {
-      console.error('Chat error:', error);
-      const errMsg = `Backend Connection Failed: Ensure your Python server is running and Groq API key is valid. (${error.message})`;
-      setMessages(prev => [...prev, { role: 'assistant', content: errMsg, timestamp: Date.now() }]);
-      showToast('Backend Error. Check terminal logs.', 'error');
+      console.error('Voice Chat error:', error);
+      const errMsg = `Connection Failed: Ensure server is running and Groq API key is set. (${error.message})`;
+      setVoiceMessages(prev => [...prev, { role: 'assistant', content: errMsg, timestamp: Date.now() }]);
+      showToast('Server connection error.', 'error');
       stateManager.reset();
     }
   }, [showToast]);
 
+  // -------------------------------------------------------------
+  // CHAT-ONLY INPUT HANDLER (ONLY MUTATES chatMessages)
+  // -------------------------------------------------------------
   const handleTextSend = async (e, customText = null) => {
     if (e) e.preventDefault();
     const text = (customText !== null ? customText : input).trim();
     if (!text) return;
-    handleInterrupt();
+    
     setInput('');
     setFsInput('');
-    const history = [...messagesRef.current];
-    setMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
+    const history = [...chatMessagesRef.current];
+    setChatMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
+    
     setTimeout(async () => {
-      stateManager.setState(State.RETRIEVING);
-      const shouldSpeak = isMapFullscreen; // If in map, speak the response so they can hear it
-      await streamAIResponse(text, history, !shouldSpeak);
+      try {
+        const recentHistory = history.slice(-5).map(m => ({ role: m.role, content: m.content }));
+        const response = await sendChat({ message: text, history: recentHistory });
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let done = false;
+        let fullResponse = '';
+
+        setChatMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: Date.now() }]);
+
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            fullResponse += chunk;
+
+            const displayResponse = fullResponse.replace(/<ROUTE_[^>]*>?/gi, '');
+            setChatMessages(prev => {
+              const newMessages = [...prev];
+              newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], content: displayResponse };
+              return newMessages;
+            });
+          }
+        }
+
+        const routeMatch = fullResponse.match(/<ROUTE_FROM:(.*?)_TO:(.*?)>/i);
+        const fallbackRouteMatch = fullResponse.match(/<ROUTE_TO:(.*?)>/i);
+
+        if (routeMatch || fallbackRouteMatch) {
+          let currentRackCode = '';
+          let isValid = true;
+          if (routeMatch) {
+            const fromNode = routeMatch[1];
+            currentRackCode = routeMatch[2];
+            if (['A', 'start_node', 'Y', 'unknown'].includes(fromNode.toLowerCase()) || ['B', 'unknown', 'X'].includes(currentRackCode.toLowerCase())) {
+              isValid = false;
+            }
+            if (isValid) {
+              setRouteFrom(fromNode);
+              setRouteTo(currentRackCode);
+            }
+          } else {
+            currentRackCode = fallbackRouteMatch[1];
+            if (['B', 'unknown', 'X'].includes(currentRackCode.toLowerCase())) {
+              isValid = false;
+            }
+            if (isValid) setRouteTo(currentRackCode);
+          }
+          
+          fullResponse = fullResponse.replace(/<ROUTE_[^>]+>/ig, '').trim();
+          setChatMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], content: fullResponse, hasRoute: isValid };
+            return newMessages;
+          });
+          
+          if (isValid) {
+            showToast(`Opening Navigation to Rack ${currentRackCode}`, 'success');
+            setActiveTab('map');
+            setIsMapFullscreen(true);
+          }
+        }
+
+      } catch (error) {
+        console.error('Text Chat error:', error);
+        const errMsg = `Connection Failed: (${error.message})`;
+        setChatMessages(prev => [...prev, { role: 'assistant', content: errMsg, timestamp: Date.now() }]);
+        showToast('Chat error. Check connection.', 'error');
+      }
     }, 0);
   };
 
   const handleRackClick = useCallback((rackCode) => {
     setRouteTo(rackCode);
-    showToast(`Showing route to Rack ${rackCode}`, 'success');
+    showToast(`Displaying route to Rack ${rackCode}`, 'success');
   }, [showToast]);
 
   const handleRouteComplete = useCallback((destination, steps) => {
@@ -335,92 +433,203 @@ const VoiceAssistant = () => {
     setActiveTab('chat');
   };
 
+  const lastVoiceMessage = voiceMessages.length > 0 ? voiceMessages[voiceMessages.length - 1] : null;
+
   return (
-    <div className="flex flex-col h-screen bg-[#05070a] text-white overflow-hidden relative selection:bg-purple-500/30">
-      <AnimatedBackground />
+    <div className="flex flex-col h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans selection:bg-blue-100 selection:text-blue-900">
       
-      {/* Main Header */}
-      <header className="glass flex items-center justify-between px-5 py-2.5 z-20 relative border-b border-white/5 shadow-2xl" role="banner">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-[0_0_20px_rgba(79,70,229,0.4)] border border-white/10">
-            <Sparkles size={15} className="text-white drop-shadow-md" />
+      {/* ========================================================================= */}
+      {/* 1. TOP NAVBAR: College Logo, Library Name, Mode Switcher, User & Actions */}
+      {/* ========================================================================= */}
+      <header className="bg-white border-b border-slate-200/90 px-4 sm:px-8 py-3 z-20 shrink-0 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          
+          {/* College & Library Branding */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/20 text-white shrink-0">
+              <GraduationCap size={20} />
+            </div>
+            <div className="truncate">
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate">
+                  Anna University Central Library
+                </h1>
+                <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Online
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500 font-medium hidden sm:block">
+                AI Voice & 3D Indoor Campus Wayfinder
+              </p>
+            </div>
           </div>
-          <h1 className="text-base font-bold tracking-tight">
-            Library <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">AI</span>
-          </h1>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-card text-xs border border-white/10 shadow-inner">
-            <User size={12} className="text-blue-300" />
-            <span className="font-semibold text-gray-200">{user?.username}</span>
+
+          {/* Mode Switcher Pill */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+            <button 
+              onClick={() => switchMode('voice')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                interactionMode === 'voice' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <Mic size={14} className={interactionMode === 'voice' ? 'text-blue-600' : 'text-slate-400'} />
+              <span>Voice</span>
+            </button>
+            <button 
+              onClick={() => switchMode('chat')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                interactionMode === 'chat' 
+                  ? 'bg-white text-indigo-600 shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <MessageSquare size={14} className={interactionMode === 'chat' ? 'text-indigo-600' : 'text-slate-400'} />
+              <span>Chat</span>
+            </button>
           </div>
-          <button onClick={handleLogout} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all shadow-sm">
-            <LogOut size={16} />
-          </button>
+
+          {/* User Profile & Logout */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700">
+              <User size={13} className="text-blue-600" />
+              <span>{user?.username || 'Student'}</span>
+            </div>
+
+            <button 
+              onClick={handleLogout}
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-100 transition-all"
+              title="Logout"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+
         </div>
       </header>
 
-      {/* Main Content: Left Orb, Right Chat/Map */}
-      <div className="flex-1 flex overflow-hidden relative z-10 w-full max-w-7xl mx-auto">
+      {/* ========================================================================= */}
+      {/* 2. MAIN CENTER AREA: Dedicated Voice or Chat Assistant */}
+      {/* ========================================================================= */}
+      <main className="flex-1 flex overflow-hidden relative max-w-7xl w-full mx-auto p-3 sm:p-4">
         
-        {/* LEFT PANEL: Voice Orb Centered */}
-        <div className="w-1/2 flex flex-col items-center justify-center relative">
-          <div className="relative z-10 scale-125 hover:scale-150 transition-transform duration-700 ease-out">
-            <VoiceOrb state={conversationState} onClick={handleOrbClick} />
-          </div>
-          
-          <div className="mt-12 z-10 glass-card px-4 py-2 rounded-2xl border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-            <StatusIndicator state={conversationState} />
-          </div>
-        </div>
+        {/* -------------------- VOICE MODE -------------------- */}
+        {interactionMode === 'voice' && (
+          <div className="flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full overflow-y-auto px-2 py-2 sm:py-4 space-y-4 sm:space-y-5 custom-scrollbar">
+            
+            {/* Top Prompt / Status Badge */}
+            <div className="flex flex-col items-center text-center space-y-1.5 shrink-0">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-semibold shadow-sm">
+                <Sparkles size={13} className="text-blue-600" />
+                <span>Sam · Voice Agent</span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+                How can I assist your research today?
+              </h2>
+              <p className="text-xs text-slate-500">
+                Tap the orb to speak, ask for books, or request rack directions
+              </p>
+            </div>
 
-        {/* RIGHT PANEL: Chat, Search, and Map Viewport */}
-        <div className="w-1/2 flex flex-col p-6 pl-0 h-full">
-          
-          <div 
-            ref={rightPanelRef}
-            className="w-full flex-1 glass-card rounded-3xl flex flex-col overflow-hidden relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 transition-transform duration-300 ease-out"
-          >
-            {/* Panel Header toggles */}
-            <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between bg-black/20 backdrop-blur-md">
-              <UniversityHeader isRouting={activeTab === 'map' && routeTo !== null} />
+            {/* Center: The AI Voice Orb & Status */}
+            <div className="flex flex-col items-center justify-center shrink-0">
+              <VoiceOrb state={conversationState} onClick={handleOrbClick} />
               
-              <div className="flex bg-white/5 rounded-xl p-1 border border-white/10 shadow-inner">
-                <button 
+              <div className="mt-2">
+                <StatusIndicator state={conversationState} />
+              </div>
+            </div>
+
+            {/* Live Voice Transcript Box (ONLY VOICE DATA) */}
+            {lastVoiceMessage && (
+              <div className="w-full bg-white rounded-2xl border border-slate-200 p-3.5 sm:p-4 shadow-sm space-y-1.5 shrink-0 animate-[fadeIn_0.2s_ease-out]">
+                <div className="flex items-center justify-between text-[11px] text-slate-400">
+                  <span className="font-bold uppercase tracking-wider text-slate-500">
+                    {lastVoiceMessage.role === 'user' ? 'You said:' : 'Sam responded:'}
+                  </span>
+                  {lastVoiceMessage.role === 'assistant' && (
+                    <button 
+                      onClick={() => handleSpeakAgain(lastVoiceMessage.content)}
+                      className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-semibold"
+                    >
+                      <Volume2 size={12} /> Speak Again
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium max-h-24 overflow-y-auto">
+                  {lastVoiceMessage.content}
+                </p>
+              </div>
+            )}
+
+            {/* Action Chips (Properly positioned & never hidden/clipped) */}
+            <div className="flex items-center justify-center flex-wrap gap-2.5 pt-1 pb-2 shrink-0 w-full">
+              <button
+                onClick={() => { setActiveTab('map'); setIsMapFullscreen(true); }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-sm transition-all active:scale-95"
+              >
+                <Compass size={14} className="text-blue-600" />
+                <span>3D Campus Wayfinder</span>
+              </button>
+              
+              <button
+                onClick={() => switchMode('chat')}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-sm transition-all active:scale-95"
+              >
+                <MessageSquare size={14} className="text-indigo-600" />
+                <span>Switch to Text Chat</span>
+              </button>
+            </div>
+
+          </div>
+        )}
+
+        {/* -------------------- CHAT MODE -------------------- */}
+        {interactionMode === 'chat' && (
+          <div className="flex-1 flex flex-col bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+            
+            {/* Chat Header Tabs */}
+            <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">AI Interactive Chat</span>
+              </div>
+
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button
                   onClick={() => setActiveTab('chat')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'chat' ? 'bg-blue-600/30 text-blue-300 shadow-md' : 'text-gray-400 hover:text-gray-200'}`}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    activeTab === 'chat' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}
                 >
-                  <MessageSquare size={14} /> Chat
+                  Messages
                 </button>
-                <button 
-                  onClick={() => {
-                    setActiveTab('map');
-                    setIsMapFullscreen(true);
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'map' ? 'bg-purple-600/30 text-purple-300 shadow-md' : 'text-gray-400 hover:text-gray-200'}`}
-                >
-                  <Map size={14} /> Map (3D)
-                </button>
-                <button 
+                <button
                   onClick={() => setActiveTab('search')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'search' ? 'bg-emerald-600/30 text-emerald-300 shadow-md' : 'text-gray-400 hover:text-gray-200'}`}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    activeTab === 'search' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}
                 >
-                  <Search size={14} /> Search
+                  Book Catalog
+                </button>
+                <button
+                  onClick={() => { setActiveTab('map'); setIsMapFullscreen(true); }}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1"
+                >
+                  <Map size={12} /> Map View
                 </button>
               </div>
             </div>
 
-            {/* Panel Body */}
-            <div className="flex-1 relative overflow-hidden">
+            {/* Chat Body & Viewports */}
+            <div className="flex-1 relative overflow-hidden bg-white">
               
-              {/* CHAT VIEW */}
-              <div className={`absolute inset-0 flex flex-col transition-opacity duration-300 ${activeTab !== 'chat' ? 'opacity-0 pointer-events-none z-0' : 'opacity-100 z-10'}`}>
-                <div 
-                  className="flex-1 overflow-y-auto p-5 scroll-smooth overscroll-contain" 
-                  role="log"
-                  style={{ willChange: 'scroll-position', transform: 'translateZ(0)' }}
-                >
-                  {messages.map((msg, idx) => (
+              {/* Messages View */}
+              <div className={`absolute inset-0 flex flex-col ${activeTab !== 'chat' ? 'hidden' : 'flex'}`}>
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                  {chatMessages.map((msg, idx) => (
                     <ChatBubble 
                       key={idx} 
                       message={msg} 
@@ -429,27 +638,27 @@ const VoiceAssistant = () => {
                       isSpeaking={conversationState === State.SPEAKING || conversationState === State.INTRODUCING}
                     />
                   ))}
-                  <div ref={messagesEndRef} />
+                  <div ref={chatMessagesEndRef} />
                 </div>
-                
-                {/* Search Input inside Chat */}
-                <div className="p-4 bg-gradient-to-t from-black/80 to-transparent relative z-20">
+
+                {/* Input Bar */}
+                <div className="p-3 sm:p-4 border-t border-slate-100 bg-white">
                   <form onSubmit={handleTextSend} className="flex gap-2">
-                    <div className="relative flex-1 group">
-                      <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
+                    <div className="relative flex-1">
+                      <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
                         ref={inputRef}
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Talk to assistant..."
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:bg-white/10 focus:border-blue-500/50 transition-all shadow-inner"
+                        placeholder="Search book title, author, or ask for directions (e.g. 'Where is Computer Science rack?')..."
+                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-medium"
                       />
                     </div>
-                    <button 
+                    <button
                       type="submit"
                       disabled={!input.trim()}
-                      className="bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white rounded-2xl px-5 flex items-center justify-center transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:shadow-[0_0_25px_rgba(37,99,235,0.6)]"
+                      className="px-5 bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:opacity-40 text-white rounded-2xl flex items-center justify-center shadow-md shadow-blue-600/20 transition-all"
                     >
                       <Send size={18} />
                     </button>
@@ -457,176 +666,167 @@ const VoiceAssistant = () => {
                 </div>
               </div>
 
-              {/* SEARCH VIEW */}
-              <div className={`absolute inset-0 flex flex-col transition-opacity duration-300 ${activeTab !== 'search' ? 'opacity-0 pointer-events-none z-0' : 'opacity-100 z-10'}`}>
+              {/* Book Catalog Search View */}
+              <div className={`absolute inset-0 flex flex-col p-4 ${activeTab !== 'search' ? 'hidden' : 'flex'}`}>
                 <BookSearch onShowOnMap={(rack) => {
                   setRouteTo(rack);
                   setActiveTab('map');
                   setIsMapFullscreen(true);
-                  showToast(`Showing Rack ${rack} in Fullscreen Map`, 'success');
+                  showToast(`Locating Rack ${rack} in 3D Map`, 'success');
                 }} />
               </div>
 
             </div>
+
           </div>
+        )}
+
+      </main>
+
+      {/* ========================================================================= */}
+      {/* 3. BOTTOM FOOTER: Attribution (Always clean, never overlapping) */}
+      {/* ========================================================================= */}
+      <footer className="bg-white border-t border-slate-200 py-2.5 px-6 text-center text-xs text-slate-400 shrink-0">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>Anna University Central Library AI System</span>
+          <span>Powered by <strong className="font-semibold text-slate-600 hover:text-blue-600 transition-colors">TechWeGo</strong> · Intelligent Campus Solutions</span>
         </div>
+      </footer>
 
-      </div>
-
-      {/* SINGLE UNIFIED 3D WAYFINDER COMPONENT (FULLSCREEN & PANEL DYNAMIC) */}
+      {/* ========================================================================= */}
+      {/* 4. FULLSCREEN 3D INDOOR WAYFINDER MODAL */}
+      {/* ========================================================================= */}
       <div 
         className={`transition-opacity duration-200 ${
           isMapFullscreen 
-            ? 'fixed inset-0 z-50 bg-[#060912] flex flex-col opacity-100 pointer-events-auto' 
-            : activeTab === 'map' 
-              ? 'absolute right-6 top-[72px] bottom-6 w-[calc(50%-24px)] rounded-3xl overflow-hidden border border-white/10 shadow-2xl z-20 flex flex-col opacity-100 pointer-events-auto' 
-              : 'opacity-0 pointer-events-none absolute -left-[9999px] -top-[9999px] w-1 h-1'
+            ? 'fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex flex-col opacity-100 pointer-events-auto' 
+            : 'opacity-0 pointer-events-none absolute -left-[9999px] -top-[9999px] w-1 h-1'
         }`}
       >
-        {/* Fullscreen Navigation Header */}
-        <div className="h-16 px-6 bg-[#0c1222]/95 backdrop-blur-md border-b border-white/10 flex items-center justify-between z-30 shrink-0 shadow-2xl">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-blue-500/20 border border-blue-500/30 shadow-sm">
-              <Compass className="text-blue-400 animate-spin-slow" size={18} />
-              <span className="text-sm font-bold tracking-wide text-blue-200">3D Indoor Wayfinder</span>
-            </div>
-
-            {routeTo && (
-              <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-amber-300">
-                <Navigation size={14} className="text-amber-400" />
-                <span>Navigating: <strong>{routeFrom || 'Entrance'}</strong></span>
-                <ArrowRight size={12} className="text-amber-400/60" />
-                <span className="font-bold text-amber-200">Rack {routeTo}</span>
+        <div className="flex-1 flex flex-col m-0 sm:m-4 bg-white rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-200">
+          
+          {/* Wayfinder Header */}
+          <div className="h-16 px-6 bg-white border-b border-slate-200 flex items-center justify-between z-30 shrink-0">
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 font-bold text-xs">
+                <Compass className="animate-spin-slow text-blue-600" size={16} />
+                <span>3D Indoor Wayfinder</span>
               </div>
-            )}
 
-            {/* Floor Switcher */}
-            <div className="flex items-center bg-black/40 p-1 rounded-xl border border-white/10 gap-1">
-              <button
-                onClick={() => setActiveFloor('both')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  activeFloor === 'both' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                All Floors
-              </button>
-              {Array.from({ length: totalFloors }).map((_, i) => (
+              {routeTo && (
+                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-800">
+                  <Navigation size={13} className="text-amber-600" />
+                  <span>From: {routeFrom || 'Entrance'}</span>
+                  <ArrowRight size={12} />
+                  <span className="font-bold text-amber-900">Rack {routeTo}</span>
+                </div>
+              )}
+
+              {/* Floor Switcher */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
                 <button
-                  key={i+1}
-                  onClick={() => setActiveFloor(String(i+1))}
+                  onClick={() => setActiveFloor('both')}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                    activeFloor === String(i+1) ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'
+                    activeFloor === 'both' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'
                   }`}
                 >
-                  Floor {i+1}
+                  All Floors
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Header Right Actions */}
-          <div className="flex items-center gap-3">
-            {/* Direct Talk to AI Button */}
-            <button
-              onClick={handleOrbClick}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95 ${
-                conversationState === State.LISTENING 
-                  ? 'bg-red-600 text-white shadow-red-600/40 animate-pulse' 
-                  : conversationState === State.SPEAKING 
-                    ? 'bg-purple-600 text-white shadow-purple-600/40' 
-                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/30'
-              }`}
-              title="Tap to speak directly with the AI Assistant"
-            >
-              <Mic size={15} />
-              <span>
-                {conversationState === State.LISTENING 
-                  ? 'Listening... Speak now' 
-                  : conversationState === State.SPEAKING 
-                    ? 'AI is Speaking (Tap to stop)' 
-                    : conversationState === State.GENERATING || conversationState === State.RETRIEVING 
-                      ? 'Thinking...' 
-                      : '🎙️ Talk to AI'}
-              </span>
-            </button>
-
-            {/* Toggle Fullscreen / Close Button */}
-            {isMapFullscreen ? (
-              <button
-                onClick={handleCloseFullscreenMap}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all flex items-center gap-1.5 active:scale-95 shadow-md"
-              >
-                <X size={15} /> Close Fullscreen
-              </button>
-            ) : (
-              <button
-                onClick={() => setIsMapFullscreen(true)}
-                className="p-2 rounded-xl text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 border border-white/10 transition-all"
-                title="Expand to Fullscreen"
-              >
-                <Maximize2 size={16} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 3D Canvas Area */}
-        <div className="flex-1 relative overflow-hidden bg-[#05080f]">
-          <LibraryWayfinder 
-            ref={wayfindRef}
-            routeFrom={routeFrom}
-            routeTo={routeTo} 
-            activeFloor={activeFloor}
-            onRackClick={handleRackClick}
-            onRouteComplete={handleRouteComplete}
-            onConfigLoaded={(c) => setTotalFloors(c.floors || 2)}
-          />
-
-          {/* Turn-by-Turn Guidance Overlay Card */}
-          {routeSteps.length > 0 && (
-            <div className="absolute bottom-6 left-6 max-w-md bg-[#0c1222]/90 backdrop-blur-md border border-white/15 rounded-2xl p-4 shadow-2xl z-20 space-y-2 animate-in slide-in-from-bottom duration-200">
-              <div className="flex items-center gap-2 text-xs font-bold text-blue-300 uppercase tracking-wider">
-                <Navigation size={14} /> Turn-by-Turn Guidance
-              </div>
-              <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
-                {routeSteps.map((step, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-xs text-gray-200">
-                    <CornerDownRight size={13} className="text-amber-400 shrink-0 mt-0.5" />
-                    <span>{step}</span>
-                  </div>
+                {Array.from({ length: totalFloors }).map((_, i) => (
+                  <button
+                    key={i+1}
+                    onClick={() => setActiveFloor(String(i+1))}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      activeFloor === String(i+1) ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    Floor {i+1}
+                  </button>
                 ))}
               </div>
             </div>
-          )}
 
-          {/* Fullscreen Bottom Bar with Quick Ask AI Input */}
-          {isMapFullscreen && (
+            {/* Header Right Actions */}
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={handleOrbClick}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white transition-all shadow-sm active:scale-95 ${
+                  conversationState === State.LISTENING 
+                    ? 'bg-red-500 animate-pulse' 
+                    : conversationState === State.SPEAKING 
+                      ? 'bg-purple-600' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                <Mic size={14} />
+                <span className="hidden sm:inline">
+                  {conversationState === State.LISTENING 
+                    ? 'Listening...' 
+                    : conversationState === State.SPEAKING 
+                      ? 'Speaking' 
+                      : '🎙️ Voice Guide'}
+                </span>
+              </button>
+
+              <button
+                onClick={handleCloseFullscreenMap}
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all flex items-center gap-1"
+              >
+                <X size={14} /> <span>Close</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 3D Map Area */}
+          <div className="flex-1 relative overflow-hidden bg-slate-100">
+            <LibraryWayfinder 
+              ref={wayfindRef}
+              routeFrom={routeFrom}
+              routeTo={routeTo} 
+              activeFloor={activeFloor}
+              onRackClick={handleRackClick}
+              onRouteComplete={handleRouteComplete}
+              onConfigLoaded={(c) => setTotalFloors(c.floors || 2)}
+            />
+
+            {/* Turn-by-Turn Guidance Overlay */}
+            {routeSteps.length > 0 && (
+              <div className="absolute bottom-6 left-6 max-w-md bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl p-4 shadow-xl z-20 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
+                  <Navigation size={14} /> Route Instructions
+                </div>
+                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 text-slate-700">
+                  {routeSteps.map((step, idx) => (
+                    <div key={idx} className="flex items-start gap-2 text-xs font-medium">
+                      <CornerDownRight size={13} className="text-amber-500 shrink-0 mt-0.5" />
+                      <span>{step}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Ask AI Bar */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-lg px-4">
-              <form onSubmit={(e) => handleTextSend(e, fsInput)} className="flex gap-2 bg-[#0c1222]/90 backdrop-blur-md p-2 rounded-2xl border border-white/15 shadow-2xl">
+              <form onSubmit={(e) => handleTextSend(e, fsInput)} className="flex gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl border border-slate-200 shadow-xl">
                 <input
                   type="text"
                   value={fsInput}
                   onChange={(e) => setFsInput(e.target.value)}
-                  placeholder="Ask assistant or request another rack..."
-                  className="flex-1 bg-transparent px-3 py-2 text-xs text-white placeholder-gray-400 focus:outline-none"
+                  placeholder="Ask for directions to another rack..."
+                  className="flex-1 bg-transparent px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none font-medium"
                 />
                 <button
                   type="submit"
                   disabled={!fsInput.trim()}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                 >
                   <Send size={13} /> Send
                 </button>
               </form>
             </div>
-          )}
-
-          {/* Bottom Floating Hint */}
-          <div className="absolute bottom-6 right-6 z-20 pointer-events-none">
-            <div className="bg-black/70 backdrop-blur-md border border-white/10 rounded-xl px-3.5 py-1.5 text-xs font-medium text-gray-300 shadow-xl">
-              Left Drag: Orbit · Right Drag: Pan · Scroll: Zoom · Press <strong>Esc</strong> to close
-            </div>
           </div>
+
         </div>
       </div>
 

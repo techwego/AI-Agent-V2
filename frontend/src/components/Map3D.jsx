@@ -9,8 +9,7 @@ const Map3D = ({ routeTo }) => {
 
     // Basic Three.js setup
     const scene = new THREE.Scene();
-    // Use dark theme background
-    scene.background = new THREE.Color(0x0f172a); // gray-900ish
+    scene.background = new THREE.Color(0xf8fafc); // Clean light slate
 
     const camera = new THREE.PerspectiveCamera(60, mountRef.current.clientWidth / mountRef.current.clientHeight, 0.1, 1000);
     camera.position.set(0, 15, 20);
@@ -22,19 +21,19 @@ const Map3D = ({ routeTo }) => {
     mountRef.current.appendChild(renderer.domElement);
 
     // Add lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     scene.add(ambientLight);
     
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
     dirLight.position.set(10, 20, 10);
     scene.add(dirLight);
 
     // Floor
     const floorGeo = new THREE.PlaneGeometry(30, 20);
     const floorMat = new THREE.MeshStandardMaterial({ 
-      color: 0x1e293b, 
-      roughness: 0.8,
-      metalness: 0.2
+      color: 0xffffff, 
+      roughness: 0.4,
+      metalness: 0.05
     });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
@@ -45,14 +44,13 @@ const Map3D = ({ routeTo }) => {
     const rackGeo = new THREE.BoxGeometry(2, 4, 8);
     const rackMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
 
-    // Create a simple library layout
     const positions = [
       { x: -10, z: -4, id: 'A' }, { x: -6, z: -4, id: 'B' }, { x: -2, z: -4, id: 'C' },
       { x: 2, z: -4, id: 'D' }, { x: 6, z: -4, id: 'E' }, { x: 10, z: -4, id: 'F' }
     ];
 
     positions.forEach(pos => {
-      const rack = new THREE.Mesh(rackGeo, rackMat);
+      const rack = new THREE.Mesh(rackGeo, rackMat.clone());
       rack.position.set(pos.x, 2, pos.z);
       rack.userData = { id: pos.id };
       scene.add(rack);
@@ -71,24 +69,18 @@ const Map3D = ({ routeTo }) => {
       const targetRack = racks.find(r => r.userData.id === targetId);
       if (!targetRack) return;
 
-      // Reset colors
       racks.forEach(r => r.material.color.setHex(0x3b82f6));
-      // Highlight target
       targetRack.material.color.setHex(0x10b981); // Emerald
 
       const points = [];
-      // Start near camera/entrance
       points.push(new THREE.Vector3(0, 0.5, 8));
-      // Move to center aisle
       points.push(new THREE.Vector3(0, 0.5, 0));
-      // Move to rack X
       points.push(new THREE.Vector3(targetRack.position.x, 0.5, 0));
-      // Move to rack front
       points.push(new THREE.Vector3(targetRack.position.x, 0.5, targetRack.position.z + 5));
 
       const pathGeo = new THREE.BufferGeometry().setFromPoints(points);
       const pathMat = new THREE.LineBasicMaterial({ 
-        color: 0xf59e0b, // Amber
+        color: 0xf59e0b,
         linewidth: 4 
       });
 
@@ -100,17 +92,13 @@ const Map3D = ({ routeTo }) => {
       drawRoute(routeTo);
     }
 
-    // Animation loop
     let reqId;
     const animate = () => {
       reqId = requestAnimationFrame(animate);
-      
-      // Slowly rotate camera around the center if idle, or just render
       renderer.render(scene, camera);
     };
     animate();
 
-    // Resize handler
     const handleResize = () => {
       if (!mountRef.current) return;
       camera.aspect = mountRef.current.clientWidth / mountRef.current.clientHeight;
@@ -129,7 +117,7 @@ const Map3D = ({ routeTo }) => {
     };
   }, [routeTo]);
 
-  return <div ref={mountRef} className="w-full h-full rounded-xl overflow-hidden shadow-lg border border-gray-800" />;
+  return <div ref={mountRef} className="w-full h-full rounded-2xl overflow-hidden shadow-sm border border-slate-200" />;
 };
 
 export default Map3D;

@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Building, UploadCloud, Users, Database, Server, Mic, HardDrive, Activity, RefreshCw, Clock } from 'lucide-react';
+import { BookOpen, Building2, UploadCloud, Users, Database, Server, Mic, HardDrive, Activity, RefreshCw, Clock, Sparkles, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getAnalytics, getLogs, getSystemStatus } from '../../api/client';
 import { useToast } from '../../components/Toast';
 
 const StatCard = ({ title, value, icon: Icon, colorClass, subtitle, isLoading }) => (
-  <div className="glass-card p-6 rounded-2xl flex items-start justify-between border border-gray-800">
+  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-start justify-between">
     <div>
-      <p className="text-gray-400 text-sm font-medium mb-1">{title}</p>
+      <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">{title}</p>
       {isLoading ? (
-        <div className="h-9 w-24 bg-gray-800 rounded animate-pulse mb-2"></div>
+        <div className="h-8 w-20 bg-slate-100 rounded animate-pulse my-1.5" />
       ) : (
-        <h3 className="text-3xl font-bold text-white mb-2">{value}</h3>
+        <h3 className="text-3xl font-bold text-slate-900 tracking-tight">{value}</h3>
       )}
-      {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+      {subtitle && <p className="text-xs text-slate-400 mt-1 font-medium">{subtitle}</p>}
     </div>
-    <div className={`p-3 rounded-xl ${colorClass}`}>
-      <Icon size={24} className="text-white" />
+    <div className={`p-3 rounded-2xl ${colorClass}`}>
+      <Icon size={22} className="text-white" />
     </div>
   </div>
 );
@@ -24,19 +24,23 @@ const StatCard = ({ title, value, icon: Icon, colorClass, subtitle, isLoading })
 const StatusBadge = ({ label, status, icon: Icon, isLoading }) => {
   const isOnline = status === 'online';
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-xl border border-gray-800">
+    <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
       <div className="flex items-center gap-3">
-        <Icon size={18} className="text-gray-400" />
-        <span className="font-medium text-gray-200">{label}</span>
+        <div className="p-2 rounded-xl bg-white text-slate-600 shadow-sm border border-slate-200/60">
+          <Icon size={16} />
+        </div>
+        <span className="font-semibold text-xs text-slate-800">{label}</span>
       </div>
       <div className="flex items-center gap-2">
         {isLoading ? (
-          <div className="h-4 w-16 bg-gray-800 rounded animate-pulse"></div>
+          <div className="h-4 w-12 bg-slate-200 rounded animate-pulse" />
         ) : (
-          <>
-            <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'}`}></div>
-            <span className="text-sm text-gray-400">{isOnline ? 'Online' : 'Offline'}</span>
-          </>
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+            isOnline ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+            {isOnline ? 'Online' : 'Offline'}
+          </span>
         )}
       </div>
     </div>
@@ -57,11 +61,11 @@ const formatRelativeTime = (dateString) => {
 
 const getActivityIcon = (action) => {
   switch (action?.toLowerCase()) {
-    case 'upload': return <UploadCloud size={16} className="text-blue-400" />;
-    case 'delete': return <Activity size={16} className="text-red-400" />;
-    case 'update': return <RefreshCw size={16} className="text-amber-400" />;
-    case 'create': return <BookOpen size={16} className="text-green-400" />;
-    default: return <Activity size={16} className="text-gray-400" />;
+    case 'upload': return <UploadCloud size={15} className="text-blue-600" />;
+    case 'delete': return <Activity size={15} className="text-red-600" />;
+    case 'update': return <RefreshCw size={15} className="text-amber-600" />;
+    case 'create': return <BookOpen size={15} className="text-emerald-600" />;
+    default: return <Activity size={15} className="text-slate-600" />;
   }
 };
 
@@ -105,126 +109,144 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Dashboard Overview</h1>
-          <p className="text-gray-400 text-sm mt-1">Welcome to the Library AI Management system.</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">System Dashboard</h1>
+          <p className="text-slate-500 text-sm mt-1">Real-time status of library catalog, vector index, and AI query engine.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
           <button 
             onClick={handleRefresh}
             disabled={loading || refreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg border border-gray-700 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all disabled:opacity-50"
           >
-            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-            Refresh
+            <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+            <span>Refresh Data</span>
           </button>
           <button 
             onClick={() => navigate('/admin/analytics')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-lg shadow-blue-900/20 transition-colors"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5"
           >
-            View Analytics
+            <span>View Full Analytics</span>
+            <ArrowRight size={13} />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard 
-          title="Total Books" 
+          title="Indexed Books" 
           value={analytics?.total_books || 0} 
           icon={BookOpen} 
-          colorClass="bg-blue-600 shadow-lg shadow-blue-900/40" 
+          colorClass="bg-blue-600 shadow-md shadow-blue-500/20" 
           isLoading={loading}
         />
         <StatCard 
           title="Departments" 
           value={analytics?.total_departments || 0} 
-          icon={Building} 
-          colorClass="bg-purple-600 shadow-lg shadow-purple-900/40" 
+          icon={Building2} 
+          colorClass="bg-indigo-600 shadow-md shadow-indigo-500/20" 
           isLoading={loading}
         />
         <StatCard 
-          title="Uploaded Files" 
+          title="Vector Datasets" 
           value={analytics?.total_uploads || 0} 
           icon={UploadCloud} 
-          colorClass="bg-green-600 shadow-lg shadow-green-900/40" 
+          colorClass="bg-emerald-600 shadow-md shadow-emerald-500/20" 
           isLoading={loading}
         />
         <StatCard 
-          title="Active Users" 
+          title="Active Queries" 
           value={analytics?.active_users || 0} 
           icon={Users} 
-          colorClass="bg-amber-600 shadow-lg shadow-amber-900/40" 
-          subtitle={analytics?.today_queries ? `${analytics.today_queries} queries today` : ''}
+          colorClass="bg-amber-600 shadow-md shadow-amber-500/20" 
+          subtitle={analytics?.today_queries ? `${analytics.today_queries} queries today` : 'RAG Active'}
           isLoading={loading}
         />
       </div>
 
+      {/* Main Grid: Activity & System Health */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 glass-card p-6 rounded-2xl border border-gray-800">
-          <h2 className="text-lg font-semibold text-white mb-6">Recent Activity</h2>
-          <div className="space-y-4">
+        
+        {/* Recent Activity */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">Recent Admin Activity</h2>
+            <span className="text-[11px] text-slate-400 font-medium">Audit Trail</span>
+          </div>
+
+          <div className="space-y-3">
             {loading ? (
               [1, 2, 3, 4].map(i => (
-                <div key={i} className="flex items-start gap-4 p-3 rounded-lg">
-                  <div className="w-10 h-10 rounded-full bg-gray-800 animate-pulse flex-shrink-0"></div>
-                  <div className="space-y-2 flex-1">
-                    <div className="h-4 bg-gray-800 rounded animate-pulse w-3/4"></div>
-                    <div className="h-3 bg-gray-800 rounded animate-pulse w-1/4"></div>
+                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 animate-pulse">
+                  <div className="w-8 h-8 rounded-full bg-slate-200" />
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-3 bg-slate-200 rounded w-2/3" />
+                    <div className="h-2 bg-slate-200 rounded w-1/3" />
                   </div>
                 </div>
               ))
             ) : analytics?.recent_activity?.length > 0 ? (
               analytics.recent_activity.map((activity, idx) => (
-                <div key={idx} className="flex items-start gap-4 p-3 hover:bg-gray-800/50 rounded-lg transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700 flex-shrink-0">
+                <div key={idx} className="flex items-center gap-3.5 p-3 hover:bg-slate-50 rounded-2xl transition-colors border border-slate-100">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
                     {getActivityIcon(activity.action)}
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-200">
-                      <span className="font-medium text-white">{activity.admin_name}</span> {activity.action} <span className="font-medium text-blue-400">{activity.details}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-800 font-medium truncate">
+                      <strong className="text-slate-900 font-semibold">{activity.admin_name}</strong> {activity.action} <span className="text-blue-600 font-semibold">{activity.details}</span>
                     </p>
-                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                      <Clock size={12} />
+                    <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                      <Clock size={10} />
                       {formatRelativeTime(activity.created_at)}
                     </p>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-sm text-center py-4">No recent activity found.</p>
+              <div className="p-8 text-center text-slate-400 text-xs font-medium">
+                No recent activity recorded.
+              </div>
             )}
           </div>
         </div>
 
-        <div className="glass-card p-6 rounded-2xl border border-gray-800 flex flex-col">
-          <h2 className="text-lg font-semibold text-white mb-6">System Status</h2>
-          <div className="space-y-4 flex-1">
-            <StatusBadge label="Main Database" status={getSystemStatusVal('database')} icon={Database} isLoading={loading} />
-            <StatusBadge label="Vector DB (Qdrant)" status={getSystemStatusVal('vector_db')} icon={Server} isLoading={loading} />
-            <StatusBadge label="RAG Engine" status={getSystemStatusVal('rag_engine')} icon={HardDrive} isLoading={loading} />
-            <StatusBadge label="Voice Agent API" status={getSystemStatusVal('voice_api')} icon={Mic} isLoading={loading} />
+        {/* System Health */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-5">System Architecture Health</h2>
+            <div className="space-y-3">
+              <StatusBadge label="SQLite Relational DB" status={getSystemStatusVal('database')} icon={Database} isLoading={loading} />
+              <StatusBadge label="ChromaDB / Vector Store" status={getSystemStatusVal('vector_db')} icon={Server} isLoading={loading} />
+              <StatusBadge label="Groq RAG LLM Pipeline" status={getSystemStatusVal('rag_engine')} icon={HardDrive} isLoading={loading} />
+              <StatusBadge label="Speech-to-Speech Engine" status={getSystemStatusVal('voice_api')} icon={Mic} isLoading={loading} />
+            </div>
           </div>
           
-          <div className="mt-6 pt-6 border-t border-gray-800">
+          <div className="mt-6 pt-5 border-t border-slate-100">
             {loading ? (
-              <div className="h-8 bg-gray-800 rounded animate-pulse"></div>
+              <div className="h-6 bg-slate-100 rounded animate-pulse" />
             ) : (
-              <div className="flex justify-between items-end">
+              <div className="flex justify-between items-center text-xs">
                 <div>
-                  <p className="text-sm text-gray-400 mb-1">Uptime</p>
-                  <p className="text-white font-medium">{systemStatus?.uptime || 'N/A'}</p>
+                  <p className="text-slate-400 font-medium">Server Uptime</p>
+                  <p className="text-slate-800 font-bold mt-0.5">{systemStatus?.uptime || 'Online'}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-400 mb-1">Memory Usage</p>
-                  <p className="text-white font-medium">{systemStatus?.memory_usage || 'N/A'}</p>
+                  <p className="text-slate-400 font-medium">RAM Footprint</p>
+                  <p className="text-slate-800 font-bold mt-0.5">{systemStatus?.memory_usage || 'Optimal'}</p>
                 </div>
               </div>
             )}
           </div>
         </div>
+
       </div>
+
     </div>
   );
 };

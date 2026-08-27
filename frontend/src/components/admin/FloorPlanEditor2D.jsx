@@ -120,187 +120,189 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
       floor: 1,
       name: 'Main Entrance',
       x: 0,
-      z: startZ - 5,
+      z: -((cfg.rows_per_floor * rowSpacing) / 2) - 4,
       rotation: 0
     });
 
-    // Default stairs on each floor
-    for (let f = 1; f <= cfg.floors; f++) {
-      pois.push({
-        id: `stairs_f${f}`,
-        type: 'stairs',
-        floor: f,
-        name: `Staircase Floor ${f}`,
-        x: (cfg.cols_per_row * colSpacing) / 2 + 3,
-        z: 0,
-        connectsToFloor: f < cfg.floors ? f + 1 : f - 1,
-        rotation: 0
-      });
+    // Default stairs if multi-floor
+    if (cfg.floors > 1) {
+      for (let f = 1; f < cfg.floors; f++) {
+        pois.push({
+          id: `stairs_${f}`,
+          type: 'stairs',
+          floor: f,
+          name: `Stairs to Floor ${f + 1}`,
+          x: ((cfg.cols_per_row * colSpacing) / 2) + 3,
+          z: 0,
+          connectsToFloor: f + 1,
+          rotation: 0
+        });
+      }
     }
 
     return { racks, pois };
   }
 
-  // Convert meters (world) to screen pixels
-  const worldToScreen = useCallback((wx, wz) => {
+  // Coordinate Conversion Helpers
+  const screenToWorld = useCallback((screenX, screenY) => {
+    const x = (screenX - pan.x) / zoom;
+    const z = (screenY - pan.y) / zoom;
     return {
-      x: pan.x + wx * zoom,
-      y: pan.y + wz * zoom
+      x: Math.round(x * 10) / 10,
+      z: Math.round(z * 10) / 10
     };
   }, [pan, zoom]);
 
-  // Convert screen pixels to meters (world)
-  const screenToWorld = useCallback((sx, sy) => {
+  const worldToScreen = useCallback((worldX, worldZ) => {
     return {
-      x: (sx - pan.x) / zoom,
-      z: (sy - pan.y) / zoom
+      x: (worldX * zoom) + pan.x,
+      y: (worldZ * zoom) + pan.y
     };
   }, [pan, zoom]);
 
-  // Snap coordinate to grid
-  const applySnap = (val) => {
+  const applySnap = useCallback((val) => {
     if (!snapToGrid) return Math.round(val * 10) / 10;
     return Math.round(val / SNAP_STEP) * SNAP_STEP;
-  };
+  }, [snapToGrid]);
 
-  // Mouse wheel zoom
+  // Pan and Zoom Wheel Handler
   const handleWheel = (e) => {
     e.preventDefault();
-    const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
-    const newZoom = Math.min(60, Math.max(8, zoom * zoomFactor));
-    
+    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+    const newZoom = Math.min(Math.max(zoom * zoomFactor, 8), 60);
+
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      
-      const newPanX = mouseX - (mouseX - pan.x) * (newZoom / zoom);
-      const newPanY = mouseY - (mouseY - pan.y) * (newZoom / zoom);
-      
-      setZoom(newZoom);
-      setPan({ x: newPanX, y: newPanY });
+
+      // Adjust pan to zoom into mouse point
+      setPan(prev => ({
+        x: mouseX - (mouseX - prev.x) * (newZoom / zoom),
+        y: mouseY - (mouseY - prev.y) * (newZoom / zoom)
+      }));
     }
+    setZoom(newZoom);
   };
 
-  // Pointer Down (start pan or drag)
+  // Pointer Down (Pan vs Select)
   const handlePointerDown = (e) => {
-    if (e.target === containerRef.current || e.target.tagName === 'svg' || e.target.id === 'canvas-bg') {
+    if (e.target.id === 'canvas-bg' || e.target.tagName === 'svg') {
       setIsPanning(true);
       panStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
       setSelectedId(null);
     }
   };
 
-  // Pointer Move
   const handlePointerMove = (e) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const curWorld = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
-    setMousePos({ x: Math.round(curWorld.x * 10) / 10, z: Math.round(curWorld.z * 10) / 10 });
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const coords = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+      setMousePos(coords);
+    }
 
     if (isPanning) {
       setPan({
         x: e.clientX - panStartRef.current.x,
         y: e.clientY - panStartRef.current.y
       });
-      return;
-    }
+    } else if (draggingId) {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const mouseWorld = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+        const newX = applySnap(mouseWorld.x - dragOffset.x);
+        const newZ = applySnap(mouseWorld.z - dragOffset.z);
 
-    if (draggingId) {
-      const newX = applySnap(curWorld.x - dragOffset.x);
-      const newZ = applySnap(curWorld.z - dragOffset.z);
-
-      setConfig(prev => {
-        const next = { ...prev };
-        const layout = { ...next.custom_layout };
-
-        if (selectedType === 'rack' && layout.racks[draggingId]) {
-          layout.racks = {
-            ...layout.racks,
-            [draggingId]: {
+        setConfig(prev => {
+          const next = { ...prev };
+          const layout = { ...next.custom_layout };
+          
+          if (selectedType === 'rack' && layout.racks && layout.racks[draggingId]) {
+            layout.racks[draggingId] = {
               ...layout.racks[draggingId],
               x: newX,
               z: newZ
-            }
-          };
-        } else if (selectedType === 'poi') {
-          layout.pois = layout.pois.map(p => {
-            if (p.id === draggingId) {
-              return { ...p, x: newX, z: newZ };
-            }
-            return p;
-          });
-        }
-        next.custom_layout = layout;
-        return next;
-      });
+            };
+          } else if (selectedType === 'poi' && layout.pois) {
+            layout.pois = layout.pois.map(p => {
+              if (p.id === draggingId) {
+                return { ...p, x: newX, z: newZ };
+              }
+              return p;
+            });
+          }
+          next.custom_layout = layout;
+          return next;
+        });
+      }
     }
   };
 
-  // Pointer Up
   const handlePointerUp = () => {
     setIsPanning(false);
     setDraggingId(null);
   };
 
-  // Start dragging an item
-  const startDragItem = (e, id, type, itemX, itemZ) => {
+  // Start Dragging Item
+  const startDragItem = (e, id, type, curX, curZ) => {
     e.stopPropagation();
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const curWorld = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
-
     setSelectedId(id);
     setSelectedType(type);
     setDraggingId(id);
-    setDragOffset({ x: curWorld.x - itemX, z: curWorld.z - itemZ });
+
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const mouseWorld = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+      setDragOffset({
+        x: mouseWorld.x - curX,
+        z: mouseWorld.z - curZ
+      });
+    }
   };
 
-  // Add Floor
+  // Add New Floor
   const handleAddNewFloor = () => {
-    const nextFloorNum = config.floors + 1;
+    const newFloorNum = config.floors + 1;
     setConfig(prev => ({
       ...prev,
-      floors: nextFloorNum
+      floors: newFloorNum
     }));
-    setActiveFloor(nextFloorNum);
-    setSelectedId(null);
+    setActiveFloor(newFloorNum);
   };
 
-  // Delete Active Floor
+  // Delete Floor
   const handleDeleteActiveFloor = () => {
-    if (config.floors <= 1) {
-      alert('You must have at least 1 floor.');
-      return;
-    }
-    if (window.confirm(`Delete Floor ${activeFloor} and all its racks/POIs?`)) {
+    if (config.floors <= 1) return;
+    if (window.confirm(`Are you sure you want to delete Floor ${activeFloor}? All racks and elements on this floor will be permanently removed.`)) {
+      const floorToDelete = activeFloor;
+      
       setConfig(prev => {
-        const nextRacks = { ...prev.custom_layout.racks };
-        Object.keys(nextRacks).forEach(k => {
-          if (nextRacks[k].floor === activeFloor) {
-            delete nextRacks[k];
-          } else if (nextRacks[k].floor > activeFloor) {
-            nextRacks[k].floor -= 1;
+        const next = { ...prev };
+        const layout = { ...next.custom_layout };
+        
+        // Remove racks on this floor and shift down floors above
+        const nextRacks = {};
+        Object.values(layout.racks || {}).forEach(r => {
+          if (r.floor !== floorToDelete) {
+            const adjustedFloor = r.floor > floorToDelete ? r.floor - 1 : r.floor;
+            nextRacks[r.code] = { ...r, floor: adjustedFloor };
           }
         });
 
-        const nextPois = (prev.custom_layout.pois || []).filter(p => p.floor !== activeFloor).map(p => {
-          if (p.floor > activeFloor) {
-            return { ...p, floor: p.floor - 1 };
-          }
-          return p;
+        // Remove POIs on this floor and shift down floors above
+        const nextPois = (layout.pois || []).filter(p => p.floor !== floorToDelete).map(p => {
+          const adjustedFloor = p.floor > floorToDelete ? p.floor - 1 : p.floor;
+          return { ...p, floor: adjustedFloor };
         });
 
-        return {
-          ...prev,
-          floors: prev.floors - 1,
-          custom_layout: {
-            ...prev.custom_layout,
-            racks: nextRacks,
-            pois: nextPois
-          }
+        next.floors = Math.max(1, next.floors - 1);
+        next.custom_layout = {
+          racks: nextRacks,
+          pois: nextPois
         };
+        return next;
       });
+
       setActiveFloor(Math.max(1, activeFloor - 1));
       setSelectedId(null);
     }
@@ -308,32 +310,35 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
 
   // Open Add Rack Dialog
   const openAddRackModal = (customCoord = null) => {
-    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    // Generate next available letter code
     const existingCodes = Object.keys(config.custom_layout?.racks || {});
-    let candidate = 'A1';
-    for (let i = 0; i < alphabet.length; i++) {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let suggestedCode = 'A1';
+    for (let char of alphabet) {
       for (let num = 1; num <= 20; num++) {
-        const c = alphabet[i] + num;
+        const c = `${char}${num}`;
         if (!existingCodes.includes(c)) {
-          candidate = c;
+          suggestedCode = c;
           break;
         }
       }
-      if (candidate !== 'A1' || !existingCodes.includes('A1')) break;
+      if (suggestedCode !== 'A1') break;
     }
-    setNewRackCode(candidate);
-    setNewRackName(`Rack ${candidate}`);
+
+    setNewRackCode(suggestedCode);
+    setNewRackName(`Rack ${suggestedCode}`);
     setSpawnCoord(customCoord || { x: mousePos.x || 0, z: mousePos.z || 0 });
     setAddModalType('rack');
   };
 
   // Confirm Add Rack
   const handleConfirmAddRack = () => {
-    const code = newRackCode.trim().toUpperCase() || 'R1';
-    const name = newRackName.trim() || `Rack ${code}`;
+    const code = newRackCode.trim().toUpperCase();
+    if (!code) return;
+
     const newRack = {
       code,
-      name,
+      name: newRackName.trim() || `Rack ${code}`,
       floor: activeFloor,
       x: applySnap(spawnCoord.x || 0),
       z: applySnap(spawnCoord.z || 0),
@@ -342,10 +347,6 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
 
     setConfig(prev => ({
       ...prev,
-      custom_racks: {
-        ...(prev.custom_racks || {}),
-        [code]: name
-      },
       custom_layout: {
         ...(prev.custom_layout || {}),
         racks: {
@@ -425,7 +426,7 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
     setAddModalType(null);
   };
 
-  // Dedicated Save Rack Name and Code from Sidebar
+  // Save Rack Name and Code from Sidebar
   const handleSaveSidebarProperties = () => {
     if (selectedType === 'rack' && selectedId) {
       const cleanCode = tempRackCode.trim().toUpperCase() || selectedId;
@@ -557,7 +558,7 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
     ? config.custom_layout?.racks?.[selectedId] 
     : (config.custom_layout?.pois || []).find(p => p.id === selectedId);
 
-  // Dynamic Slab bounds calculation based on floor elements or rows/cols
+  // Dynamic Slab bounds calculation
   const rackXs = floorRacks.map(r => Math.abs(r.x));
   const rackZs = floorRacks.map(r => Math.abs(r.z));
   const maxX = rackXs.length > 0 ? Math.max(...rackXs) : (config.cols_per_row * 5.2) / 2;
@@ -569,81 +570,81 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
   const slabBottomRight = worldToScreen(slabWidth / 2, slabDepth / 2);
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#060912] text-white flex flex-col select-none overflow-hidden font-sans">
+    <div className="fixed inset-0 z-50 bg-slate-100 text-slate-900 flex flex-col select-none overflow-hidden font-sans">
       
       {/* ADD ELEMENT MODAL DIALOG */}
       {addModalType && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0c1222] border border-white/20 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                {addModalType === 'rack' && <><Plus className="text-blue-400" size={18} /> Add Custom Rack (Floor {activeFloor})</>}
-                {addModalType === 'entrance' && <><DoorOpen className="text-emerald-400" size={18} /> Add Entrance (Floor {activeFloor})</>}
-                {addModalType === 'stairs' && <><ArrowUpDown className="text-amber-400" size={18} /> Add Staircase (Floor {activeFloor})</>}
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 animate-[fadeIn_0.15s_ease-out]">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                {addModalType === 'rack' && <><Plus className="text-blue-600" size={16} /> Add Custom Rack (Floor {activeFloor})</>}
+                {addModalType === 'entrance' && <><DoorOpen className="text-emerald-600" size={16} /> Add Entrance (Floor {activeFloor})</>}
+                {addModalType === 'stairs' && <><ArrowUpDown className="text-amber-600" size={16} /> Add Staircase (Floor {activeFloor})</>}
               </h3>
-              <button onClick={() => setAddModalType(null)} className="text-gray-400 hover:text-white p-1 rounded-lg">
-                <X size={18} />
+              <button onClick={() => setAddModalType(null)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+                <X size={16} />
               </button>
             </div>
 
             {addModalType === 'rack' && (
-              <div className="space-y-3.5">
+              <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1">Rack Code (e.g. A1, B4, C6, Z1)</label>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Rack Code (e.g. A1, B4, C6, Z1)</label>
                   <input
                     type="text"
                     value={newRackCode}
                     onChange={(e) => setNewRackCode(e.target.value.toUpperCase())}
                     placeholder="e.g. A1"
-                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono uppercase focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-mono uppercase focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1">Rack Name / Category (e.g. Science Fiction, Physics)</label>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Rack Name / Shelf Category</label>
                   <input
                     type="text"
                     value={newRackName}
                     onChange={(e) => setNewRackName(e.target.value)}
-                    placeholder="e.g. Science Fiction"
-                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                    placeholder="e.g. Computer Architecture"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
               </div>
             )}
 
             {addModalType === 'entrance' && (
-              <div className="space-y-3.5">
+              <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1">Entrance Name</label>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Entrance Name</label>
                   <input
                     type="text"
                     value={newPoiName}
                     onChange={(e) => setNewPoiName(e.target.value)}
                     placeholder="e.g. Main Entrance, North Door"
-                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
                   />
                 </div>
               </div>
             )}
 
             {addModalType === 'stairs' && (
-              <div className="space-y-3.5">
+              <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1">Staircase Name</label>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Staircase Name</label>
                   <input
                     type="text"
                     value={newPoiName}
                     onChange={(e) => setNewPoiName(e.target.value)}
-                    placeholder="e.g. Main Staircase"
-                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500"
+                    placeholder="e.g. Central Staircase"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1">Connects to Floor Level</label>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Connects to Floor Level</label>
                   <select
                     value={newStairsDest}
                     onChange={(e) => setNewStairsDest(e.target.value)}
-                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-amber-600"
                   >
                     {[...Array(config.floors)].map((_, i) => (
                       <option key={i} value={i + 1}>Floor {i + 1}</option>
@@ -656,7 +657,7 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setAddModalType(null)}
-                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl text-xs font-semibold border border-white/10"
+                className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold"
               >
                 Cancel
               </button>
@@ -666,53 +667,51 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                   else if (addModalType === 'entrance') handleConfirmAddEntrance();
                   else if (addModalType === 'stairs') handleConfirmAddStairs();
                 }}
-                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/30"
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-600/20"
               >
-                Add to Floor Plan
+                Add to Blueprint
               </button>
             </div>
           </div>
         </div>
       )}
       
-      {/* TOP BAR WITH CLEAR ADD BUTTONS */}
-      <div className="h-16 px-6 bg-[#0c1222]/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between z-20 shrink-0">
+      {/* TOP HEADER BAR */}
+      <div className="h-16 px-6 bg-white border-b border-slate-200 flex items-center justify-between z-20 shrink-0 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-blue-500/20 border border-blue-500/30">
-            <Layers className="text-blue-400" size={18} />
-            <span className="text-sm font-bold tracking-wide text-blue-200">2D Floor Plan Architect</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700">
+            <Layers size={16} className="text-blue-600" />
+            <span className="text-xs font-bold tracking-wide">2D Floor Plan Blueprint Editor</span>
           </div>
 
           {/* Floor Switcher Tabs & Floor Management */}
-          <div className="flex items-center bg-black/40 p-1 rounded-xl border border-white/10 gap-1">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
             {[...Array(config.floors)].map((_, i) => (
               <button
                 key={i}
                 onClick={() => { setActiveFloor(i + 1); setSelectedId(null); }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                   activeFloor === i + 1 
-                    ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.5)]' 
-                    : 'text-gray-400 hover:text-gray-200'
+                    ? 'bg-white text-blue-600 shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 Floor {i + 1}
               </button>
             ))}
 
-            {/* Add New Floor Button */}
             <button
               onClick={handleAddNewFloor}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+              className="px-2.5 py-1 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 flex items-center gap-1 transition-all"
               title="Add New Empty Floor Level"
             >
-              <PlusCircle size={14} /> + Add Floor
+              <PlusCircle size={13} /> Add Floor
             </button>
 
-            {/* Delete Active Floor Button */}
             {config.floors > 1 && (
               <button
                 onClick={handleDeleteActiveFloor}
-                className="px-2 py-1.5 rounded-lg text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all"
+                className="px-2 py-1 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-all"
                 title={`Delete Floor ${activeFloor}`}
               >
                 <Trash2 size={13} />
@@ -720,70 +719,70 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
             )}
           </div>
 
-          {/* QUICK ADD ELEMENT BUTTONS IN TOP BAR */}
-          <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/10">
+          {/* Quick Add Actions */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
               onClick={() => openAddRackModal()}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold text-blue-200 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 flex items-center gap-1 transition-all"
             >
-              <Plus size={14} className="text-blue-400" /> + Add Rack
+              <Plus size={13} /> + Rack
             </button>
 
             <button
               onClick={() => openAddEntranceModal()}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-200 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 flex items-center gap-1 transition-all"
             >
-              <DoorOpen size={14} className="text-emerald-400" /> + Add Entrance
+              <DoorOpen size={13} /> + Entrance
             </button>
 
             <button
               onClick={() => openAddStairsModal()}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold text-amber-200 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/40 flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 flex items-center gap-1 transition-all"
             >
-              <ArrowUpDown size={14} className="text-amber-400" /> + Add Stairs
+              <ArrowUpDown size={13} /> + Stairs
             </button>
           </div>
 
-          <span className="text-xs text-gray-400 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
-            {floorRacks.length} Racks · {floorPois.length} POIs on Floor {activeFloor}
+          <span className="text-[11px] text-slate-500 font-medium bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+            {floorRacks.length} Racks · {floorPois.length} POIs
           </span>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => setSnapToGrid(!snapToGrid)}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
               snapToGrid 
-                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' 
-                : 'bg-white/5 border-white/10 text-gray-400'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm' 
+                : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
             }`}
           >
-            <Grid size={14} /> Snap (1m)
+            <Grid size={13} /> Snap (1m)
           </button>
 
           <button
             onClick={handleAutoArrange}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 flex items-center gap-1.5 transition-all"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-sm transition-all"
             title="Auto-Arrange Racks in Clean Grid"
           >
-            <Sparkles size={14} className="text-amber-400" /> Auto-Grid
+            <Sparkles size={13} className="text-amber-500" /> Auto-Grid
           </button>
 
-          <div className="h-6 w-px bg-white/10 mx-1" />
+          <div className="h-5 w-px bg-slate-200 mx-1" />
 
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl text-xs font-semibold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center gap-1.5"
+            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 transition-all flex items-center gap-1"
           >
-            <X size={14} /> Discard & Exit
+            <X size={13} /> Discard
           </button>
 
           <button
             onClick={handleSaveAndReturn}
-            className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] transition-all flex items-center gap-2 active:scale-95"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5 active:scale-95"
           >
-            <Save size={15} /> Save & Return to 3D
+            <Save size={14} /> Save & Return to 3D
           </button>
         </div>
       </div>
@@ -792,49 +791,49 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
       <div className="flex-1 relative flex overflow-hidden">
         
         {/* LEFT TOOLBAR PALETTE */}
-        <div className="absolute top-4 left-4 z-20 flex flex-col gap-2.5 bg-[#0c1222]/90 backdrop-blur-md p-3 rounded-2xl border border-white/10 shadow-2xl w-44">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">Add to Floor {activeFloor}</span>
+        <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200 shadow-lg w-44">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Floor {activeFloor} Palette</span>
           
           <button
             onClick={() => openAddRackModal()}
-            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-500/40 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-all shadow-sm active:scale-95"
           >
-            <Plus size={15} /> ➕ Add Rack
+            <Plus size={14} /> + Add Rack
           </button>
 
           <button
             onClick={() => openAddEntranceModal()}
-            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-all shadow-sm active:scale-95"
           >
-            <DoorOpen size={15} /> 🚪 Add Entrance
+            <DoorOpen size={14} /> + Entrance
           </button>
 
           <button
             onClick={() => openAddStairsModal()}
-            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/40 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-all shadow-sm active:scale-95"
           >
-            <ArrowUpDown size={15} /> 🪜 Add Stairs
+            <ArrowUpDown size={14} /> + Stairs
           </button>
 
-          <div className="h-px bg-white/10 my-1" />
+          <div className="h-px bg-slate-100 my-1" />
 
           {/* Zoom controls */}
           <div className="flex items-center justify-between px-1">
-            <button onClick={() => setZoom(z => Math.max(8, z * 0.85))} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white" title="Zoom Out">
-              <ZoomOut size={16} />
+            <button onClick={() => setZoom(z => Math.max(8, z * 0.85))} className="p-1 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800" title="Zoom Out">
+              <ZoomOut size={15} />
             </button>
-            <span className="text-[11px] font-mono text-gray-400">{Math.round(zoom)}px/m</span>
-            <button onClick={() => setZoom(z => Math.min(60, z * 1.15))} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white" title="Zoom In">
-              <ZoomIn size={16} />
+            <span className="text-[10px] font-mono text-slate-500 font-semibold">{Math.round(zoom)}px/m</span>
+            <button onClick={() => setZoom(z => Math.min(60, z * 1.15))} className="p-1 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800" title="Zoom In">
+              <ZoomIn size={15} />
             </button>
           </div>
         </div>
 
         {/* BOTTOM LEFT COORDINATES HUD */}
-        <div className="absolute bottom-4 left-4 z-20 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-[11px] font-mono text-gray-300 shadow-lg pointer-events-none flex items-center gap-3">
-          <span>X: <strong className="text-blue-400">{mousePos.x}m</strong></span>
-          <span>Z: <strong className="text-purple-400">{mousePos.z}m</strong></span>
-          <span className="text-gray-500">| Drag items to place · Click empty area to pan</span>
+        <div className="absolute bottom-4 left-4 z-20 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200 text-[11px] font-mono text-slate-600 shadow-sm pointer-events-none flex items-center gap-3">
+          <span>X: <strong className="text-blue-600">{mousePos.x}m</strong></span>
+          <span>Z: <strong className="text-indigo-600">{mousePos.z}m</strong></span>
+          <span className="text-slate-400 font-sans text-[10px]">| Drag to move · Pan with background drag</span>
         </div>
 
         {/* 2D CANVAS VIEWPORT */}
@@ -845,27 +844,27 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          className="flex-1 w-full h-full relative cursor-grab active:cursor-grabbing bg-[#080d1a]"
+          className="flex-1 w-full h-full relative cursor-grab active:cursor-grabbing bg-slate-100"
           style={{ touchAction: 'none' }}
         >
           {/* SVG GRID & BACKGROUND */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none">
             <defs>
               <pattern id="grid-1m" width={zoom * SNAP_STEP} height={zoom * SNAP_STEP} patternUnits="userSpaceOnUse" patternTransform={`translate(${pan.x % (zoom * SNAP_STEP)}, ${pan.y % (zoom * SNAP_STEP)})`}>
-                <path d={`M ${zoom * SNAP_STEP} 0 L 0 0 0 ${zoom * SNAP_STEP}`} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                <path d={`M ${zoom * SNAP_STEP} 0 L 0 0 0 ${zoom * SNAP_STEP}`} fill="none" stroke="rgba(148, 163, 184, 0.2)" strokeWidth="1" />
               </pattern>
               <pattern id="grid-5m" width={zoom * 5} height={zoom * 5} patternUnits="userSpaceOnUse" patternTransform={`translate(${pan.x % (zoom * 5)}, ${pan.y % (zoom * 5)})`}>
                 <rect width={zoom * 5} height={zoom * 5} fill="url(#grid-1m)" />
-                <path d={`M ${zoom * 5} 0 L 0 0 0 ${zoom * 5}`} fill="none" stroke="rgba(59,130,246,0.18)" strokeWidth="1.5" />
+                <path d={`M ${zoom * 5} 0 L 0 0 0 ${zoom * 5}`} fill="none" stroke="rgba(59, 130, 246, 0.3)" strokeWidth="1.5" />
               </pattern>
             </defs>
 
             {/* Grid Fill */}
             <rect width="100%" height="100%" fill="url(#grid-5m)" />
 
-            {/* Coordinate Axis Origin (0,0) */}
-            <line x1={pan.x} y1="0" x2={pan.x} y2="100%" stroke="rgba(59,130,246,0.4)" strokeWidth="2" strokeDasharray="4 4" />
-            <line x1="0" y1={pan.y} x2="100%" y2={pan.y} stroke="rgba(168,85,247,0.4)" strokeWidth="2" strokeDasharray="4 4" />
+            {/* Axis Lines (0,0) */}
+            <line x1={pan.x} y1="0" x2={pan.x} y2="100%" stroke="rgba(59, 130, 246, 0.4)" strokeWidth="1.5" strokeDasharray="4 4" />
+            <line x1="0" y1={pan.y} x2="100%" y2={pan.y} stroke="rgba(99, 102, 241, 0.4)" strokeWidth="1.5" strokeDasharray="4 4" />
 
             {/* Building Slab Boundary Outline */}
             <rect
@@ -873,51 +872,51 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
               y={slabTopLeft.y}
               width={slabBottomRight.x - slabTopLeft.x}
               height={slabBottomRight.y - slabTopLeft.y}
-              fill="rgba(255,255,255,0.015)"
-              stroke="rgba(255,255,255,0.2)"
+              fill="rgba(255, 255, 255, 0.6)"
+              stroke="#94a3b8"
               strokeWidth="2"
-              rx="12"
+              rx="16"
               strokeDasharray="6 4"
             />
-            <text x={slabTopLeft.x + 12} y={slabTopLeft.y + 24} fill="rgba(255,255,255,0.3)" fontSize="12" fontWeight="bold">
-              FLOOR {activeFloor} BOUNDARY ({Math.round(slabWidth)}m x {Math.round(slabDepth)}m)
+            <text x={slabTopLeft.x + 12} y={slabTopLeft.y + 24} fill="#64748b" fontSize="11" fontWeight="bold">
+              FLOOR {activeFloor} BLUEPRINT ({Math.round(slabWidth)}m x {Math.round(slabDepth)}m)
             </text>
           </svg>
 
-          {/* EMPTY FLOOR INTERACTIVE HELPER */}
+          {/* EMPTY FLOOR HELPER */}
           {floorRacks.length === 0 && floorPois.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-6">
-              <div className="bg-[#0c1222]/90 backdrop-blur-md border border-white/20 rounded-3xl p-8 max-w-md space-y-4 shadow-2xl pointer-events-auto animate-in zoom-in-95 duration-150">
-                <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center mx-auto text-blue-400">
+              <div className="bg-white border border-slate-200 rounded-3xl p-8 max-w-md space-y-4 shadow-xl pointer-events-auto animate-[fadeIn_0.2s_ease-out]">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center mx-auto text-blue-600">
                   <Layers size={24} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-white text-lg">Floor {activeFloor} is Empty</h4>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Click any option below or use the top bar to place elements on this floor level:
+                  <h4 className="font-bold text-slate-900 text-base">Floor {activeFloor} is Empty</h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Click an action below to place the first rack or waypoint on this floor:
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-2 pt-2">
                   <button
                     onClick={() => openAddRackModal({ x: 0, z: 0 })}
-                    className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2"
                   >
-                    <Plus size={16} /> ➕ Add First Rack
+                    <Plus size={15} /> Add First Rack
                   </button>
 
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => openAddEntranceModal({ x: 0, z: -6 })}
-                      className="py-2.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
+                      className="py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
                     >
-                      <DoorOpen size={15} /> 🚪 Add Entrance
+                      <DoorOpen size={14} /> Add Entrance
                     </button>
                     <button
                       onClick={() => openAddStairsModal({ x: 8, z: 0 })}
-                      className="py-2.5 bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/40 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
+                      className="py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
                     >
-                      <ArrowUpDown size={15} /> 🪜 Add Stairs
+                      <ArrowUpDown size={14} /> Add Stairs
                     </button>
                   </div>
                 </div>
@@ -949,35 +948,23 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                   transform: 'translate(-50%, -50%)',
                   zIndex: isSelected || isDragging ? 30 : 10
                 }}
-                className={`absolute rounded-lg flex flex-col items-center justify-center cursor-move transition-shadow px-1 ${
+                className={`absolute rounded-xl transition-all flex flex-col items-center justify-center text-center p-1 cursor-move select-none shadow-sm ${
                   isSelected 
-                    ? 'bg-gradient-to-br from-amber-600/95 to-amber-800/95 border-2 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.6)] text-white' 
-                    : 'bg-[#18233a]/90 hover:bg-[#203050]/90 border border-blue-400/40 text-blue-100 shadow-md hover:shadow-blue-500/20'
+                    ? 'bg-blue-50 border-2 border-blue-600 ring-4 ring-blue-500/20 shadow-lg shadow-blue-500/20' 
+                    : 'bg-white border border-slate-300 hover:border-blue-400 hover:shadow-md'
                 }`}
               >
-                <div className="flex items-center gap-1">
-                  <span className="font-extrabold text-xs tracking-wider">Rack {rack.code}</span>
-                </div>
-                {displayName && displayName !== `Rack ${rack.code}` && (
-                  <span className="text-[10px] text-amber-300 font-semibold truncate max-w-[95%] text-center">
-                    {displayName}
-                  </span>
-                )}
-                
-                {/* Coordinates Indicator */}
-                <span className="text-[8px] text-white/50 font-mono mt-0.5">
-                  ({rack.x}, {rack.z})
-                </span>
+                <span className="font-mono font-bold text-xs text-blue-700 tracking-tight leading-none">{rack.code}</span>
+                <span className="text-[9px] text-slate-500 font-medium truncate max-w-full leading-tight mt-0.5">{displayName}</span>
               </div>
             );
           })}
 
-          {/* POIs ON CURRENT FLOOR (ENTRANCES & STAIRS) */}
+          {/* POIS ON CURRENT FLOOR */}
           {floorPois.map(poi => {
             const pos = worldToScreen(poi.x, poi.z);
             const isSelected = selectedId === poi.id && selectedType === 'poi';
             const isDragging = draggingId === poi.id;
-            const isEntrance = poi.type === 'entrance';
 
             return (
               <div
@@ -989,87 +976,74 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                   transform: 'translate(-50%, -50%)',
                   zIndex: isSelected || isDragging ? 30 : 15
                 }}
-                className={`absolute px-3 py-2 rounded-2xl flex items-center gap-2 cursor-move border transition-all ${
-                  isEntrance 
-                    ? isSelected 
-                      ? 'bg-emerald-600 text-white border-white shadow-[0_0_20px_rgba(16,185,129,0.7)]' 
-                      : 'bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border-emerald-500/40 shadow-lg'
-                    : isSelected 
-                      ? 'bg-amber-600 text-white border-white shadow-[0_0_20px_rgba(245,158,11,0.7)]' 
-                      : 'bg-amber-950/80 hover:bg-amber-900 text-amber-200 border-amber-500/40 shadow-lg'
+                className={`absolute px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-move select-none shadow-sm ${
+                  poi.type === 'entrance' 
+                    ? isSelected ? 'bg-emerald-50 border-2 border-emerald-600 ring-4 ring-emerald-500/20 shadow-md text-emerald-900' : 'bg-emerald-50 border border-emerald-300 text-emerald-800'
+                    : isSelected ? 'bg-amber-50 border-2 border-amber-600 ring-4 ring-amber-500/20 shadow-md text-amber-900' : 'bg-amber-50 border border-amber-300 text-amber-800'
                 }`}
               >
-                {isEntrance ? <DoorOpen size={16} className="text-emerald-300" /> : <ArrowUpDown size={16} className="text-amber-300" />}
-                <div className="flex flex-col">
-                  <span className="font-bold text-xs uppercase tracking-wide">{poi.name || poi.type}</span>
-                  {!isEntrance && poi.connectsToFloor && (
-                    <span className="text-[9px] text-white/70 font-mono">→ Floor {poi.connectsToFloor}</span>
-                  )}
-                </div>
+                {poi.type === 'entrance' ? <DoorOpen size={14} className="text-emerald-600 shrink-0" /> : <ArrowUpDown size={14} className="text-amber-600 shrink-0" />}
+                <span className="text-[10px] font-bold whitespace-nowrap">{poi.name || poi.type}</span>
               </div>
             );
           })}
+
         </div>
 
-        {/* RIGHT PROPERTIES SIDEBAR WITH DEDICATED SAVE BUTTON */}
+        {/* RIGHT SIDEBAR PROPERTY INSPECTOR */}
         {selectedItem && (
-          <div className="w-80 bg-[#0c1222]/95 backdrop-blur-md border-l border-white/10 p-5 flex flex-col justify-between z-30 shrink-0 shadow-2xl animate-in slide-in-from-right duration-200">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  {selectedType === 'rack' ? <Layers size={18} className="text-blue-400" /> : <MapPin size={18} className="text-purple-400" />}
-                  <h3 className="font-bold text-sm text-white capitalize">
-                    {selectedType === 'rack' ? `Rack ${selectedItem.code}` : selectedItem.name}
-                  </h3>
-                </div>
-                <button onClick={() => setSelectedId(null)} className="p-1 text-gray-400 hover:text-white rounded-lg">
-                  <X size={16} />
-                </button>
-              </div>
+          <div className="absolute top-4 right-4 z-20 w-72 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-xl space-y-4 animate-[fadeIn_0.15s_ease-out]">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <span className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                {selectedType === 'rack' ? <><Layers size={14} className="text-blue-600" /> Rack Inspector</> : <><MapPin size={14} className="text-purple-600" /> Waypoint Inspector</>}
+              </span>
+              <button onClick={() => setSelectedId(null)} className="text-slate-400 hover:text-slate-700">
+                <X size={15} />
+              </button>
+            </div>
 
-              {/* Edit Properties Form */}
+            <div className="space-y-3 text-xs font-medium">
               {selectedType === 'rack' ? (
-                <div className="space-y-3.5">
+                <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 block mb-1">Rack Code</label>
+                    <label className="text-slate-600 block mb-1 font-semibold">Rack Code ID</label>
                     <input
                       type="text"
                       value={tempRackCode}
                       onChange={(e) => setTempRackCode(e.target.value.toUpperCase())}
-                      className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white font-mono uppercase focus:outline-none focus:border-blue-500"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono font-bold uppercase focus:bg-white focus:outline-none focus:border-blue-600"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 block mb-1">Custom Rack Name / Category</label>
+                    <label className="text-slate-600 block mb-1 font-semibold">Rack Shelf Name</label>
                     <input
                       type="text"
-                      placeholder="e.g. Science Fiction, Physics, History"
                       value={tempRackName}
                       onChange={(e) => setTempRackName(e.target.value)}
-                      className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      placeholder="e.g. Artificial Intelligence"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600"
                     />
                   </div>
 
-                  {/* DEDICATED SAVE BUTTON FOR RACK NAME & CODE */}
+                  {/* SAVE BUTTON FOR RACK NAME & CODE */}
                   <button
                     onClick={handleSaveSidebarProperties}
-                    className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md ${
+                    className={`w-full py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm ${
                       sidebarSaved 
-                        ? 'bg-emerald-600 text-white shadow-emerald-500/40' 
-                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/30'
+                        ? 'bg-emerald-600 text-white' 
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}
                   >
                     {sidebarSaved ? (
-                      <><CheckCircle2 size={15} /> Name Saved & Applied!</>
+                      <><CheckCircle2 size={14} /> Saved!</>
                     ) : (
-                      <><Save size={15} /> Save Rack Details</>
+                      <><Save size={14} /> Apply Details</>
                     )}
                   </button>
 
-                  {/* Floor Level */}
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 block mb-1">Floor Level</label>
+                    <label className="text-slate-600 block mb-1 font-semibold">Floor Level</label>
                     <select
                       value={selectedItem.floor}
                       onChange={(e) => {
@@ -1088,7 +1062,7 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                           }
                         }));
                       }}
-                      className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-blue-600"
                     >
                       {[...Array(config.floors)].map((_, i) => (
                         <option key={i} value={i + 1}>Floor {i + 1}</option>
@@ -1096,10 +1070,9 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                     </select>
                   </div>
 
-                  {/* Exact Coordinates */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs font-semibold text-gray-400 block mb-1">X Pos (meters)</label>
+                      <label className="text-slate-500 block mb-1">X Pos (m)</label>
                       <input
                         type="number"
                         step="0.5"
@@ -1117,11 +1090,11 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                             }
                           }));
                         }}
-                        className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-mono focus:bg-white focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-400 block mb-1">Z Pos (meters)</label>
+                      <label className="text-slate-500 block mb-1">Z Pos (m)</label>
                       <input
                         type="number"
                         step="0.5"
@@ -1139,42 +1112,41 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                             }
                           }));
                         }}
-                        className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-mono focus:bg-white focus:outline-none"
                       />
                     </div>
                   </div>
                 </div>
               ) : (
-                /* POI Properties */
-                <div className="space-y-3.5">
+                <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 block mb-1">POI Name</label>
+                    <label className="text-slate-600 block mb-1 font-semibold">POI Label</label>
                     <input
                       type="text"
                       value={tempRackName}
                       onChange={(e) => setTempRackName(e.target.value)}
-                      className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-purple-600"
                     />
                   </div>
 
                   <button
                     onClick={handleSaveSidebarProperties}
-                    className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md ${
+                    className={`w-full py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm ${
                       sidebarSaved 
-                        ? 'bg-emerald-600 text-white shadow-emerald-500/40' 
-                        : 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-500/30'
+                        ? 'bg-emerald-600 text-white' 
+                        : 'bg-purple-600 hover:bg-purple-700 text-white'
                     }`}
                   >
                     {sidebarSaved ? (
-                      <><CheckCircle2 size={15} /> Name Saved & Applied!</>
+                      <><CheckCircle2 size={14} /> Saved!</>
                     ) : (
-                      <><Save size={15} /> Save POI Details</>
+                      <><Save size={14} /> Apply Details</>
                     )}
                   </button>
 
                   {selectedItem.type === 'stairs' && (
                     <div>
-                      <label className="text-xs font-semibold text-gray-400 block mb-1">Connects to Floor</label>
+                      <label className="text-slate-600 block mb-1 font-semibold">Connects to Floor</label>
                       <select
                         value={selectedItem.connectsToFloor || 1}
                         onChange={(e) => {
@@ -1187,7 +1159,7 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                             }
                           }));
                         }}
-                        className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-purple-600"
                       >
                         {[...Array(config.floors)].map((_, i) => (
                           <option key={i} value={i + 1}>Floor {i + 1}</option>
@@ -1198,7 +1170,7 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs font-semibold text-gray-400 block mb-1">X Pos (meters)</label>
+                      <label className="text-slate-500 block mb-1">X Pos (m)</label>
                       <input
                         type="number"
                         step="0.5"
@@ -1213,11 +1185,11 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                             }
                           }));
                         }}
-                        className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-purple-500"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-mono focus:bg-white focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-400 block mb-1">Z Pos (meters)</label>
+                      <label className="text-slate-500 block mb-1">Z Pos (m)</label>
                       <input
                         type="number"
                         step="0.5"
@@ -1232,7 +1204,7 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
                             }
                           }));
                         }}
-                        className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-purple-500"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-mono focus:bg-white focus:outline-none"
                       />
                     </div>
                   </div>
@@ -1241,19 +1213,19 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
             </div>
 
             {/* Bottom Actions */}
-            <div className="flex gap-2 pt-4 border-t border-white/10">
+            <div className="flex gap-2 pt-3 border-t border-slate-100">
               <button
                 onClick={() => handleRotate(selectedId, selectedType)}
-                className="flex-1 py-2 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 flex items-center justify-center gap-1.5 transition-all"
+                className="flex-1 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-1 transition-all"
               >
-                <RotateCw size={14} /> Rotate 90°
+                <RotateCw size={13} /> Rotate 90°
               </button>
               <button
                 onClick={() => handleDelete(selectedId, selectedType)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/30 flex items-center justify-center gap-1.5 transition-all"
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 flex items-center justify-center gap-1 transition-all"
                 title="Delete Item"
               >
-                <Trash2 size={14} /> Delete
+                <Trash2 size={13} /> Delete
               </button>
             </div>
           </div>
