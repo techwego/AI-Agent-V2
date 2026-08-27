@@ -30,11 +30,13 @@ from sqlalchemy.orm import Session
 
 from backend.config import Config
 from backend.database.db import init_db, SessionLocal, get_db
-from backend.database.models import User, RoleEnum
+from backend.database.models import User, RoleEnum, ConversationHistory
 from backend.auth.auth_service import hash_password
 from backend.auth.auth_routes import router as auth_router
 from backend.api.admin_routes import router as admin_router
 from backend.api.upload_routes import router as upload_router
+from backend.api.book_routes import router as book_router
+from backend.api.analytics_routes import router as analytics_router
 from backend.auth.auth_middleware import require_auth, require_admin
 
 app = FastAPI()
@@ -80,6 +82,8 @@ create_default_users()
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(upload_router)
+app.include_router(book_router)
+app.include_router(analytics_router)
 
 def init_rag_bg():
     def watchdog():
@@ -203,8 +207,26 @@ async def chat(request: ChatRequest):
         return StreamingResponse(stream_init(), media_type="text/plain")
     
     def generate():
+        full_response = ""
         for chunk in rag.query_stream(request.message, history=request.history):
+            full_response += chunk
             yield chunk
+            
+        # After streaming is complete, save to DB in background
+        try:
+            db = SessionLocal()
+            # If user auth is added to chat, use their ID. Defaulting to None for anonymous.
+            # Assuming 'test' user logic or similar if needed. For now, user_id=None
+            history_record = ConversationHistory(
+                user_id=None,
+                query=request.message,
+                response=full_response
+            )
+            db.add(history_record)
+            db.commit()
+            db.close()
+        except Exception as e:
+            print(f"Failed to log conversation: {e}")
 
     return StreamingResponse(generate(), media_type="text/plain")
 

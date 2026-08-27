@@ -113,6 +113,44 @@ const VoiceAssistant = () => {
     navigate('/login');
   };
 
+  const toggleListening = useCallback(() => {
+    const currentState = stateManager.getState();
+    if (currentState === State.SPEAKING) {
+      handleInterrupt();
+      return;
+    }
+    if (currentState === State.LISTENING) { 
+      sttManager.stopListening(); 
+      stateManager.setState(State.IDLE); 
+      return; 
+    }
+    if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) return;
+    
+    // First time greeting
+    if (messages.length === 0 && currentState === State.IDLE) {
+      const hour = new Date().getHours();
+      let greeting = 'Good evening';
+      if (hour < 12) greeting = 'Good morning';
+      else if (hour < 17) greeting = 'Good afternoon';
+      
+      const welcomeText = `${greeting}! Welcome to the library. How can I help you today?`;
+      
+      setMessages([{ role: 'assistant', content: welcomeText }]);
+      stateManager.setState(State.SPEAKING);
+      
+      ttsManager.speak(welcomeText, () => {
+        // After speaking greeting, immediately start listening
+        if (stateManager.getState() === State.SPEAKING) { // Make sure it wasn't interrupted
+          stateManager.setState(State.IDLE);
+          startListening();
+        }
+      });
+      return;
+    }
+    
+    startListening();
+  }, [conversationState, messages.length]);
+
   const handleOrbClick = useCallback(() => {
     const currentState = stateManager.getState();
     if (currentState === State.SPEAKING || currentState === State.INTRODUCING) { 

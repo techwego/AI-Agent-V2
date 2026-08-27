@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { getLogs } from '../../api/client';
-import { RefreshCw, Search } from 'lucide-react';
+import { getLogs, getChatLogs } from '../../api/client';
+import { RefreshCw, Search, Terminal, MessageSquare } from 'lucide-react';
 
 const Logs = () => {
+  const [activeTab, setActiveTab] = useState('system'); // 'system' or 'chat'
   const [logs, setLogs] = useState([]);
+  const [chatLogs, setChatLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const res = await getLogs();
-      setLogs(res.data || []);
+      if (activeTab === 'system') {
+        const res = await getLogs();
+        setLogs(res.data || []);
+      } else {
+        const res = await getChatLogs();
+        setChatLogs(res.data || []);
+      }
     } catch (err) {
       console.error('Failed to fetch logs:', err);
     } finally {
@@ -21,7 +28,7 @@ const Logs = () => {
 
   useEffect(() => {
     fetchLogs();
-  }, []);
+  }, [activeTab]);
 
   const getActionColor = (action) => {
     if (!action) return 'text-gray-400';
@@ -34,11 +41,19 @@ const Logs = () => {
     return 'text-gray-400';
   };
 
-  const filteredLogs = logs.filter(log => {
+  const filteredSystemLogs = logs.filter(log => {
     const searchLower = search.toLowerCase();
     return (
       (log.action && log.action.toLowerCase().includes(searchLower)) ||
       (log.details && log.details.toLowerCase().includes(searchLower))
+    );
+  });
+
+  const filteredChatLogs = chatLogs.filter(log => {
+    const searchLower = search.toLowerCase();
+    return (
+      (log.query && log.query.toLowerCase().includes(searchLower)) ||
+      (log.response && log.response.toLowerCase().includes(searchLower))
     );
   });
 
@@ -76,8 +91,23 @@ const Logs = () => {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 pb-2 border-b border-gray-800">
+        <button
+          onClick={() => setActiveTab('system')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'system' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-gray-400 hover:text-white'}`}
+        >
+          <Terminal size={16} /> Admin Activity
+        </button>
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'chat' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-gray-400 hover:text-white'}`}
+        >
+          <MessageSquare size={16} /> AI Chat Audit
+        </button>
+      </div>
+
       <div className="flex justify-between items-center text-sm text-gray-400">
-        <span>Showing {filteredLogs.length} entries</span>
+        <span>Showing {activeTab === 'system' ? filteredSystemLogs.length : filteredChatLogs.length} entries</span>
       </div>
 
       <div className="glass-card rounded-2xl border border-gray-800 p-4 flex-1 overflow-auto bg-gray-950 font-mono text-sm">
@@ -87,22 +117,44 @@ const Logs = () => {
               <div key={i} className="h-5 bg-gray-900 rounded animate-pulse w-3/4"></div>
             ))}
           </div>
-        ) : filteredLogs.length === 0 ? (
-          <div className="text-gray-500 text-center py-10">No logs found matching your criteria.</div>
+        ) : activeTab === 'system' ? (
+          filteredSystemLogs.length === 0 ? (
+            <div className="text-gray-500 text-center py-10">No system logs found.</div>
+          ) : (
+            <div className="space-y-1">
+              {filteredSystemLogs.map((log) => (
+                <div key={log.id} className="flex gap-2 hover:bg-gray-900/50 p-1 rounded transition-colors break-words">
+                  <span className="text-gray-500 shrink-0">{formatDate(log.created_at)}</span>
+                  <span className={`font-semibold shrink-0 ${getActionColor(log.action)}`}>
+                    {log.action}
+                  </span>
+                  <span className="text-gray-300 break-all sm:break-normal">
+                    {log.details}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )
         ) : (
-          <div className="space-y-1">
-            {filteredLogs.map((log) => (
-              <div key={log.id} className="flex gap-2 hover:bg-gray-900/50 p-1 rounded transition-colors break-words">
-                <span className="text-gray-500 shrink-0">{formatDate(log.created_at)}</span>
-                <span className={`font-semibold shrink-0 ${getActionColor(log.action)}`}>
-                  {log.action}
-                </span>
-                <span className="text-gray-300 break-all sm:break-normal">
-                  {log.details}
-                </span>
-              </div>
-            ))}
-          </div>
+          filteredChatLogs.length === 0 ? (
+            <div className="text-gray-500 text-center py-10">No AI chat logs found.</div>
+          ) : (
+            <div className="space-y-4">
+              {filteredChatLogs.map((log) => (
+                <div key={log.id} className="border border-gray-800 rounded-lg p-3 bg-gray-900/40">
+                  <div className="text-gray-500 text-xs mb-2">{formatDate(log.created_at)}</div>
+                  <div className="flex gap-2 mb-2">
+                    <span className="text-blue-400 font-semibold shrink-0">User:</span>
+                    <span className="text-gray-200">{log.query}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-purple-400 font-semibold shrink-0">AI:</span>
+                    <span className="text-gray-400 whitespace-pre-wrap">{log.response}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         )}
       </div>
     </div>

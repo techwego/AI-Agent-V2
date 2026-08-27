@@ -75,6 +75,7 @@ export const deleteAllData = () => api.delete('/admin/uploads/delete-all');
 
 export const getAnalytics = () => api.get('/admin/analytics');
 export const getLogs = () => api.get('/admin/logs');
+export const getChatLogs = () => api.get('/admin/chat-logs');
 export const getSystemStatus = () => api.get('/admin/system-status');
 export const blockUser = (id) => api.put(`/admin/users/${id}/block`);
 export const unblockUser = (id) => api.put(`/admin/users/${id}/unblock`);

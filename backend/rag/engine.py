@@ -504,48 +504,62 @@ class LibraryRAG:
         self._build_or_load_sqlite_index()
 
     def _metadata_lookup(self, query: str, field: str = None) -> list[dict]:
-        if not hasattr(self, 'sqlite_conn') or not self.sqlite_conn:
-            return []
+        try:
+            from backend.database.db import SessionLocal
+            from backend.database.models import Book
+            db = SessionLocal()
+            query_norm = query.lower().strip()
+            words = query_norm.split()
             
-        cursor = self.sqlite_conn.cursor()
-        query_norm = query.lower().strip()
-        words = query_norm.split()
-        
-        if not words:
-            return []
-        
-        if field == "author":
-            conditions = " AND ".join(["normalized_author LIKE ?"] * len(words))
-            params = tuple(f'%{w}%' for w in words)
-            cursor.execute(f"SELECT title, author, subject, call_number, location, copies FROM book_index WHERE {conditions}", params)
-        elif field == "location":
-            cursor.execute("SELECT title, author, subject, call_number, location, copies FROM book_index WHERE location LIKE ?", (f'%{query_norm}%',))
-        elif field == "call_number":
-            cursor.execute("SELECT title, author, subject, call_number, location, copies FROM book_index WHERE call_number LIKE ?", (f'%{query_norm}%',))
-        elif field == "title":
-            conditions = " AND ".join(["normalized_title LIKE ?"] * len(words))
-            params = tuple(f'%{w}%' for w in words)
-            cursor.execute(f"SELECT title, author, subject, call_number, location, copies FROM book_index WHERE {conditions}", params)
-        else:
-            return []
+            if not words:
+                db.close()
+                return []
+                
+            q = db.query(Book)
             
-        rows = cursor.fetchall()
-        results = []
-        for row in rows:
-            text = f"Title: {row[0]}\nAuthor: {row[1]}\nSubject: {row[2]}\nCall Number: {row[3]}\nRack: {row[4]}\nAvailable Copies: {row[5]}"
-            results.append({
-                "text": text,
-                "metadata": {
-                    "title": row[0],
-                    "author": row[1],
-                    "subject": row[2],
-                    "call_number": row[3],
-                    "location": row[4],
-                    "copies": row[5]
-                },
-                "score": 1.0
-            })
-        return results
+            if field == "author":
+                for w in words:
+                    q = q.filter(Book.author.ilike(f"%{w}%"))
+            elif field == "location":
+                q = q.filter(Book.rack.ilike(f"%{query_norm}%"))
+            elif field == "call_number":
+                q = q.filter(Book.isbn.ilike(f"%{query_norm}%"))
+            elif field == "title":
+                for w in words:
+                    q = q.filter(Book.title.ilike(f"%{w}%"))
+            else:
+                db.close()
+                return []
+                
+            rows = q.all()
+            
+            results = []
+            for b in rows:
+                title, author, subject, call_num, loc, copies = b.title, b.author, b.department, b.isbn, b.rack, b.copies
+                text_content = f"Title: {title}\nAuthor: {author}\n"
+                if subject: text_content += f"Subject: {subject}\n"
+                if call_num: text_content += f"Call Number: {call_num}\n"
+                if loc: text_content += f"Rack: {loc}\n"
+                if copies: text_content += f"Available Copies: {copies}\n"
+                
+                results.append({
+                    "text": text_content,
+                    "metadata": {
+                        "title": title,
+                        "author": author,
+                        "location": loc,
+                        "rack": loc,
+                        "copies": copies,
+                        "source": "live_db_metadata"
+                    },
+                    "score": 0.95
+                })
+                
+            db.close()
+            return results
+        except Exception as e:
+            print(f"SQL lookup failed: {e}")
+            return []
 
     def _validate_record(self, query: str, record: dict) -> bool:
         title = record.get("metadata", {}).get("title", "")
@@ -594,72 +608,68 @@ class LibraryRAG:
         results = []
         seen_keys = set()
 
-        if hasattr(self, 'sqlite_conn') and self.sqlite_conn:
-            cursor = self.sqlite_conn.cursor()
-
-            # A. Check Exact Title
-            cursor.execute("SELECT title, author, subject, call_number, location, copies FROM book_index WHERE normalized_title = ?", (lower_q,))
-            exact_title_rows = cursor.fetchall()
-
-            # B. Check Substring / Multi-word Title
-            if words:
-                conditions = " AND ".join(["normalized_title LIKE ?"] * len(words))
-                params = tuple(f'%{w}%' for w in words)
-                cursor.execute(f"SELECT title, author, subject, call_number, location, copies FROM book_index WHERE {conditions}", params)
-                multi_title_rows = cursor.fetchall()
-            else:
-                multi_title_rows = []
-
-            # C. Check Author
-            if words:
-                conditions = " AND ".join(["normalized_author LIKE ?"] * len(words))
-                params = tuple(f'%{w}%' for w in words)
-                cursor.execute(f"SELECT title, author, subject, call_number, location, copies FROM book_index WHERE {conditions}", params)
-                author_rows = cursor.fetchall()
-            else:
-                author_rows = []
-
-            # D. Check Location / Rack
-            cursor.execute("SELECT title, author, subject, call_number, location, copies FROM book_index WHERE location LIKE ?", (f'%{raw_q}%',))
-            rack_rows = cursor.fetchall()
-
+        try:
+            from backend.database.db import SessionLocal
+            from backend.database.models import Book
+            db = SessionLocal()
+            
             all_sql = []
-            for row in exact_title_rows:
-                all_sql.append((row, 1.0, "Exact Match"))
-            for row in multi_title_rows:
-                if row not in [r[0] for r in all_sql]:
-                    all_sql.append((row, 0.95, "Title Match"))
-            for row in author_rows:
-                if row not in [r[0] for r in all_sql]:
-                    all_sql.append((row, 0.90, "Author Match"))
-            for row in rack_rows:
-                if row not in [r[0] for r in all_sql]:
-                    all_sql.append((row, 0.88, "Rack Match"))
+            
+            # Exact Title
+            exact_matches = db.query(Book).filter(Book.title.ilike(f"{raw_q}")).all()
+            for b in exact_matches:
+                all_sql.append((b, 1.0, "Exact Match"))
+                
+            # Multi-word Title
+            if words:
+                multi_query = db.query(Book)
+                for w in words:
+                    multi_query = multi_query.filter(Book.title.ilike(f"%{w}%"))
+                for b in multi_query.all():
+                    if b.id not in [x[0].id for x in all_sql]:
+                        all_sql.append((b, 0.95, "Title Match"))
+                        
+            # Author
+            if words:
+                author_query = db.query(Book)
+                for w in words:
+                    author_query = author_query.filter(Book.author.ilike(f"%{w}%"))
+                for b in author_query.all():
+                    if b.id not in [x[0].id for x in all_sql]:
+                        all_sql.append((b, 0.90, "Author Match"))
+                        
+            # Rack
+            rack_matches = db.query(Book).filter(Book.rack.ilike(f"%{raw_q}%")).all()
+            for b in rack_matches:
+                if b.id not in [x[0].id for x in all_sql]:
+                    all_sql.append((b, 0.88, "Rack Match"))
 
-            for row, score, match_type in all_sql:
-                title, author, subject, call_num, loc, copies = row
-                key = f"{str(title).lower()}_{str(author).lower()}"
-                if key in seen_keys:
-                    continue
-                seen_keys.add(key)
-
-                text = f"Title: {title}\nAuthor: {author}\nSubject: {subject}\nCall Number: {call_num}\nRack: {loc}\nAvailable Copies: {copies}"
-                results.append({
-                    "id": key,
-                    "score": score,
-                    "match_type": match_type,
-                    "text": text,
-                    "metadata": {
-                        "title": title,
-                        "author": author,
-                        "subject": subject,
-                        "call_number": call_num,
-                        "location": loc,
-                        "rack": loc,
-                        "copies": copies,
-                        "source": "Library Catalog"
-                    }
-                })
+            for b, score, match_type in all_sql:
+                title, author, subject, call_num, loc, copies = b.title, b.author, b.department, b.isbn, b.rack, b.copies
+                # Format into chunks for RAG
+                text_content = f"Title: {title}\nAuthor: {author}\n"
+                if subject: text_content += f"Subject: {subject}\n"
+                if call_num: text_content += f"Call Number: {call_num}\n"
+                if loc: text_content += f"Rack: {loc}\n"
+                if copies: text_content += f"Available Copies: {copies}\n"
+                
+                key = f"{title}_{author}"
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    results.append({
+                        "text": text_content,
+                        "metadata": {
+                            "title": title,
+                            "author": author,
+                            "location": loc,
+                            "copies": copies,
+                            "source": "live_db"
+                        },
+                        "score": score
+                    })
+            db.close()
+        except Exception as e:
+            print(f"SQL search failed: {e}")
 
         # If direct SQL metadata search found relevant results, return them! (No noise)
         if results:

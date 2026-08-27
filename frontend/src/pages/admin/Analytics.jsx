@@ -86,25 +86,51 @@ const Analytics = () => {
         ))}
       </div>
       
-      <div className="glass-card rounded-2xl border border-gray-800 p-6 h-96 relative">
-        <h3 className="text-lg font-medium text-white mb-6">Voice Queries Over Time</h3>
-        <div className="absolute inset-0 flex items-center justify-center z-10 bg-gray-900/60 rounded-2xl backdrop-blur-sm">
-          <div className="bg-gray-800 px-6 py-3 rounded-lg border border-gray-700 shadow-xl">
-            <p className="text-gray-200 font-medium flex items-center">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mr-3 animate-pulse"></span>
-              Time-series data collection in progress
-            </p>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 glass-card rounded-2xl border border-gray-800 p-6 h-96">
+          <h3 className="text-lg font-medium text-white mb-6">Voice Queries Over Time (Last 7 Days)</h3>
+          {loading ? (
+             <div className="h-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>
+          ) : (
+             <ResponsiveContainer width="100%" height="100%">
+               <LineChart data={analytics?.trend_data || []}>
+                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                 <XAxis dataKey="date" stroke="#9ca3af" />
+                 <YAxis stroke="#9ca3af" />
+                 <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#fff' }} />
+                 <Line type="monotone" dataKey="queries" stroke="#3b82f6" strokeWidth={3} activeDot={{ r: 8 }} />
+               </LineChart>
+             </ResponsiveContainer>
+          )}
         </div>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="name" stroke="#9ca3af" />
-            <YAxis stroke="#9ca3af" />
-            <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#fff' }} />
-            <Line type="monotone" dataKey="queries" stroke="#3b82f6" strokeWidth={2} isAnimationActive={false} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+        
+        <div className="glass-card rounded-2xl border border-gray-800 p-6 h-96 overflow-y-auto">
+          <h3 className="text-lg font-medium text-white mb-4">Top Missing Books (Unfound)</h3>
+          <p className="text-sm text-gray-400 mb-4">Books students searched for but the AI could not find in the catalog.</p>
+          
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-12 bg-gray-800/50 animate-pulse rounded-lg"></div>
+              ))}
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {analytics?.top_missing_books?.length > 0 ? (
+                analytics.top_missing_books.map((book, index) => (
+                  <li key={index} className="flex items-center justify-between p-3 bg-gray-800/40 rounded-lg border border-gray-700/50 hover:bg-gray-800/80 transition-colors">
+                    <span className="font-medium text-gray-200 truncate pr-4">{book.title}</span>
+                    <span className="bg-red-500/20 text-red-400 py-1 px-2.5 rounded-full text-xs font-bold whitespace-nowrap">
+                      {book.searches} requests
+                    </span>
+                  </li>
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-8">No missing books logged yet!</div>
+              )}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );
