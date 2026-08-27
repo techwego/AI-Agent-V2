@@ -40,6 +40,8 @@ def init_db():
                     conn.execute(text("ALTER TABLE library_config ADD COLUMN opening_hours VARCHAR DEFAULT 'Mon-Fri: 8AM-8PM, Sat-Sun: 10AM-4PM'"))
                 if col_names and "library_policies" not in col_names:
                     conn.execute(text("ALTER TABLE library_config ADD COLUMN library_policies VARCHAR DEFAULT 'Students can borrow up to 3 books for 14 days.'"))
+                if col_names and "voice_preset" not in col_names:
+                    conn.execute(text("ALTER TABLE library_config ADD COLUMN voice_preset VARCHAR DEFAULT 'en-US-AriaNeural'"))
                     
                 conn.commit()
         except Exception as e:

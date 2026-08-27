@@ -10,7 +10,8 @@ const Settings = () => {
   const [settings, setSettings] = useState({
     library_name: '',
     opening_hours: '',
-    library_policies: ''
+    library_policies: '',
+    voice_preset: 'en-US-AriaNeural'
   });
 
   const fetchSettings = async () => {
@@ -21,7 +22,8 @@ const Settings = () => {
         setSettings({
           library_name: res.data.library_name || 'University Library',
           opening_hours: res.data.opening_hours || 'Mon-Fri: 8AM-8PM, Sat-Sun: 10AM-4PM',
-          library_policies: res.data.library_policies || 'Students can borrow up to 3 books for 14 days.'
+          library_policies: res.data.library_policies || 'Students can borrow up to 3 books for 14 days.',
+          voice_preset: res.data.voice_preset || 'en-US-AriaNeural'
         });
       }
     } catch (err) {
@@ -53,7 +55,8 @@ const Settings = () => {
         ...currentConfig,
         library_name: settings.library_name,
         opening_hours: settings.opening_hours,
-        library_policies: settings.library_policies
+        library_policies: settings.library_policies,
+        voice_preset: settings.voice_preset
       };
       
       await updateArchitecture(payload);
@@ -147,6 +150,28 @@ const Settings = () => {
               className="w-full bg-gray-900 border border-gray-700 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded-lg px-4 py-3 text-white transition-all outline-none resize-y" 
             />
             <p className="text-xs text-gray-500 mt-2">Inject these rules directly into the AI's core instructions. It will strictly enforce and reference these policies when answering questions.</p>
+          </div>
+        </div>
+        
+        <div className="pt-8 border-t border-gray-800/50">
+          <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+            <ShieldAlert className="text-emerald-400" size={20} /> AI Voice Customization
+          </h3>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Select Voice Persona</label>
+            <select 
+              name="voice_preset"
+              value={settings.voice_preset || "en-US-AriaNeural"} 
+              onChange={handleChange}
+              className="w-full bg-gray-900 border border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg px-4 py-3 text-white transition-all outline-none" 
+            >
+              <option value="en-US-AriaNeural">Aria (US Female) - Friendly, professional</option>
+              <option value="en-US-GuyNeural">Guy (US Male) - Clear, authoritative</option>
+              <option value="en-GB-SoniaNeural">Sonia (UK Female) - Calm, British accent</option>
+              <option value="en-IN-NeerjaNeural">Neerja (India Female) - Warm, Indian accent</option>
+              <option value="en-AU-NatashaNeural">Natasha (Australia Female) - Upbeat, Australian accent</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-2">Choose how the AI should sound when speaking to users.</p>
           </div>
         </div>
       </div>

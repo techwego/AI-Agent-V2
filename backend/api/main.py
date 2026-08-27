@@ -265,25 +265,34 @@ class TTSRequest(BaseModel):
 
 @app.post("/api/tts")
 async def generate_tts(request: TTSRequest, background_tasks: BackgroundTasks):
-    if not request.text:
-        raise HTTPException(status_code=400, detail="No text provided")
-        
-    temp_filename = f"temp_tts_{uuid.uuid4().hex}.mp3"
-    temp_path = os.path.join(tempfile.gettempdir(), temp_filename)
-    
     try:
+        # Fetch the selected voice from the database
+        voice = "en-US-AriaNeural"
+        try:
+            db_gen = get_db()
+            db = next(db_gen)
+            from backend.database.models import LibraryConfig
+            config = db.query(LibraryConfig).first()
+            if config and config.voice_preset:
+                voice = config.voice_preset
+        except Exception as e:
+            print(f"Failed to fetch voice preset: {e}")
+            
+        temp_filename = f"temp_tts_{uuid.uuid4().hex}.mp3"
+        temp_filepath = os.path.join(tempfile.gettempdir(), temp_filename)
+        
         # Add retry loop for intermittent edge-tts connection issues
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                communicate = edge_tts.Communicate(request.text, "en-US-AriaNeural")
-                await communicate.save(temp_path)
-                break
+                communicate = edge_tts.Communicate(request.text, voice)
+                await communicate.save(temp_filepath)
+                break # Success
             except Exception as e:
                 if attempt == max_retries - 1:
                     print(f"[TTS ERROR] Failed after {max_retries} attempts: {e}")
-                    raise e
-                import asyncio
+                    raise HTTPException(status_code=500, detail="TTS service unavailable")
+                print(f"[TTS WARNING] Attempt {attempt+1} failed, retrying...")
                 await asyncio.sleep(1)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

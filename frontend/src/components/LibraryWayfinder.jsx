@@ -732,14 +732,27 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     const totalLen = curve.getLength();
     
-    // Lightweight, highly visible route tube
+    // Create animated dash texture
+    const dashCanvas = document.createElement('canvas');
+    dashCanvas.width = 128;
+    dashCanvas.height = 32;
+    const dashCtx = dashCanvas.getContext('2d');
+    dashCtx.fillStyle = '#ffffff';
+    dashCtx.fillRect(0,0,64,32); // half white, half transparent
+    const dashTex = new THREE.CanvasTexture(dashCanvas);
+    dashTex.wrapS = THREE.RepeatWrapping;
+    dashTex.wrapT = THREE.RepeatWrapping;
+    dashTex.repeat.set(totalLen * 2, 1);
+    
+    // Lightweight, highly visible route tube with animated dashes
     const tubeGeo = new THREE.TubeGeometry(curve, Math.min(96, Math.max(32, result.path.length * 8)), 0.16, 6, false);
-    const tubeMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.92, depthTest: false });
+    const tubeMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, map: dashTex, transparent: true, opacity: 0.92, depthTest: false });
     const routeTube = new THREE.Mesh(tubeGeo, tubeMat);
     routeTube.geometry.setDrawRange(0, Infinity);
     routeTube.renderOrder = 999;
     scene.add(routeTube);
     routeObjsRef.current.tube = routeTube;
+    routeObjsRef.current.dashTex = dashTex;
 
     // Outer glow tube for visibility
     const glowGeo = new THREE.TubeGeometry(curve, Math.min(96, Math.max(32, result.path.length * 8)), 0.32, 6, false);
@@ -857,6 +870,10 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       pillarMat.opacity = 0.25 + Math.sin(bT * 3) * 0.15;
       
       // Route tube is now drawn entirely at once to guarantee visibility
+      if (routeObjsRef.current.dashTex) {
+        routeObjsRef.current.dashTex.offset.x -= 0.025; // Animate dashes moving forward
+      }
+
       const cometT = Math.min(1, bT / duration);
       if (cometT >= 1) {
           cometGroup.visible = false;

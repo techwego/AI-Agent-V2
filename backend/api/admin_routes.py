@@ -122,6 +122,7 @@ class LibraryConfigUpdate(BaseModel):
     library_name: Optional[str] = None
     opening_hours: Optional[str] = None
     library_policies: Optional[str] = None
+    voice_preset: Optional[str] = None
 
 @router.get("/architecture")
 def get_architecture(db: Session = Depends(get_db)):
@@ -154,6 +155,8 @@ def update_architecture(config_update: LibraryConfigUpdate, db: Session = Depend
         config.opening_hours = config_update.opening_hours
     if config_update.library_policies is not None:
         config.library_policies = config_update.library_policies
+    if config_update.voice_preset is not None:
+        config.voice_preset = config_update.voice_preset
     
     # Log the action
     admin_log = AdminLog(admin_id=current_user.id, action="Update Architecture", details=f"Floors: {config.floors}, Rows: {config.rows_per_floor}, Cols: {config.cols_per_row}")

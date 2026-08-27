@@ -122,5 +122,6 @@ class LibraryConfig(Base):
     library_name = Column(String, default="University Library")
     opening_hours = Column(String, default="Mon-Fri: 8AM-8PM, Sat-Sun: 10AM-4PM")
     library_policies = Column(String, default="Students can borrow up to 3 books for 14 days.")
+    voice_preset = Column(String, default="en-US-AriaNeural")
     
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
