@@ -67,7 +67,7 @@ const LoginPage = () => {
 
       {/* Main Login Card */}
       <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md sm:max-w-lg">
           
           {/* Card */}
           <div className="bg-white/90 backdrop-blur-xl rounded-3xl border border-slate-200/60 shadow-2xl shadow-slate-300/30 p-8 sm:p-10 transition-all">

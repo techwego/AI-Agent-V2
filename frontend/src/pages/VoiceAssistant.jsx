@@ -470,7 +470,7 @@ const VoiceAssistant = () => {
       {/* 1. TOP NAVBAR: College Logo, Library Name, Mode Switcher, User & Actions */}
       {/* ========================================================================= */}
       <header className="bg-white/75 backdrop-blur-2xl border-b border-slate-200/60 px-4 sm:px-8 py-2.5 z-20 shrink-0 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto flex flex-wrap md:flex-nowrap items-center justify-between gap-3">
           
           {/* College & Library Branding */}
           <div className="flex items-center gap-3 min-w-0">
@@ -479,7 +479,7 @@ const VoiceAssistant = () => {
             </div>
             <div className="truncate">
               <div className="flex items-center gap-2">
-                <h1 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight truncate">
+                <h1 className="text-xs sm:text-base font-extrabold text-slate-900 tracking-tight truncate max-w-[150px] sm:max-w-none">
                   Anna University Central Library
                 </h1>
                 <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-sm animate-pulse-soft">

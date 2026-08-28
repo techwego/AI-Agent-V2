@@ -101,10 +101,10 @@ export default function Users() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">Username</th>
-                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">Email Address</th>
-                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider hidden md:table-cell">Email Address</th>
+                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider hidden sm:table-cell">Role</th>
                 <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">Account Status</th>
-                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">Last Login</th>
+                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider hidden lg:table-cell">Last Login</th>
                 <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
@@ -129,8 +129,8 @@ export default function Users() {
                       </div>
                       <span>{u.username}</span>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{u.email || '—'}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-slate-600 hidden md:table-cell">{u.email || '—'}</td>
+                    <td className="px-6 py-4 hidden sm:table-cell">
                       <span className={`inline-flex px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md border ${
                         u.role === 'admin' 
                           ? 'bg-purple-50 text-purple-700 border-purple-200'

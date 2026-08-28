@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { 
@@ -14,12 +14,15 @@ import {
   Layers,
   GraduationCap,
   Sparkles,
-  ArrowUpRight
+  ArrowUpRight,
+  Menu,
+  X
 } from 'lucide-react';
 
 const AdminLayout = () => {
   const { logoutUser, user } = useAuth();
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logoutUser();
@@ -39,10 +42,30 @@ const AdminLayout = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
+    <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans relative">
+      {/* Mobile Menu Button & Header */}
+      <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 z-30 absolute top-0 left-0 right-0 h-16">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white">
+            <GraduationCap size={16} />
+          </div>
+          <div>
+            <h1 className="text-sm font-bold text-slate-900 leading-tight">Admin Portal</h1>
+          </div>
+        </div>
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 bg-slate-100 rounded-lg text-slate-700">
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+      
+      {/* Mobile overlay */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+      )}
+
       
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col z-20 shrink-0 select-none">
+      <aside className={`w-64 bg-white border-r border-slate-200 flex flex-col z-50 shrink-0 select-none transition-transform duration-300 absolute md:relative h-full ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         
         {/* Sidebar Brand Header */}
         <div className="h-16 px-5 border-b border-slate-100 flex items-center justify-between">
@@ -67,6 +90,7 @@ const AdminLayout = () => {
             <NavLink
               key={item.name}
               to={item.path}
+              onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                   isActive 
@@ -98,7 +122,9 @@ const AdminLayout = () => {
               title="Open User Assistant"
               className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
             >
-              <ArrowUpRight size={14} />
+              <ArrowUpRight,
+  Menu,
+  X size={14} />
             </button>
           </div>
 
@@ -113,7 +139,7 @@ const AdminLayout = () => {
       </aside>
 
       {/* Main Admin View Area */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 pt-16 md:pt-0">
         <div className="flex-1 overflow-y-auto p-6 sm:p-8">
           <Outlet />
         </div>

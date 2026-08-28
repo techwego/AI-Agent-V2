@@ -167,9 +167,9 @@ const Books = () => {
             <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">Book & Author</th>
-                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">Department</th>
+                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider hidden md:table-cell">Department</th>
                 <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">3D Wayfinder Rack</th>
-                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">Availability</th>
+                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider hidden sm:table-cell">Availability</th>
                 <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
@@ -178,9 +178,9 @@ const Books = () => {
                 [...Array(8)].map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
                     <td className="px-6 py-4"><div className="h-3.5 bg-slate-200 rounded w-48 mb-1.5" /><div className="h-2.5 bg-slate-100 rounded w-24" /></td>
-                    <td className="px-6 py-4"><div className="h-3.5 bg-slate-200 rounded w-24" /></td>
+                    <td className="px-6 py-4 hidden md:table-cell"><div className="h-3.5 bg-slate-200 rounded w-24" /></td>
                     <td className="px-6 py-4"><div className="h-3.5 bg-slate-200 rounded w-16" /></td>
-                    <td className="px-6 py-4"><div className="h-3.5 bg-slate-200 rounded w-12" /></td>
+                    <td className="px-6 py-4 hidden sm:table-cell"><div className="h-3.5 bg-slate-200 rounded w-12" /></td>
                     <td className="px-6 py-4"><div className="h-6 bg-slate-100 rounded w-14 ml-auto" /></td>
                   </tr>
                 ))
