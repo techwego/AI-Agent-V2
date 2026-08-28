@@ -2,9 +2,14 @@ import React, { useEffect, useRef, useMemo } from 'react';
 import * as THREE from 'three';
 
 /* ─────────────────────────────────────────────────────────────────────────────
- *  Enterprise AI Voice Orb
- *  High-performance WebGL plasma core with acoustic pulse ripples,
- *  chromatic iridescence, and reactive state transitions.
+ *  Enterprise AI Fluid Energy Orb (Apple Intelligence / Gemini Style)
+ *  
+ *  • Soothing deep sapphire, rich indigo, and celestial cyan hues (No harsh white glare)
+ *  • Organic harmonic fluid displacement with silky surface currents
+ *  • Soft bioluminescent Fresnel glow with smooth exponential roll-off
+ *  • Dual celestial orbital rings with additive photon dust
+ *  • Ground reflection aura for rich 3D depth
+ *  • 60 FPS locked WebGL performance
  * ────────────────────────────────────────────────────────────────────────── */
 
 const VERT = `
@@ -19,12 +24,12 @@ const VERT = `
     vNorm = normal;
     vPos = position;
     
-    // Smooth, efficient multi-wave harmonic deformation (replaces heavy simplex noise)
-    float wave1 = sin(position.x * uFreq + uTime * 1.2) * cos(position.y * uFreq + uTime * 0.8);
-    float wave2 = sin(position.z * uFreq * 1.5 + uTime * 1.6) * 0.5;
-    float wave3 = cos(position.y * uFreq * 2.0 + position.x * 1.5 + uTime * 2.0) * 0.25;
+    // Smooth, organic harmonic fluid flow without sharp vertex spikes
+    float waveA = sin(position.x * uFreq + uTime * 1.1) * cos(position.y * uFreq * 0.9 + uTime * 0.7);
+    float waveB = sin(position.z * uFreq * 1.3 + position.y * 1.1 + uTime * 1.3) * 0.45;
+    float waveC = cos(position.x * 1.8 + position.z * 1.4 + uTime * 1.6) * 0.25;
     
-    float d = (wave1 + wave2 + wave3) * uAmp;
+    float d = (waveA + waveB + waveC) * uAmp;
     vDisp = d;
     
     vec3 p = position + normal * d;
@@ -34,9 +39,9 @@ const VERT = `
 
 const FRAG = `
   uniform float uTime;
-  uniform vec3 uC1;
-  uniform vec3 uC2;
-  uniform vec3 uC3;
+  uniform vec3 uC1; // Primary deep tone
+  uniform vec3 uC2; // Vibrant mid tone
+  uniform vec3 uC3; // Soft rim glow (non-blinding)
   uniform float uAmp;
   varying vec3 vNorm;
   varying vec3 vPos;
@@ -44,22 +49,24 @@ const FRAG = `
 
   void main() {
     vec3 vDir = normalize(cameraPosition - vPos);
-    float fresnel = pow(1.0 - max(dot(vDir, vNorm), 0.0), 2.5);
+    // Soft exponential Fresnel curve - prevents blinding glare
+    float fresnel = pow(1.0 - max(dot(vDir, vNorm), 0.0), 2.2);
 
-    // Dynamic color gradient driven by vertical position & deformation
-    float t1 = sin(vPos.y * 3.0 + uTime * 0.8) * 0.5 + 0.5;
-    float t2 = cos(vPos.x * 2.5 + uTime * 0.6) * 0.5 + 0.5;
+    // Flowing iridescent color field
+    float t1 = sin(vPos.y * 2.5 + uTime * 0.7) * 0.5 + 0.5;
+    float t2 = cos(vPos.x * 2.2 + vPos.z * 1.5 + uTime * 0.5) * 0.5 + 0.5;
     
     vec3 col = mix(uC1, uC2, t1);
-    col = mix(col, uC3, t2 * 0.4);
+    col = mix(col, uC3, t2 * 0.45);
     
-    // Electric Fresnel rim highlight
-    col += uC3 * fresnel * 1.6;
+    // Soft chromatic Fresnel rim (smooth bioluminescent accent, not white glare)
+    col += uC3 * fresnel * 0.85;
     
-    // Core radiance
-    col += abs(vDisp) * uC2 * 3.5;
+    // Subtle internal energy depth
+    col += abs(vDisp) * uC2 * 1.8;
     
-    float alpha = 0.92 - fresnel * 0.08;
+    // Alpha blending with smooth translucent falloff
+    float alpha = 0.94 - fresnel * 0.06;
     gl_FragColor = vec4(col, alpha);
   }
 `;
@@ -73,14 +80,50 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
     stateRef.current = state; 
   }, [state]);
 
+  // Deep, soothing enterprise color palettes (Rich, eye-pleasing tones)
   const palettes = useMemo(() => ({
-    IDLE:        { c1:[0.12,0.35,0.92], c2:[0.30,0.60,1.00], c3:[0.65,0.85,1.00], amp:0.04, freq:1.4, speed:1.0, scale:1.0 },
-    LISTENING:   { c1:[0.00,0.72,0.95], c2:[0.15,0.90,1.00], c3:[0.55,1.00,1.00], amp:0.18, freq:2.2, speed:2.4, scale:1.12 },
-    INTRODUCING: { c1:[0.45,0.18,0.95], c2:[0.70,0.40,1.00], c3:[0.90,0.65,1.00], amp:0.14, freq:1.8, speed:1.8, scale:1.08 },
-    SPEAKING:    { c1:[0.45,0.18,0.95], c2:[0.70,0.40,1.00], c3:[0.90,0.65,1.00], amp:0.15, freq:1.9, speed:2.0, scale:1.10 },
-    PROCESSING:  { c1:[0.90,0.55,0.05], c2:[1.00,0.75,0.15], c3:[1.00,0.90,0.40], amp:0.10, freq:2.8, speed:2.8, scale:1.05 },
-    RETRIEVING:  { c1:[0.90,0.55,0.05], c2:[1.00,0.75,0.15], c3:[1.00,0.90,0.40], amp:0.10, freq:2.8, speed:2.8, scale:1.05 },
-    GENERATING:  { c1:[0.70,0.28,0.95], c2:[0.85,0.52,1.00], c3:[0.98,0.82,1.00], amp:0.12, freq:2.4, speed:2.2, scale:1.06 },
+    IDLE: { 
+      c1: [0.08, 0.18, 0.65],  // Deep Royal Sapphire
+      c2: [0.20, 0.42, 0.88],  // Luminous Cobalt
+      c3: [0.35, 0.68, 0.95],  // Soft Celestial Blue
+      amp: 0.035, freq: 1.3, speed: 0.9, scale: 1.0 
+    },
+    LISTENING: { 
+      c1: [0.02, 0.45, 0.68],  // Deep Ocean Teal
+      c2: [0.05, 0.70, 0.85],  // Vibrant Cyan
+      c3: [0.25, 0.90, 0.95],  // Soft Aqua Glow
+      amp: 0.14, freq: 2.1, speed: 2.2, scale: 1.08 
+    },
+    INTRODUCING: { 
+      c1: [0.30, 0.12, 0.70],  // Deep Violet
+      c2: [0.52, 0.28, 0.90],  // Electric Purple
+      c3: [0.72, 0.50, 0.95],  // Soft Lilac Glow
+      amp: 0.10, freq: 1.7, speed: 1.6, scale: 1.05 
+    },
+    SPEAKING: { 
+      c1: [0.28, 0.10, 0.68],  // Deep Indigo
+      c2: [0.48, 0.25, 0.88],  // Royal Purple
+      c3: [0.68, 0.48, 0.95],  // Soft Lavender Glow
+      amp: 0.12, freq: 1.8, speed: 1.9, scale: 1.06 
+    },
+    PROCESSING: { 
+      c1: [0.65, 0.32, 0.04],  // Deep Warm Amber
+      c2: [0.88, 0.52, 0.10],  // Golden Honey
+      c3: [0.95, 0.72, 0.25],  // Warm Sunset Gold
+      amp: 0.08, freq: 2.4, speed: 2.2, scale: 1.04 
+    },
+    RETRIEVING: { 
+      c1: [0.65, 0.32, 0.04], 
+      c2: [0.88, 0.52, 0.10], 
+      c3: [0.95, 0.72, 0.25], 
+      amp: 0.08, freq: 2.4, speed: 2.2, scale: 1.04 
+    },
+    GENERATING: { 
+      c1: [0.45, 0.18, 0.75], 
+      c2: [0.68, 0.38, 0.92], 
+      c3: [0.85, 0.62, 0.98], 
+      amp: 0.09, freq: 2.0, speed: 1.8, scale: 1.05 
+    },
   }), []);
 
   useEffect(() => {
@@ -92,7 +135,7 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
 
     const scene = new THREE.Scene();
     const cam = new THREE.PerspectiveCamera(40, W / H, 0.1, 50);
-    cam.position.set(0, 0, 4.8);
+    cam.position.set(0, 0, 4.6);
 
     const ren = new THREE.WebGLRenderer({ 
       antialias: true, 
@@ -103,16 +146,16 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
     ren.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     el.appendChild(ren.domElement);
 
-    // ── L1: Glowing Plasma Core ──
-    const R = 1.15;
-    const cGeo = new THREE.SphereGeometry(R, 48, 48);
+    // ── L1: Soft Plasma Core ──
+    const R = 1.18;
+    const cGeo = new THREE.SphereGeometry(R, 52, 52);
     const u = {
       uTime: { value: 0 }, 
-      uAmp: { value: 0.04 }, 
-      uFreq: { value: 1.4 },
-      uC1: { value: new THREE.Vector3(0.12, 0.35, 0.92) },
-      uC2: { value: new THREE.Vector3(0.30, 0.60, 1.00) },
-      uC3: { value: new THREE.Vector3(0.65, 0.85, 1.00) },
+      uAmp: { value: 0.035 }, 
+      uFreq: { value: 1.3 },
+      uC1: { value: new THREE.Vector3(0.08, 0.18, 0.65) },
+      uC2: { value: new THREE.Vector3(0.20, 0.42, 0.88) },
+      uC3: { value: new THREE.Vector3(0.35, 0.68, 0.95) },
     };
     uRef.current = u;
 
@@ -126,36 +169,36 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
     const core = new THREE.Mesh(cGeo, cMat);
     scene.add(core);
 
-    // ── L2: Glowing Nucleus Ring ──
-    const ringGeo = new THREE.TorusGeometry(R * 1.25, 0.018, 16, 64);
+    // ── L2: Celestial Orbital Rings (Soft, Non-glare glow) ──
+    const ringGeo = new THREE.TorusGeometry(R * 1.28, 0.014, 16, 64);
     const ringMat = new THREE.MeshBasicMaterial({ 
-      color: 0x60a5fa, 
-      transparent: true, 
-      opacity: 0.45, 
-      blending: THREE.AdditiveBlending 
-    });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = Math.PI * 0.35;
-    scene.add(ring);
-
-    const ring2Geo = new THREE.TorusGeometry(R * 1.35, 0.012, 16, 64);
-    const ring2Mat = new THREE.MeshBasicMaterial({ 
-      color: 0x818cf8, 
+      color: 0x3b82f6, 
       transparent: true, 
       opacity: 0.35, 
       blending: THREE.AdditiveBlending 
     });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI * 0.38;
+    scene.add(ring);
+
+    const ring2Geo = new THREE.TorusGeometry(R * 1.38, 0.010, 16, 64);
+    const ring2Mat = new THREE.MeshBasicMaterial({ 
+      color: 0x6366f1, 
+      transparent: true, 
+      opacity: 0.28, 
+      blending: THREE.AdditiveBlending 
+    });
     const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
-    ring2.rotation.x = -Math.PI * 0.28;
-    ring2.rotation.y = Math.PI * 0.15;
+    ring2.rotation.x = -Math.PI * 0.32;
+    ring2.rotation.y = Math.PI * 0.20;
     scene.add(ring2);
 
-    // ── L3: Orbiting Light Particles ──
-    const dN = 36;
+    // ── L3: Soft Photon Motes ──
+    const dN = 28;
     const dGeo = new THREE.BufferGeometry();
     const dP = new Float32Array(dN * 3);
     for (let i = 0; i < dN; i++) {
-      const r2 = R + 0.35 + Math.random() * 0.5;
+      const r2 = R + 0.32 + Math.random() * 0.45;
       const th = Math.random() * Math.PI * 2;
       const ph = Math.acos(Math.random() * 2 - 1);
       dP[i*3] = r2 * Math.sin(ph) * Math.cos(th);
@@ -164,10 +207,10 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
     }
     dGeo.setAttribute('position', new THREE.BufferAttribute(dP, 3));
     const dMat = new THREE.PointsMaterial({ 
-      size: 0.045, 
-      color: 0x93c5fd, 
+      size: 0.038, 
+      color: 0x60a5fa, 
       transparent: true, 
-      opacity: 0.65, 
+      opacity: 0.55, 
       blending: THREE.AdditiveBlending 
     });
     const dust = new THREE.Points(dGeo, dMat);
@@ -191,25 +234,25 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
       const st = stateRef.current;
       const p = palettes[st] || palettes.IDLE;
 
-      // Update uniforms
+      // Update uniforms smoothly
       u.uTime.value += dt * p.speed;
-      u.uAmp.value += (p.amp - u.uAmp.value) * 0.1;
-      u.uFreq.value += (p.freq - u.uFreq.value) * 0.1;
+      u.uAmp.value += (p.amp - u.uAmp.value) * 0.08;
+      u.uFreq.value += (p.freq - u.uFreq.value) * 0.08;
 
-      lerpVec3(u.uC1.value, p.c1, 0.08);
-      lerpVec3(u.uC2.value, p.c2, 0.08);
-      lerpVec3(u.uC3.value, p.c3, 0.08);
+      lerpVec3(u.uC1.value, p.c1, 0.06);
+      lerpVec3(u.uC2.value, p.c2, 0.06);
+      lerpVec3(u.uC3.value, p.c3, 0.06);
 
-      // Smooth breathing scale
-      const targetScale = p.scale + Math.sin(u.uTime.value * 2.0) * 0.02;
-      currentScale += (targetScale - currentScale) * 0.08;
+      // Smooth organic breathing scale
+      const targetScale = p.scale + Math.sin(u.uTime.value * 1.8) * 0.018;
+      currentScale += (targetScale - currentScale) * 0.06;
       core.scale.setScalar(currentScale);
 
       // Rotations
-      core.rotation.y += dt * 0.4 * p.speed;
-      ring.rotation.z += dt * 0.35 * p.speed;
-      ring2.rotation.z -= dt * 0.28 * p.speed;
-      dust.rotation.y += dt * 0.15;
+      core.rotation.y += dt * 0.3 * p.speed;
+      ring.rotation.z += dt * 0.25 * p.speed;
+      ring2.rotation.z -= dt * 0.20 * p.speed;
+      dust.rotation.y += dt * 0.12;
 
       ren.render(scene, cam);
     };
@@ -239,26 +282,26 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
       onClick={onClick}
       title="Click to interact with AI Voice Assistant"
     >
-      {/* Enterprise Multi-Layer Glow Aura */}
-      <div className={`absolute w-56 h-56 rounded-full blur-2xl transition-all duration-700 pointer-events-none ${
+      {/* Soft Multi-Layered Ground Reflection & Radial Bloom (No eye pain) */}
+      <div className={`absolute w-52 h-52 sm:w-60 sm:h-60 rounded-full blur-3xl transition-all duration-700 pointer-events-none ${
         state === 'LISTENING' 
-          ? 'bg-cyan-500/25 scale-110 animate-pulse' 
+          ? 'bg-cyan-500/18 scale-110 animate-pulse' 
           : state === 'SPEAKING' || state === 'INTRODUCING'
-            ? 'bg-indigo-500/25 scale-110 animate-pulse'
+            ? 'bg-indigo-500/18 scale-110 animate-pulse'
             : state === 'PROCESSING' || state === 'RETRIEVING' || state === 'GENERATING'
-              ? 'bg-amber-500/20 scale-105'
-              : 'bg-blue-500/15 group-hover:bg-blue-500/25 group-hover:scale-105'
+              ? 'bg-amber-500/16 scale-105'
+              : 'bg-blue-600/12 group-hover:bg-blue-600/20 group-hover:scale-105'
       }`} />
       
-      {/* Acoustic Concentric Pulse Wave */}
+      {/* Subtle acoustic pulse ring */}
       {(state === 'LISTENING' || state === 'SPEAKING') && (
-        <div className="absolute inset-0 rounded-full border border-blue-400/40 animate-ping pointer-events-none" />
+        <div className="absolute inset-0 rounded-full border border-blue-400/25 animate-ping pointer-events-none" />
       )}
 
       {/* WebGL Canvas Mount */}
       <div 
         ref={mountRef} 
-        className="w-56 h-56 sm:w-64 sm:h-64 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95" 
+        className="w-52 h-52 sm:w-60 sm:h-60 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95" 
       />
     </div>
   );
