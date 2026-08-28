@@ -68,7 +68,6 @@ const VoiceAssistant = () => {
     chatMessagesRef.current = chatMessages;
   }, [chatMessages]);
 
-  const analyserRef = useRef(null);
   const wayfindRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -162,9 +161,6 @@ const VoiceAssistant = () => {
     ttsManager.cancel();
     if (!stateManager.setState(State.LISTENING)) return;
     sttManager.startListening();
-    setTimeout(() => {
-      if (sttManager.analyser) analyserRef.current = sttManager.analyser;
-    }, 200);
   }, []);
 
   const handleOrbClick = useCallback(() => {
@@ -337,7 +333,7 @@ const VoiceAssistant = () => {
 
     } catch (error) {
       console.error('Voice Chat error:', error);
-      const errMsg = `Connection Failed: Ensure server is running and Groq API key is set. (${error.message})`;
+      const errMsg = `Connection Error: Please check that the server is running. (${error.message || error})`;
       setVoiceMessages(prev => {
         const newMsg = [...prev];
         if (newMsg.length > 0 && newMsg[newMsg.length - 1].content === '') {
@@ -444,7 +440,7 @@ const VoiceAssistant = () => {
 
       } catch (error) {
         console.error('Text Chat error:', error);
-        const errMsg = `Connection Failed: (${error.message})`;
+        const errMsg = `Connection Error: Please check that the server is running. (${error.message || error})`;
         setChatMessages(prev => {
           const newMsg = [...prev];
           if (newMsg.length > 0 && newMsg[newMsg.length - 1].content === '') {
@@ -453,7 +449,7 @@ const VoiceAssistant = () => {
           }
           return [...prev, { role: 'assistant', content: errMsg, timestamp: Date.now() }];
         });
-        showToast('Chat error. Check connection.', 'error');
+        showToast('Chat error. Check server connection.', 'error');
       }
     }, 0);
   };
@@ -565,7 +561,7 @@ const VoiceAssistant = () => {
       </header>
 
       {/* ========================================================================= */}
-      {/* 2. MAIN CENTER AREA: Optimized for Tall Portrait Displays (1080x1920) */}
+      {/* 2. MAIN CENTER AREA: Dedicated Voice or Chat Assistant */}
       {/* ========================================================================= */}
       <main className="flex-1 flex overflow-hidden relative max-w-6xl w-full mx-auto p-2 sm:p-4 z-10">
         
@@ -618,7 +614,7 @@ const VoiceAssistant = () => {
               </div>
             )}
 
-            {/* Quick Interactive Voice Suggestions (fills portrait screen proportionally) */}
+            {/* Quick Interactive Voice Suggestions */}
             <div className="w-full space-y-1.5 shrink-0">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center">
                 Suggested Voice Questions
@@ -764,30 +760,145 @@ const VoiceAssistant = () => {
       </main>
 
       {/* ========================================================================= */}
-      {/* 3. FULLSCREEN 3D WAYFINDER MODAL */}
+      {/* 3. FULLSCREEN 3D WAYFINDER MODAL WITH FLOATING AI CHAT & INSTRUCTIONS */}
       {/* ========================================================================= */}
-      {isMapFullscreen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-md flex flex-col animate-[fadeIn_0.2s_ease-out]">
-          <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 text-white">
-            <div className="flex items-center gap-2">
-              <Compass className="text-blue-400" size={18} />
-              <span className="font-bold text-sm">3D Indoor Campus Wayfinder</span>
+      <div 
+        className={`transition-opacity duration-200 ${
+          isMapFullscreen 
+            ? 'fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex flex-col opacity-100 pointer-events-auto' 
+            : 'opacity-0 pointer-events-none absolute -left-[9999px] -top-[9999px] w-1 h-1'
+        }`}
+      >
+        <div className="flex-1 flex flex-col m-0 sm:m-3 bg-white rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-200">
+          
+          {/* Wayfinder Header — Enterprise Toolbar */}
+          <div className="px-4 py-3 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 flex items-center justify-between z-30 shrink-0 shadow-sm flex-wrap gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs shadow-md shadow-blue-600/20">
+                <Compass className="animate-spin-slow" size={14} />
+                <span>3D Indoor Wayfinder</span>
+              </div>
+
+              {routeTo && (
+                <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-900 shadow-sm">
+                  <Navigation size={12} className="text-amber-600" />
+                  <span>From: {routeFrom || 'Entrance'}</span>
+                  <ArrowRight size={11} className="text-amber-500" />
+                  <span className="font-extrabold text-amber-900">Rack {routeTo}</span>
+                </div>
+              )}
+
+              {/* Floor Switcher */}
+              <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 gap-0.5">
+                <button
+                  onClick={() => setActiveFloor('both')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    activeFloor === 'both' 
+                      ? 'bg-blue-600 text-white shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Floors
+                </button>
+                {Array.from({ length: totalFloors }).map((_, i) => (
+                  <button
+                    key={i+1}
+                    onClick={() => setActiveFloor(String(i+1))}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      activeFloor === String(i+1) 
+                        ? 'bg-blue-600 text-white shadow-sm' 
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Floor {i+1}
+                  </button>
+                ))}
+              </div>
             </div>
-            <button 
-              onClick={handleCloseFullscreenMap}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-            >
-              <X size={18} />
-            </button>
+
+            {/* Header Right Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleOrbClick}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white transition-all shadow-md active:scale-[0.97] ${
+                  conversationState === State.LISTENING 
+                    ? 'bg-red-500 animate-pulse' 
+                    : conversationState === State.SPEAKING 
+                      ? 'bg-purple-600' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                <Mic size={13} />
+                <span className="hidden sm:inline">
+                  {conversationState === State.LISTENING 
+                    ? 'Listening...' 
+                    : conversationState === State.SPEAKING 
+                      ? 'Speaking' 
+                      : 'Voice Guide'}
+                </span>
+              </button>
+
+              <button
+                onClick={handleCloseFullscreenMap}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+              >
+                <X size={14} /> <span>Close</span>
+              </button>
+            </div>
           </div>
-          <div className="flex-1 relative overflow-hidden">
+
+          {/* 3D Map Area */}
+          <div className="flex-1 relative overflow-hidden bg-slate-100">
             <LibraryWayfinder 
-              targetRack={routeTo} 
+              ref={wayfindRef}
+              routeFrom={routeFrom}
+              routeTo={routeTo} 
+              activeFloor={activeFloor}
+              onRackClick={handleRackClick}
               onRouteComplete={handleRouteComplete}
+              onConfigLoaded={(c) => setTotalFloors(c.floors || 2)}
             />
+
+            {/* Turn-by-Turn Guidance Overlay */}
+            {routeSteps.length > 0 && (
+              <div className="absolute bottom-16 sm:bottom-6 left-3 sm:left-6 max-w-sm bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl p-3.5 shadow-xl z-20 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-600 uppercase tracking-wider">
+                  <Navigation size={13} /> Route Instructions
+                </div>
+                <div className="space-y-1 max-h-32 overflow-y-auto pr-1 text-slate-700">
+                  {routeSteps.map((step, idx) => (
+                    <div key={idx} className="flex items-start gap-1.5 text-xs font-medium">
+                      <CornerDownRight size={12} className="text-amber-500 shrink-0 mt-0.5" />
+                      <span>{step}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Ask AI Chat Bar inside the Map */}
+            <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-3">
+              <form onSubmit={(e) => handleTextSend(e, fsInput)} className="flex gap-2 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 shadow-xl">
+                <input
+                  type="text"
+                  value={fsInput}
+                  onChange={(e) => setFsInput(e.target.value)}
+                  placeholder="Ask Sam for directions to any book or rack..."
+                  className="flex-1 bg-transparent px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none font-medium"
+                />
+                <button
+                  type="submit"
+                  disabled={!fsInput.trim()}
+                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-30 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center gap-1 active:scale-[0.97]"
+                >
+                  <Send size={12} /> Send
+                </button>
+              </form>
+            </div>
           </div>
+
         </div>
-      )}
+      </div>
 
       {/* ========================================================================= */}
       {/* 4. BOTTOM FOOTER */}
