@@ -331,7 +331,14 @@ const VoiceAssistant = () => {
     } catch (error) {
       console.error('Voice Chat error:', error);
       const errMsg = `Connection Failed: Ensure server is running and Groq API key is set. (${error.message})`;
-      setVoiceMessages(prev => [...prev, { role: 'assistant', content: errMsg, timestamp: Date.now() }]);
+            setVoiceMessages(prev => {
+        const newMsg = [...prev];
+        if (newMsg.length > 0 && newMsg[newMsg.length - 1].content === '') {
+          newMsg[newMsg.length - 1] = { role: 'assistant', content: errMsg, timestamp: Date.now() };
+          return newMsg;
+        }
+        return [...prev, { role: 'assistant', content: errMsg, timestamp: Date.now() }];
+      });
       showToast('Server connection error.', 'error');
       stateManager.reset();
     }
@@ -422,7 +429,14 @@ const VoiceAssistant = () => {
       } catch (error) {
         console.error('Text Chat error:', error);
         const errMsg = `Connection Failed: (${error.message})`;
-        setChatMessages(prev => [...prev, { role: 'assistant', content: errMsg, timestamp: Date.now() }]);
+                setChatMessages(prev => {
+          const newMsg = [...prev];
+          if (newMsg.length > 0 && newMsg[newMsg.length - 1].content === '') {
+            newMsg[newMsg.length - 1] = { role: 'assistant', content: errMsg, timestamp: Date.now() };
+            return newMsg;
+          }
+          return [...prev, { role: 'assistant', content: errMsg, timestamp: Date.now() }];
+        });
         showToast('Chat error. Check connection.', 'error');
       }
     }, 0);
@@ -557,30 +571,7 @@ const VoiceAssistant = () => {
                 <StatusIndicator state={conversationState} />
               </div>
 
-              {/* Dynamic Sound Wave Acoustic Equalizer */}
-              {conversationState === State.LISTENING && (
-                <div className="flex items-center gap-1.5 h-6 px-4 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 backdrop-blur-md animate-slide-up">
-                  <span className="w-1 h-3 bg-cyan-500 rounded-full animate-bounce" />
-                  <span className="w-1 h-4.5 bg-cyan-600 rounded-full animate-bounce [animation-delay:0.1s]" />
-                  <span className="w-1 h-3 bg-cyan-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                  <span className="w-1 h-5 bg-cyan-500 rounded-full animate-bounce [animation-delay:0.15s]" />
-                  <span className="w-1 h-2 bg-cyan-600 rounded-full animate-bounce [animation-delay:0.3s]" />
-                  <span className="text-[10px] font-extrabold text-cyan-700 ml-1 uppercase tracking-wider">Active</span>
-                </div>
-              )}
-              {conversationState === State.SPEAKING && (
-                <div className="flex items-center gap-1.5 h-6 px-4 py-1 rounded-full bg-violet-500/10 border border-violet-400/30 backdrop-blur-md animate-slide-up">
-                  <span className="w-1 h-3 bg-violet-500 rounded-full animate-bounce" />
-                  <span className="w-1 h-4.5 bg-purple-600 rounded-full animate-bounce [animation-delay:0.15s]" />
-                  <span className="w-1 h-3 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.25s]" />
-                  <span className="w-1 h-5 bg-violet-600 rounded-full animate-bounce [animation-delay:0.1s]" />
-                  <span className="w-1 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:0.35s]" />
-                  <span className="text-[10px] font-extrabold text-violet-700 ml-1 uppercase tracking-wider">Voice Output</span>
-                </div>
-              )}
-            </div>
-
-            {/* Live Voice Transcript Box (ONLY VOICE DATA) */}
+              {/* Live Voice Transcript Box (ONLY VOICE DATA) */}
             {lastVoiceMessage && (
               <div className="w-full glass-card rounded-3xl p-4 sm:p-5 space-y-2 shrink-0 animate-slide-up interactive-card">
                 <div className="flex items-center justify-between text-[11px] text-slate-400">
