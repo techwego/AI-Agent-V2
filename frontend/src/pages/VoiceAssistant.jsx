@@ -574,21 +574,25 @@ const VoiceAssistant = () => {
               </div>
             )}
 
-            {/* Action Chips (Properly positioned & never hidden/clipped) */}
-            <div className="flex items-center justify-center flex-wrap gap-2.5 pt-1 pb-2 shrink-0 w-full">
+            {/* Action Chips (Refined Enterprise Styling) */}
+            <div className="flex items-center justify-center flex-wrap gap-3 pt-2 pb-2 shrink-0 w-full">
               <button
                 onClick={() => { setActiveTab('map'); setIsMapFullscreen(true); }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-sm transition-all active:scale-95"
+                className="group flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-blue-50/70 border border-slate-200/90 hover:border-blue-300 text-xs font-bold text-slate-700 hover:text-blue-700 shadow-sm hover:shadow-md hover:shadow-blue-500/10 transition-all duration-200 active:scale-[0.97]"
               >
-                <Compass size={14} className="text-blue-600" />
+                <div className="w-6 h-6 rounded-lg bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center text-blue-600 transition-colors">
+                  <Compass size={14} className="group-hover:rotate-45 transition-transform duration-300" />
+                </div>
                 <span>3D Campus Wayfinder</span>
               </button>
               
               <button
                 onClick={() => switchMode('chat')}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-sm transition-all active:scale-95"
+                className="group flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-indigo-50/70 border border-slate-200/90 hover:border-indigo-300 text-xs font-bold text-slate-700 hover:text-indigo-700 shadow-sm hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 active:scale-[0.97]"
               >
-                <MessageSquare size={14} className="text-indigo-600" />
+                <div className="w-6 h-6 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 flex items-center justify-center text-indigo-600 transition-colors">
+                  <MessageSquare size={14} />
+                </div>
                 <span>Switch to Text Chat</span>
               </button>
             </div>
