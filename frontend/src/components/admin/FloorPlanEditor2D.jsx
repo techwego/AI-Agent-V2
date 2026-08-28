@@ -1235,6 +1235,22 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
           </div>
         )}
 
+        {/* Persistent Floating Bottom Save Action Bar */}
+        <div className="absolute bottom-6 right-6 z-30 flex items-center gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2.5 rounded-2xl text-xs font-bold text-slate-700 bg-white/95 hover:bg-slate-100 border border-slate-200 shadow-xl backdrop-blur-md transition-all active:scale-95 flex items-center gap-1.5"
+          >
+            <X size={15} /> <span>Discard</span>
+          </button>
+          <button
+            onClick={handleSaveAndReturn}
+            className="px-6 py-3 rounded-2xl text-xs font-extrabold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 shadow-2xl shadow-emerald-600/30 ring-4 ring-emerald-500/20 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <Save size={16} /> <span>💾 Save Blueprint & Apply to 3D Map</span>
+          </button>
+        </div>
+
       </div>
     </div>
   );
