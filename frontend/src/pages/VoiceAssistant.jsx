@@ -94,9 +94,7 @@ const VoiceAssistant = () => {
   }, []);
 
   useEffect(() => {
-    if (interactionMode === 'chat') {
-      chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, activeTab, interactionMode]);
 
   useEffect(() => {
@@ -563,51 +561,48 @@ const VoiceAssistant = () => {
               </p>
             </div>
 
-            {/* 3D Voice Orb + Status */}
-            <div className="flex flex-col items-center shrink-0">
+            {/* 3D Voice Orb + Status (Perfectly Centered) */}
+            <div className="flex-1 flex flex-col items-center justify-center w-full min-h-[260px]">
               <VoiceOrb state={conversationState} onClick={handleOrbClick} />
-              <div className="mt-2">
+              <div className="mt-4">
                 <StatusIndicator state={conversationState} />
               </div>
             </div>
 
-            {/* Voice Transcript Card */}
-            {lastVoiceMessage && (
-              <div className="w-full rounded-2xl p-3.5 space-y-1.5 shrink-0 border border-slate-200/80 bg-white/95 backdrop-blur-md shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    {lastVoiceMessage.role === 'user' ? 'You said' : 'Sam responded'}
-                  </span>
-                  {lastVoiceMessage.role === 'assistant' && (
-                    <button 
-                      onClick={() => handleSpeakAgain(lastVoiceMessage.content)}
-                      className="flex items-center gap-1 text-blue-600 font-bold px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 transition-colors text-[10px]"
-                    >
-                      <Volume2 size={11} /> Replay
-                    </button>
-                  )}
-                </div>
-                <p className="text-xs text-slate-800 leading-relaxed font-medium max-h-20 overflow-y-auto">
-                  {lastVoiceMessage.content}
-                </p>
+            {/* Scrolling Speech Transcript */}
+            <div className="w-full rounded-2xl p-4 shrink-0 border border-slate-200/80 bg-white/95 backdrop-blur-md shadow-sm flex flex-col max-h-[180px]">
+              <div className="flex items-center justify-between mb-2 shrink-0">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  Live Transcript
+                </span>
               </div>
-            )}
+              <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar text-sm font-medium text-slate-800">
+                {chatMessages.filter(m => m.role !== 'system').map((msg, idx) => (
+                  <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`px-3 py-2 rounded-xl max-w-[90%] ${msg.role === 'user' ? 'bg-blue-50 text-blue-900 border border-blue-100' : 'bg-slate-50 text-slate-700 border border-slate-100'}`}>
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+                <div ref={chatMessagesEndRef} />
+              </div>
+            </div>
 
             {/* Action Chips */}
-            <div className="flex items-center justify-center flex-wrap gap-2 shrink-0">
+            <div className="flex items-center justify-center flex-wrap gap-3 shrink-0 pb-2">
               <button
                 onClick={() => { setActiveTab('map'); setIsMapFullscreen(true); }}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/90 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-[11px] font-bold text-slate-600 hover:text-blue-700 shadow-sm transition-all active:scale-[0.97]"
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/90 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-[11px] font-bold text-slate-600 hover:text-blue-700 shadow-sm transition-all active:scale-[0.97]"
               >
-                <Compass size={13} className="text-blue-500" />
+                <Compass size={14} className="text-blue-500" />
                 3D Wayfinder
               </button>
               <button
                 onClick={() => switchMode('chat')}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/90 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-[11px] font-bold text-slate-600 hover:text-indigo-700 shadow-sm transition-all active:scale-[0.97]"
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/90 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-[11px] font-bold text-slate-600 hover:text-indigo-700 shadow-sm transition-all active:scale-[0.97]"
               >
-                <MessageSquare size={13} className="text-indigo-500" />
+                <MessageSquare size={14} className="text-indigo-500" />
                 Text Chat
               </button>
             </div>

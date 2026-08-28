@@ -182,13 +182,15 @@ const LoginPage = () => {
         </div>
 
         {/* Feature Highlights on portrait viewports */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full mt-4 sm:mt-5">
-          {featurePills.map((f, i) => (
-            <div key={i} className="flex flex-col items-center text-center p-2.5 bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 shadow-sm">
-              <f.icon size={16} className="text-blue-600 mb-1" />
-              <span className="text-[10px] font-bold text-slate-800 leading-tight">{f.label}</span>
-            </div>
-          ))}
+        <div className="w-full mt-4 sm:mt-5 px-1">
+          <div className="grid grid-cols-3 gap-3 w-full">
+            {featurePills.map((f, i) => (
+              <div key={i} className="flex flex-col items-center justify-center text-center px-2 py-4 bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-sm w-full min-h-[90px]">
+                <f.icon size={20} className="text-blue-600 mb-2" />
+                <span className="text-[11px] font-bold text-slate-800 leading-snug w-full px-1">{f.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
       </main>
