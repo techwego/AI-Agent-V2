@@ -12,7 +12,7 @@ import StatusIndicator from '../components/StatusIndicator';
 import ChatBubble from '../components/ChatBubble';
 import BookSearch from '../components/BookSearch';
 import { useToast } from '../components/Toast';
-import { sendChat } from '../api/client';
+import { sendChat, getArchitecture } from '../api/client';
 
 import stateManager, { State } from '../voice/ConversationStateManager';
 import ttsManager from '../voice/SpeechSynthesisManager';
@@ -80,6 +80,16 @@ const VoiceAssistant = () => {
     const unsubscribe = stateManager.subscribe((newState) => {
       setConversationState(newState);
     });
+    
+    // Sync latest voice preset configured by Admin
+    getArchitecture().then(res => {
+      if (res?.data?.voice_preset) {
+        ttsManager.setVoice(res.data.voice_preset);
+      }
+    }).catch(err => {
+      console.warn('Could not sync architecture voice preset:', err);
+    });
+
     return unsubscribe;
   }, []);
 
