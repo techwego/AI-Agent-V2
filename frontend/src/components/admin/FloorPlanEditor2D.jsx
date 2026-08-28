@@ -8,13 +8,14 @@ const SNAP_STEP = 1.0; // Snap to 1 meter increments
 const RACK_WIDTH_M = 3.3;
 const RACK_DEPTH_M = 1.1;
 
-export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
+export default function FloorPlanEditor2D({ initialConfig, config: propConfig, onSave, onClose }) {
   // Deep clone initial config
   const [config, setConfig] = useState(() => {
-    const cfg = JSON.parse(JSON.stringify(initialConfig || {}));
+    const src = initialConfig || propConfig || {};
+    const cfg = JSON.parse(JSON.stringify(src));
     if (!cfg.floors || cfg.floors < 1) cfg.floors = 2;
-    if (!cfg.rows_per_floor || cfg.rows_per_floor < 1) cfg.rows_per_floor = 1;
-    if (!cfg.cols_per_row || cfg.cols_per_row < 1) cfg.cols_per_row = 1;
+    if (!cfg.rows_per_floor || cfg.rows_per_floor < 1) cfg.rows_per_floor = 2;
+    if (!cfg.cols_per_row || cfg.cols_per_row < 1) cfg.cols_per_row = 6;
     if (!cfg.custom_racks) cfg.custom_racks = {};
     if (!cfg.pois) cfg.pois = [];
 
@@ -537,15 +538,18 @@ export default function FloorPlanEditor2D({ initialConfig, onSave, onClose }) {
   // Save changes and return
   const handleSaveAndReturn = () => {
     const custom_racks = { ...(config.custom_racks || {}) };
-    Object.values(config.custom_layout.racks || {}).forEach(r => {
+    Object.values(config.custom_layout?.racks || {}).forEach(r => {
       if (r.name) {
         custom_racks[r.code] = r.name;
       }
     });
 
+    const pois = (config.custom_layout?.pois || []).map(p => ({ ...p }));
+
     const finalConfig = {
       ...config,
-      custom_racks
+      custom_racks,
+      pois
     };
 
     onSave(finalConfig);

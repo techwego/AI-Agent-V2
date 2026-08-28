@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useCallback, useState, useImperativeHandle, forwardRef } from 'react';
 import * as THREE from 'three';
+import { getArchitecture } from '../api/client';
 
 function dijkstra(nodes, startId, endId) {
   const dist = {};
@@ -524,14 +525,18 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       setGraphData(buildDynamicGraph(overrideConfig));
       if (onConfigLoaded) onConfigLoaded(overrideConfig);
     } else {
-      fetch('/api/admin/architecture', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
-        .then(res => res.json())
-        .then(data => {
-           setConfig(data);
-           setGraphData(buildDynamicGraph(data));
-           if (onConfigLoaded) onConfigLoaded(data);
+      getArchitecture()
+        .then(res => {
+          const data = res.data;
+          if (data) {
+            setConfig(data);
+            setGraphData(buildDynamicGraph(data));
+            if (onConfigLoaded) onConfigLoaded(data);
+          }
         })
-        .catch(err => console.error("Failed to fetch layout config", err));
+        .catch(err => {
+          console.error("Failed to fetch layout config via API client", err);
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overrideConfig]);
@@ -961,8 +966,19 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         rackGroupsRef.current[f+1] = floorGroup;
     }
 
-    const slabWidth = Math.max(41, (config.cols_per_row * 5.2) + 12);
-    const slabDepth = Math.max(28.5, (config.rows_per_floor * 9.4) + 10);
+    let slabWidth = 42;
+    let slabDepth = 30;
+    if (graphData.isCustom && config.custom_layout?.racks) {
+      const allX = Object.values(config.custom_layout.racks).map(r => Math.abs(r.x || 0));
+      const allZ = Object.values(config.custom_layout.racks).map(r => Math.abs(r.z || 0));
+      const maxX = allX.length > 0 ? Math.max(...allX) : 18;
+      const maxZ = allZ.length > 0 ? Math.max(...allZ) : 14;
+      slabWidth = Math.max(44, (maxX * 2) + 12);
+      slabDepth = Math.max(32, (maxZ * 2) + 12);
+    } else {
+      slabWidth = Math.max(41, ((config.cols_per_row || 6) * 5.2) + 12);
+      slabDepth = Math.max(28.5, ((config.rows_per_floor || 2) * 9.4) + 10);
+    }
     
     const tileMat = createTileMaterial();
     tileMat.map.repeat.set(slabWidth / 10, slabDepth / 10);
@@ -980,28 +996,28 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         floorLabel.position.set(-(slabWidth/2) + 2, fy + 2.2, -(slabDepth/2) + 0.5);
         rackGroupsRef.current[f+1].add(floorLabel);
         
-        // Ceiling mesh removed to improve WebGL alpha-sorting performance
-        
-        for(let r=0; r<config.rows_per_floor; r++) {
-            const rz = rowZOffsets[r];
-            const aisleZ = rz - 1.7;
-            for(let c=0; c<config.cols_per_row; c+=2) {
-                const cx = COLS_X[c];
-                const fixtureGroup = new THREE.Group();
-                fixtureGroup.position.set(cx, fy + 4.0, aisleZ);
-                const housingGeo = new THREE.BoxGeometry(0.3, 0.08, 2.0);
-                const housingMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-                const housing = new THREE.Mesh(housingGeo, housingMat);
-                fixtureGroup.add(housing);
-                const diffuserGeo = new THREE.PlaneGeometry(0.26, 1.96);
-                const diffuserMat = new THREE.MeshBasicMaterial({ color: 0xfffaed });
-                const diffuser = new THREE.Mesh(diffuserGeo, diffuserMat);
-                diffuser.rotation.x = Math.PI / 2;
-                diffuser.position.y = -0.045;
-                fixtureGroup.add(diffuser);
-                // Removed expensive PointLight for performance, relying on emissive diffuser and ambient light
-                rackGroupsRef.current[f+1].add(fixtureGroup);
-            }
+        // Ceiling lights for standard matrix (custom layouts use overall ambient/hemi illumination)
+        if (!graphData.isCustom && rowZOffsets.length > 0 && COLS_X.length > 0) {
+          for(let r=0; r<config.rows_per_floor; r++) {
+              const rz = rowZOffsets[r];
+              const aisleZ = (rz !== undefined) ? rz - 1.7 : 0;
+              for(let c=0; c<config.cols_per_row; c+=2) {
+                  const cx = COLS_X[c] || 0;
+                  const fixtureGroup = new THREE.Group();
+                  fixtureGroup.position.set(cx, fy + 4.0, aisleZ);
+                  const housingGeo = new THREE.BoxGeometry(0.3, 0.08, 2.0);
+                  const housingMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+                  const housing = new THREE.Mesh(housingGeo, housingMat);
+                  fixtureGroup.add(housing);
+                  const diffuserGeo = new THREE.PlaneGeometry(0.26, 1.96);
+                  const diffuserMat = new THREE.MeshBasicMaterial({ color: 0xfffaed });
+                  const diffuser = new THREE.Mesh(diffuserGeo, diffuserMat);
+                  diffuser.rotation.x = Math.PI / 2;
+                  diffuser.position.y = -0.045;
+                  fixtureGroup.add(diffuser);
+                  rackGroupsRef.current[f+1].add(fixtureGroup);
+              }
+          }
         }
         
         const pGeo = new THREE.CylinderGeometry(0.25, 0.25, 6.4);
