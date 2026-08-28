@@ -271,7 +271,8 @@ const VoiceAssistant = () => {
             const sentenceToSpeak = sentenceMatch[1].trim();
             speechBuffer = sentenceMatch[2] || '';
             if (sentenceToSpeak.length > 1) {
-              ttsManager.speak(sentenceToSpeak);
+              stateManager.setState(State.SPEAKING);
+              ttsManager.enqueue(sentenceToSpeak);
             }
           }
         }
@@ -280,7 +281,8 @@ const VoiceAssistant = () => {
       // Flush remaining speech buffer
       const cleanRemaining = speechBuffer.replace(/<ROUTE_[^>]*>?/gi, '').trim();
       if (cleanRemaining.length > 0) {
-        ttsManager.speak(cleanRemaining);
+        stateManager.setState(State.SPEAKING);
+        ttsManager.enqueue(cleanRemaining);
       }
 
       // Parse indoor navigation route tags

@@ -92,14 +92,12 @@ class SpeechSynthesisManager {
 
     // If any Indian voice requested (en-IN or india)
     if (preset.includes('en-in') || preset.includes('india') || preset.includes('indian')) {
-      // First try any en-IN female / natural voice
       const inFemale = voices.find(v => 
         (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) &&
         (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('woman') || v.name.toLowerCase().includes('neerja') || v.name.toLowerCase().includes('heera') || v.name.toLowerCase().includes('swara') || v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural'))
       );
       if (inFemale) return inFemale;
 
-      // Any en-IN voice
       const anyIn = voices.find(v => v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in'));
       if (anyIn) return anyIn;
     }
@@ -122,7 +120,7 @@ class SpeechSynthesisManager {
       if (libby) return libby;
     }
 
-    // 4. Fallback: High-Quality Female English Voice (NEVER default to male David)
+    // 4. Fallback: High-Quality Female English Voice
     const pleasantFemale = voices.find(v => 
       v.lang.startsWith('en') && 
       (v.name.includes('Natural') || v.name.includes('Neural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Ava') || v.name.includes('Jenny') || v.name.includes('Aria') || v.name.includes('Neerja') || v.name.includes('Heera')) &&
@@ -130,7 +128,6 @@ class SpeechSynthesisManager {
     );
     if (pleasantFemale) return pleasantFemale;
 
-    // Any English voice with female indicator
     const anyFemale = voices.find(v => v.lang.startsWith('en') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira')));
     if (anyFemale) return anyFemale;
 
@@ -139,19 +136,15 @@ class SpeechSynthesisManager {
 
   speakWithWebSpeech(cleanText, onEnd) {
     if (!('speechSynthesis' in window)) {
-      console.warn('Web Speech API is not supported in this browser.');
       this.speaking = false;
       if (onEnd) onEnd();
       return;
     }
 
     try {
-      // Cancel previous utterance cleanly
-      window.speechSynthesis.cancel();
-
       const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.rate = 1.0; // Clear, pleasant tempo
-      utterance.pitch = 1.05; // Slightly elevated warm pitch for friendly assistant tone
+      utterance.rate = 1.0;
+      utterance.pitch = 1.05;
 
       const selectedVoice = this.findBestMatchingVoice();
       if (selectedVoice) {
@@ -159,13 +152,18 @@ class SpeechSynthesisManager {
         utterance.lang = selectedVoice.lang || 'en-IN';
       }
 
-      utterance.onend = () => {
-        if (onEnd) onEnd();
+      let isFinished = false;
+      const finish = () => {
+        if (!isFinished) {
+          isFinished = true;
+          if (onEnd) onEnd();
+        }
       };
 
+      utterance.onend = finish;
       utterance.onerror = (e) => {
-        console.warn('Web Speech error:', e);
-        if (onEnd) onEnd();
+        console.warn('Web Speech note:', e.error);
+        finish();
       };
 
       this.speaking = true;
@@ -251,5 +249,5 @@ class SpeechSynthesisManager {
   }
 }
 
-const instance = new SpeechSynthesisManager();
-export default instance;
+const ttsManager = new SpeechSynthesisManager();
+export default ttsManager;
