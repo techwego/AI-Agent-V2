@@ -29,10 +29,10 @@ const ChatBubble = ({ message, onSpeak, hasRoute, isSpeaking }) => {
 
         {/* Bubble */}
         <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-          <div className={`px-4 py-3 rounded-2xl border relative group transition-all duration-200 ${
+          <div className={`px-4 py-3 rounded-2xl border relative group ${
             isUser 
-              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-500/50 text-white rounded-br-md shadow-lg shadow-blue-600/15' 
-              : 'bg-white border-slate-200/80 text-slate-700 rounded-bl-md shadow-md shadow-slate-200/30 hover:shadow-lg'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-500/50 text-white rounded-br-md shadow-sm' 
+              : 'bg-white border-slate-200/80 text-slate-700 rounded-bl-md shadow-sm'
           }`}>
             {content && content.trim() ? (
               <div className="whitespace-pre-wrap text-[13px] leading-relaxed font-medium">{content.trim()}</div>

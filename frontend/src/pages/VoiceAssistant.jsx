@@ -678,7 +678,7 @@ const VoiceAssistant = () => {
               
               {/* Messages View */}
               <div className={`absolute inset-0 flex flex-col ${activeTab !== 'chat' ? 'hidden' : 'flex'}`}>
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 transform-gpu will-change-scroll">
                   {chatMessages.map((msg, idx) => (
                     <ChatBubble 
                       key={idx} 
