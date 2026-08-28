@@ -485,71 +485,55 @@ const VoiceAssistant = () => {
       {/* ========================================================================= */}
       {/* 1. TOP NAVBAR: Clean & Fluid on Portrait and Landscape Viewports */}
       {/* ========================================================================= */}
-      <header className="bg-white/80 backdrop-blur-2xl border-b border-slate-200/60 px-3 sm:px-6 py-2.5 z-20 shrink-0 shadow-sm">
+      <header className="bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 px-3 sm:px-6 py-2 z-20 shrink-0">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           
-          {/* College & Library Branding */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-blue-600/25 text-white shrink-0 ring-2 ring-white">
-              <GraduationCap size={20} />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-blue-600/20 text-white shrink-0">
+              <GraduationCap size={18} />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-xs sm:text-sm md:text-base font-extrabold text-slate-900 tracking-tight truncate">
-                  Anna University
-                </h1>
-                <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                  Online
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium truncate">
-                Central Library · AI Assistant
+              <h1 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight truncate leading-tight">
+                Anna University
+              </h1>
+              <p className="text-[10px] text-slate-500 font-medium truncate leading-tight">
+                Central Library AI Assistant
               </p>
             </div>
+            <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 ml-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Online
+            </span>
           </div>
 
-          {/* Mode Switcher Pill */}
-          <div className="flex items-center bg-slate-100/90 backdrop-blur-md p-1 rounded-2xl border border-slate-200/70 shrink-0 shadow-sm">
+          <div className="flex items-center bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/70 shrink-0">
             <button 
               onClick={() => switchMode('voice')}
-              className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${
-                interactionMode === 'voice' 
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25' 
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                interactionMode === 'voice' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <Mic size={13} />
-              <span>Voice</span>
+              <Mic size={12} /> <span>Voice</span>
             </button>
             <button 
               onClick={() => switchMode('chat')}
-              className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${
-                interactionMode === 'chat' 
-                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/25' 
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                interactionMode === 'chat' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <MessageSquare size={13} />
-              <span>Chat</span>
+              <MessageSquare size={12} /> <span>Chat</span>
             </button>
           </div>
 
-          {/* User Profile & Logout */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-2xl bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-sm">
-              <div className="w-5 h-5 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white border border-slate-200 text-[11px] font-bold text-slate-700 shadow-sm">
+              <div className="w-5 h-5 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">
                 {user?.username?.slice(0, 1).toUpperCase() || 'U'}
               </div>
-              <span className="hidden md:inline max-w-[80px] truncate">{user?.username || 'Student'}</span>
+              <span className="hidden sm:inline max-w-[80px] truncate">{user?.username || 'Student'}</span>
             </div>
-
-            <button 
-              onClick={handleLogout}
-              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl border border-slate-200/80 transition-colors"
-              title="Logout"
-            >
-              <LogOut size={15} />
+            <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Logout">
+              <LogOut size={14} />
             </button>
           </div>
 
@@ -559,75 +543,72 @@ const VoiceAssistant = () => {
       {/* ========================================================================= */}
       {/* 2. MAIN CENTER AREA: Dedicated Voice or Chat Assistant */}
       {/* ========================================================================= */}
-      <main className="flex-1 flex overflow-hidden relative max-w-6xl w-full mx-auto p-2 sm:p-4 z-10">
+      <main className="flex-1 flex overflow-hidden relative max-w-5xl w-full mx-auto px-3 sm:px-4 py-2 z-10">
         
-        {/* -------------------- VOICE MODE -------------------- */}
+        {/* ── VOICE MODE ── */}
         {interactionMode === 'voice' && (
-          <div className="flex-1 flex flex-col items-center justify-between max-w-xl mx-auto w-full overflow-y-auto px-2 py-2 sm:py-4 space-y-3 sm:space-y-4 custom-scrollbar">
+          <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full gap-4 overflow-y-auto custom-scrollbar">
             
-            {/* Top Prompt / Status Badge */}
-            <div className="flex flex-col items-center text-center space-y-1 shrink-0">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/90 border border-blue-200 text-blue-700 text-xs font-bold shadow-sm backdrop-blur-md">
-                <Sparkles size={13} className="text-blue-600" />
-                <span>Sam · AI Library Assistant</span>
+            {/* Title */}
+            <div className="flex flex-col items-center text-center gap-1 shrink-0">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-blue-200/80 text-blue-700 text-[11px] font-bold shadow-sm backdrop-blur-md">
+                <Sparkles size={11} className="text-blue-500" />
+                Sam - AI Library Assistant
               </div>
-              <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                How can I assist your research today?
+              <h2 className="text-base sm:text-xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                How can I assist you today?
               </h2>
-              <p className="text-xs text-slate-500 font-medium">
-                Tap the orb to speak, ask for books, or request 3D rack directions
+              <p className="text-[11px] text-slate-400 font-medium">
+                Tap the orb to speak or ask for 3D rack directions
               </p>
             </div>
 
-            {/* Center: The AI Voice Orb & Status Indicator */}
-            <div className="flex flex-col items-center justify-center shrink-0 py-2">
+            {/* 3D Voice Orb + Status */}
+            <div className="flex flex-col items-center shrink-0">
               <VoiceOrb state={conversationState} onClick={handleOrbClick} />
-              <div className="mt-3">
+              <div className="mt-2">
                 <StatusIndicator state={conversationState} />
               </div>
             </div>
 
-            {/* Live Voice Transcript Box (ONLY VOICE DATA) */}
+            {/* Voice Transcript Card */}
             {lastVoiceMessage && (
-              <div className="w-full glass-card rounded-2xl p-3.5 sm:p-4 space-y-2 shrink-0 shadow-sm border border-slate-200/80 bg-white/90 backdrop-blur-md">
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span className="font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    {lastVoiceMessage.role === 'user' ? 'You said:' : 'Sam responded:'}
+              <div className="w-full rounded-2xl p-3.5 space-y-1.5 shrink-0 border border-slate-200/80 bg-white/95 backdrop-blur-md shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    {lastVoiceMessage.role === 'user' ? 'You said' : 'Sam responded'}
                   </span>
                   {lastVoiceMessage.role === 'assistant' && (
                     <button 
                       onClick={() => handleSpeakAgain(lastVoiceMessage.content)}
-                      className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-bold px-2 py-0.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors text-[11px]"
+                      className="flex items-center gap-1 text-blue-600 font-bold px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 transition-colors text-[10px]"
                     >
-                      <Volume2 size={12} /> Speak Again
+                      <Volume2 size={11} /> Replay
                     </button>
                   )}
                 </div>
-                <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-semibold max-h-24 overflow-y-auto pr-1">
+                <p className="text-xs text-slate-800 leading-relaxed font-medium max-h-20 overflow-y-auto">
                   {lastVoiceMessage.content}
                 </p>
               </div>
             )}
 
-
-
-            {/* Bottom Action Chips */}
-            <div className="flex items-center justify-center flex-wrap gap-2 pt-1 pb-1 shrink-0 w-full">
+            {/* Action Chips */}
+            <div className="flex items-center justify-center flex-wrap gap-2 shrink-0">
               <button
                 onClick={() => { setActiveTab('map'); setIsMapFullscreen(true); }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-xs font-bold text-slate-700 hover:text-blue-700 shadow-sm transition-all active:scale-[0.98]"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/90 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-[11px] font-bold text-slate-600 hover:text-blue-700 shadow-sm transition-all active:scale-[0.97]"
               >
-                <Compass size={14} className="text-blue-600" />
-                <span>3D Campus Wayfinder</span>
+                <Compass size={13} className="text-blue-500" />
+                3D Wayfinder
               </button>
-              
               <button
                 onClick={() => switchMode('chat')}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-xs font-bold text-slate-700 hover:text-indigo-700 shadow-sm transition-all active:scale-[0.98]"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/90 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-[11px] font-bold text-slate-600 hover:text-indigo-700 shadow-sm transition-all active:scale-[0.97]"
               >
-                <MessageSquare size={14} className="text-indigo-600" />
-                <span>Switch to Text Chat</span>
+                <MessageSquare size={13} className="text-indigo-500" />
+                Text Chat
               </button>
             </div>
 
@@ -882,8 +863,10 @@ const VoiceAssistant = () => {
       {/* ========================================================================= */}
       {/* 4. BOTTOM FOOTER */}
       {/* ========================================================================= */}
-      <footer className="bg-white/80 border-t border-slate-200/80 py-2 px-4 text-center text-[11px] text-slate-400 shrink-0 font-medium">
-        Anna University Central Library AI System · Powered by <strong className="text-slate-600">TechWeGo</strong>
+      <footer className="bg-white/90 backdrop-blur-md border-t border-slate-200/70 py-1.5 px-4 text-center shrink-0 z-20">
+        <p className="text-[10px] text-slate-400 font-medium">
+          Anna University Central Library AI System <span className="mx-1 text-slate-300">|</span> Powered by <strong className="text-slate-600 font-extrabold">TechWeGo</strong>
+        </p>
       </footer>
 
     </div>
