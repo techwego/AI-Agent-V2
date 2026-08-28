@@ -474,13 +474,7 @@ const VoiceAssistant = () => {
 
   const lastVoiceMessage = voiceMessages.length > 0 ? voiceMessages[voiceMessages.length - 1] : null;
 
-  // Quick voice query suggestions for portrait real estate
-  const quickSuggestions = [
-    { title: "Where is Artificial Intelligence rack?", rack: "D4" },
-    { title: "Find Computer Science books", rack: "C4" },
-    { title: "Where is Harry Potter located?", rack: "D6" },
-    { title: "Library hours & rules", rack: null }
-  ];
+
 
   return (
     <div className="flex flex-col h-screen text-slate-900 overflow-hidden font-sans selection:bg-blue-100 selection:text-blue-900 relative">
@@ -616,24 +610,7 @@ const VoiceAssistant = () => {
               </div>
             )}
 
-            {/* Quick Interactive Voice Suggestions */}
-            <div className="w-full space-y-1.5 shrink-0">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center">
-                Suggested Voice Questions
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {quickSuggestions.map((item, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleVoiceInput(item.title)}
-                    className="flex items-center justify-between p-2.5 bg-white/80 hover:bg-blue-50/80 rounded-xl border border-slate-200/80 hover:border-blue-300 text-left transition-all text-xs font-semibold text-slate-700 group shadow-sm"
-                  >
-                    <span className="truncate mr-2">{item.title}</span>
-                    <ArrowRight size={13} className="text-slate-400 group-hover:text-blue-600 shrink-0" />
-                  </button>
-                ))}
-              </div>
-            </div>
+
 
             {/* Bottom Action Chips */}
             <div className="flex items-center justify-center flex-wrap gap-2 pt-1 pb-1 shrink-0 w-full">
