@@ -328,6 +328,16 @@ const VoiceAssistant = () => {
         }
       }
 
+      setVoiceMessages(prev => {
+        const newMsg = [...prev];
+        if (newMsg.length > 0 && newMsg[newMsg.length - 1].content.trim() === '') {
+          newMsg.pop();
+          return newMsg;
+        }
+        return prev;
+      });
+
+
     } catch (error) {
       console.error('Voice Chat error:', error);
       const errMsg = `Connection Failed: Ensure server is running and Groq API key is set. (${error.message})`;
@@ -425,6 +435,16 @@ const VoiceAssistant = () => {
             setIsMapFullscreen(true);
           }
         }
+
+        setChatMessages(prev => {
+          const newMsg = [...prev];
+          if (newMsg.length > 0 && newMsg[newMsg.length - 1].content.trim() === '') {
+            newMsg.pop();
+            return newMsg;
+          }
+          return prev;
+        });
+
 
       } catch (error) {
         console.error('Text Chat error:', error);
@@ -571,7 +591,9 @@ const VoiceAssistant = () => {
                 <StatusIndicator state={conversationState} />
               </div>
 
-              {/* Live Voice Transcript Box (ONLY VOICE DATA) */}
+              </div>
+
+            {/* Live Voice Transcript Box (ONLY VOICE DATA) */}
             {lastVoiceMessage && (
               <div className="w-full glass-card rounded-3xl p-4 sm:p-5 space-y-2 shrink-0 animate-slide-up interactive-card">
                 <div className="flex items-center justify-between text-[11px] text-slate-400">

@@ -122,9 +122,7 @@ const AdminLayout = () => {
               title="Open User Assistant"
               className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
             >
-              <ArrowUpRight,
-  Menu,
-  X size={14} />
+              <ArrowUpRight size={14} />
             </button>
           </div>
 
