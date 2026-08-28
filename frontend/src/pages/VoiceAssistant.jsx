@@ -565,7 +565,7 @@ const VoiceAssistant = () => {
                   <span className="w-1 h-3 bg-cyan-400 rounded-full animate-bounce [animation-delay:0.2s]" />
                   <span className="w-1 h-5 bg-cyan-500 rounded-full animate-bounce [animation-delay:0.15s]" />
                   <span className="w-1 h-2 bg-cyan-600 rounded-full animate-bounce [animation-delay:0.3s]" />
-                  <span className="text-[10px] font-extrabold text-cyan-700 ml-1 uppercase tracking-wider">Listening</span>
+                  <span className="text-[10px] font-extrabold text-cyan-700 ml-1 uppercase tracking-wider">Active</span>
                 </div>
               )}
               {conversationState === State.SPEAKING && (
@@ -815,10 +815,10 @@ const VoiceAssistant = () => {
                 <Mic size={14} />
                 <span className="hidden sm:inline">
                   {conversationState === State.LISTENING 
-                    ? 'Listening...' 
+                    ? 'Stop Listening' 
                     : conversationState === State.SPEAKING 
-                      ? 'Speaking' 
-                      : '🎙️ Voice Guide'}
+                      ? 'Interrupt' 
+                      : 'Voice Guide'}
                 </span>
               </button>
 
