@@ -11,6 +11,7 @@ import VoiceOrb from '../components/VoiceOrb';
 import StatusIndicator from '../components/StatusIndicator';
 import ChatBubble from '../components/ChatBubble';
 import BookSearch from '../components/BookSearch';
+import AnimatedBackground from '../components/AnimatedBackground';
 import { useToast } from '../components/Toast';
 import { sendChat, getArchitecture } from '../api/client';
 
@@ -446,17 +447,20 @@ const VoiceAssistant = () => {
   const lastVoiceMessage = voiceMessages.length > 0 ? voiceMessages[voiceMessages.length - 1] : null;
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans selection:bg-blue-100 selection:text-blue-900">
+    <div className="flex flex-col h-screen text-slate-900 overflow-hidden font-sans selection:bg-blue-100 selection:text-blue-900 relative">
       
+      {/* Dynamic Interactive Animated Background */}
+      <AnimatedBackground />
+
       {/* ========================================================================= */}
       {/* 1. TOP NAVBAR: College Logo, Library Name, Mode Switcher, User & Actions */}
       {/* ========================================================================= */}
-      <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/70 px-4 sm:px-8 py-2.5 z-20 shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <header className="bg-white/75 backdrop-blur-2xl border-b border-slate-200/60 px-4 sm:px-8 py-2.5 z-20 shrink-0 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           
           {/* College & Library Branding */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-600/25 text-white shrink-0 ring-2 ring-white">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-600/25 text-white shrink-0 ring-2 ring-white animate-float">
               <GraduationCap size={20} />
             </div>
             <div className="truncate">
@@ -464,8 +468,8 @@ const VoiceAssistant = () => {
                 <h1 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight truncate">
                   Anna University Central Library
                 </h1>
-                <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-sm animate-pulse-soft">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                   Online
                 </span>
               </div>
@@ -476,10 +480,10 @@ const VoiceAssistant = () => {
           </div>
 
           {/* Mode Switcher Pill — Enterprise Gradient */}
-          <div className="flex items-center bg-slate-100/80 backdrop-blur-sm p-1 rounded-2xl border border-slate-200/70 shrink-0 shadow-sm">
+          <div className="flex items-center bg-slate-100/80 backdrop-blur-md p-1 rounded-2xl border border-slate-200/70 shrink-0 shadow-sm">
             <button 
               onClick={() => switchMode('voice')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              className={`interactive-button flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
                 interactionMode === 'voice' 
                   ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25' 
                   : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
@@ -490,7 +494,7 @@ const VoiceAssistant = () => {
             </button>
             <button 
               onClick={() => switchMode('chat')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              className={`interactive-button flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
                 interactionMode === 'chat' 
                   ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/25' 
                   : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
@@ -512,7 +516,7 @@ const VoiceAssistant = () => {
 
             <button 
               onClick={handleLogout}
-              className="group p-2.5 text-slate-400 hover:text-white hover:bg-gradient-to-r hover:from-red-500 hover:to-rose-600 rounded-xl border border-slate-200/80 hover:border-transparent hover:shadow-lg hover:shadow-red-500/20 transition-all duration-200"
+              className="interactive-button group p-2.5 text-slate-400 hover:text-white hover:bg-gradient-to-r hover:from-red-500 hover:to-rose-600 rounded-xl border border-slate-200/80 hover:border-transparent hover:shadow-lg hover:shadow-red-500/20 transition-all duration-200"
               title="Logout"
             >
               <LogOut size={15} />
@@ -525,52 +529,75 @@ const VoiceAssistant = () => {
       {/* ========================================================================= */}
       {/* 2. MAIN CENTER AREA: Dedicated Voice or Chat Assistant */}
       {/* ========================================================================= */}
-      <main className="flex-1 flex overflow-hidden relative max-w-7xl w-full mx-auto p-3 sm:p-4">
+      <main className="flex-1 flex overflow-hidden relative max-w-7xl w-full mx-auto p-3 sm:p-4 z-10">
         
         {/* -------------------- VOICE MODE -------------------- */}
         {interactionMode === 'voice' && (
-          <div className="flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full overflow-y-auto px-2 py-2 sm:py-4 space-y-4 sm:space-y-5 custom-scrollbar">
+          <div className="flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full overflow-y-auto px-2 py-2 sm:py-4 space-y-4 sm:space-y-5 custom-scrollbar animate-fade-in-scale">
             
             {/* Top Prompt / Status Badge */}
-            <div className="flex flex-col items-center text-center space-y-1.5 shrink-0">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-semibold shadow-sm">
-                <Sparkles size={13} className="text-blue-600" />
-                <span>Sam · Voice Agent</span>
+            <div className="flex flex-col items-center text-center space-y-1.5 shrink-0 animate-float">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 border border-blue-200/80 text-blue-700 text-xs font-bold shadow-md shadow-blue-500/10 backdrop-blur-md">
+                <Sparkles size={14} className="text-blue-600 animate-spin-slow" />
+                <span>Sam · AI Intelligent Companion</span>
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight text-gradient">
                 How can I assist your research today?
               </h2>
-              <p className="text-xs text-slate-500">
-                Tap the orb to speak, ask for books, or request rack directions
+              <p className="text-xs text-slate-500 font-medium">
+                Tap the plasma orb to speak, find research books, or request 3D directions
               </p>
             </div>
 
             {/* Center: The AI Voice Orb & Status */}
-            <div className="flex flex-col items-center justify-center shrink-0">
+            <div className="flex flex-col items-center justify-center shrink-0 space-y-2">
               <VoiceOrb state={conversationState} onClick={handleOrbClick} />
               
-              <div className="mt-2">
+              <div>
                 <StatusIndicator state={conversationState} />
               </div>
+
+              {/* Dynamic Sound Wave Acoustic Equalizer */}
+              {conversationState === State.LISTENING && (
+                <div className="flex items-center gap-1.5 h-6 px-4 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 backdrop-blur-md animate-slide-up">
+                  <span className="w-1 h-3 bg-cyan-500 rounded-full animate-bounce" />
+                  <span className="w-1 h-4.5 bg-cyan-600 rounded-full animate-bounce [animation-delay:0.1s]" />
+                  <span className="w-1 h-3 bg-cyan-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                  <span className="w-1 h-5 bg-cyan-500 rounded-full animate-bounce [animation-delay:0.15s]" />
+                  <span className="w-1 h-2 bg-cyan-600 rounded-full animate-bounce [animation-delay:0.3s]" />
+                  <span className="text-[10px] font-extrabold text-cyan-700 ml-1 uppercase tracking-wider">Listening</span>
+                </div>
+              )}
+              {conversationState === State.SPEAKING && (
+                <div className="flex items-center gap-1.5 h-6 px-4 py-1 rounded-full bg-violet-500/10 border border-violet-400/30 backdrop-blur-md animate-slide-up">
+                  <span className="w-1 h-3 bg-violet-500 rounded-full animate-bounce" />
+                  <span className="w-1 h-4.5 bg-purple-600 rounded-full animate-bounce [animation-delay:0.15s]" />
+                  <span className="w-1 h-3 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.25s]" />
+                  <span className="w-1 h-5 bg-violet-600 rounded-full animate-bounce [animation-delay:0.1s]" />
+                  <span className="w-1 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:0.35s]" />
+                  <span className="text-[10px] font-extrabold text-violet-700 ml-1 uppercase tracking-wider">Voice Output</span>
+                </div>
+              )}
             </div>
 
             {/* Live Voice Transcript Box (ONLY VOICE DATA) */}
             {lastVoiceMessage && (
-              <div className="w-full bg-white rounded-2xl border border-slate-200 p-3.5 sm:p-4 shadow-sm space-y-1.5 shrink-0 animate-[fadeIn_0.2s_ease-out]">
+              <div className="w-full glass-card rounded-3xl p-4 sm:p-5 space-y-2 shrink-0 animate-slide-up interactive-card">
                 <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span className="font-bold uppercase tracking-wider text-slate-500">
+                  <span className="font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
                     {lastVoiceMessage.role === 'user' ? 'You said:' : 'Sam responded:'}
                   </span>
                   {lastVoiceMessage.role === 'assistant' && (
                     <button 
                       onClick={() => handleSpeakAgain(lastVoiceMessage.content)}
-                      className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-semibold"
+                      className="interactive-button flex items-center gap-1 text-blue-600 hover:text-blue-700 font-bold px-2.5 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors"
                     >
                       <Volume2 size={12} /> Speak Again
                     </button>
                   )}
                 </div>
-                <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium max-h-24 overflow-y-auto">
+                <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-semibold max-h-28 overflow-y-auto pr-1">
                   {lastVoiceMessage.content}
                 </p>
               </div>
@@ -580,9 +607,9 @@ const VoiceAssistant = () => {
             <div className="flex items-center justify-center flex-wrap gap-3 pt-2 pb-2 shrink-0 w-full">
               <button
                 onClick={() => { setActiveTab('map'); setIsMapFullscreen(true); }}
-                className="group flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-blue-50/70 border border-slate-200/90 hover:border-blue-300 text-xs font-bold text-slate-700 hover:text-blue-700 shadow-sm hover:shadow-md hover:shadow-blue-500/10 transition-all duration-200 active:scale-[0.97]"
+                className="interactive-button group flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-white/90 backdrop-blur-md hover:bg-gradient-to-r hover:from-blue-600 hover:to-indigo-600 border border-slate-200/90 hover:border-transparent text-xs font-bold text-slate-700 hover:text-white shadow-md hover:shadow-xl hover:shadow-blue-600/25 transition-all duration-300 active:scale-[0.97]"
               >
-                <div className="w-6 h-6 rounded-lg bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center text-blue-600 transition-colors">
+                <div className="w-6 h-6 rounded-lg bg-blue-50 group-hover:bg-white/20 flex items-center justify-center text-blue-600 group-hover:text-white transition-colors">
                   <Compass size={14} className="group-hover:rotate-45 transition-transform duration-300" />
                 </div>
                 <span>3D Campus Wayfinder</span>
@@ -590,9 +617,9 @@ const VoiceAssistant = () => {
               
               <button
                 onClick={() => switchMode('chat')}
-                className="group flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-indigo-50/70 border border-slate-200/90 hover:border-indigo-300 text-xs font-bold text-slate-700 hover:text-indigo-700 shadow-sm hover:shadow-md hover:shadow-indigo-500/10 transition-all duration-200 active:scale-[0.97]"
+                className="interactive-button group flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-white/90 backdrop-blur-md hover:bg-gradient-to-r hover:from-indigo-600 hover:to-violet-600 border border-slate-200/90 hover:border-transparent text-xs font-bold text-slate-700 hover:text-white shadow-md hover:shadow-xl hover:shadow-indigo-600/25 transition-all duration-300 active:scale-[0.97]"
               >
-                <div className="w-6 h-6 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 flex items-center justify-center text-indigo-600 transition-colors">
+                <div className="w-6 h-6 rounded-lg bg-indigo-50 group-hover:bg-white/20 flex items-center justify-center text-indigo-600 group-hover:text-white transition-colors">
                   <MessageSquare size={14} />
                 </div>
                 <span>Switch to Text Chat</span>
