@@ -451,20 +451,20 @@ const VoiceAssistant = () => {
       {/* ========================================================================= */}
       {/* 1. TOP NAVBAR: College Logo, Library Name, Mode Switcher, User & Actions */}
       {/* ========================================================================= */}
-      <header className="bg-white border-b border-slate-200/90 px-4 sm:px-8 py-3 z-20 shrink-0 shadow-sm">
+      <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/70 px-4 sm:px-8 py-2.5 z-20 shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           
           {/* College & Library Branding */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/20 text-white shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-600/25 text-white shrink-0 ring-2 ring-white">
               <GraduationCap size={20} />
             </div>
             <div className="truncate">
               <div className="flex items-center gap-2">
-                <h1 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate">
+                <h1 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight truncate">
                   Anna University Central Library
                 </h1>
-                <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-sm">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Online
                 </span>
@@ -475,45 +475,47 @@ const VoiceAssistant = () => {
             </div>
           </div>
 
-          {/* Mode Switcher Pill */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+          {/* Mode Switcher Pill — Enterprise Gradient */}
+          <div className="flex items-center bg-slate-100/80 backdrop-blur-sm p-1 rounded-2xl border border-slate-200/70 shrink-0 shadow-sm">
             <button 
               onClick={() => switchMode('voice')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
                 interactionMode === 'voice' 
-                  ? 'bg-white text-blue-600 shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25' 
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
               }`}
             >
-              <Mic size={14} className={interactionMode === 'voice' ? 'text-blue-600' : 'text-slate-400'} />
+              <Mic size={14} />
               <span>Voice</span>
             </button>
             <button 
               onClick={() => switchMode('chat')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
                 interactionMode === 'chat' 
-                  ? 'bg-white text-indigo-600 shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/25' 
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
               }`}
             >
-              <MessageSquare size={14} className={interactionMode === 'chat' ? 'text-indigo-600' : 'text-slate-400'} />
+              <MessageSquare size={14} />
               <span>Chat</span>
             </button>
           </div>
 
-          {/* User Profile & Logout */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700">
-              <User size={13} className="text-blue-600" />
+          {/* User Profile & Logout — Glassmorphic */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-slate-50 to-blue-50/50 border border-slate-200/80 text-xs font-bold text-slate-700 shadow-sm">
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-sm">
+                <User size={12} />
+              </div>
               <span>{user?.username || 'Student'}</span>
             </div>
 
             <button 
               onClick={handleLogout}
-              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-100 transition-all"
+              className="group p-2.5 text-slate-400 hover:text-white hover:bg-gradient-to-r hover:from-red-500 hover:to-rose-600 rounded-xl border border-slate-200/80 hover:border-transparent hover:shadow-lg hover:shadow-red-500/20 transition-all duration-200"
               title="Logout"
             >
-              <LogOut size={16} />
+              <LogOut size={15} />
             </button>
           </div>
 
@@ -605,34 +607,41 @@ const VoiceAssistant = () => {
           <div className="flex-1 flex flex-col bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden animate-[fadeIn_0.2s_ease-out]">
             
             {/* Chat Header Tabs */}
-            <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">AI Interactive Chat</span>
+            <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50/80 to-white">
+              <div className="flex items-center gap-2.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/10" />
+                <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">AI Interactive Chat</span>
               </div>
 
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <div className="flex items-center bg-slate-100/80 backdrop-blur-sm p-1 rounded-2xl border border-slate-200/70 shadow-sm">
                 <button
                   onClick={() => setActiveTab('chat')}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    activeTab === 'chat' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                    activeTab === 'chat' 
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20' 
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
                   }`}
                 >
+                  <MessageSquare size={13} />
                   Messages
                 </button>
                 <button
                   onClick={() => setActiveTab('search')}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    activeTab === 'search' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                    activeTab === 'search' 
+                      ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/20' 
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
                   }`}
                 >
+                  <Search size={13} />
                   Book Catalog
                 </button>
                 <button
                   onClick={() => { setActiveTab('map'); setIsMapFullscreen(true); }}
-                  className="px-3 py-1 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-white/60 transition-all duration-200"
                 >
-                  <Map size={12} /> Map View
+                  <Map size={13} />
+                  Map View
                 </button>
               </div>
             </div>
@@ -672,7 +681,7 @@ const VoiceAssistant = () => {
                     <button
                       type="submit"
                       disabled={!input.trim()}
-                      className="px-5 bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:opacity-40 text-white rounded-2xl flex items-center justify-center shadow-md shadow-blue-600/20 transition-all"
+                      className="px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.97] disabled:opacity-30 disabled:hover:from-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/25 transition-all duration-200"
                     >
                       <Send size={18} />
                     </button>
@@ -719,29 +728,31 @@ const VoiceAssistant = () => {
       >
         <div className="flex-1 flex flex-col m-0 sm:m-4 bg-white rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-200">
           
-          {/* Wayfinder Header */}
-          <div className="h-16 px-6 bg-white border-b border-slate-200 flex items-center justify-between z-30 shrink-0">
+          {/* Wayfinder Header — Enterprise Toolbar */}
+          <div className="h-16 px-5 sm:px-6 bg-white/90 backdrop-blur-xl border-b border-slate-200/70 flex items-center justify-between z-30 shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 font-bold text-xs">
-                <Compass className="animate-spin-slow text-blue-600" size={16} />
+              <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs shadow-lg shadow-blue-600/20">
+                <Compass className="animate-spin-slow" size={15} />
                 <span>3D Indoor Wayfinder</span>
               </div>
 
               {routeTo && (
-                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-800">
+                <div className="flex items-center gap-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 px-3.5 py-2 rounded-2xl text-xs font-bold text-amber-900 shadow-sm">
                   <Navigation size={13} className="text-amber-600" />
                   <span>From: {routeFrom || 'Entrance'}</span>
-                  <ArrowRight size={12} />
-                  <span className="font-bold text-amber-900">Rack {routeTo}</span>
+                  <ArrowRight size={12} className="text-amber-500" />
+                  <span className="font-extrabold text-amber-900">Rack {routeTo}</span>
                 </div>
               )}
 
-              {/* Floor Switcher */}
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
+              {/* Floor Switcher — Gradient Active */}
+              <div className="flex items-center bg-slate-100/80 backdrop-blur-sm p-1 rounded-2xl border border-slate-200/70 gap-0.5 shadow-sm">
                 <button
                   onClick={() => setActiveFloor('both')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                    activeFloor === 'both' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+                    activeFloor === 'both' 
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20' 
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
                   }`}
                 >
                   All Floors
@@ -750,8 +761,10 @@ const VoiceAssistant = () => {
                   <button
                     key={i+1}
                     onClick={() => setActiveFloor(String(i+1))}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                      activeFloor === String(i+1) ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+                      activeFloor === String(i+1) 
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20' 
+                        : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
                     }`}
                   >
                     Floor {i+1}
@@ -764,12 +777,12 @@ const VoiceAssistant = () => {
             <div className="flex items-center gap-2.5">
               <button
                 onClick={handleOrbClick}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white transition-all shadow-sm active:scale-95 ${
+                className={`group flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold text-white transition-all duration-200 shadow-lg active:scale-[0.97] ${
                   conversationState === State.LISTENING 
-                    ? 'bg-red-500 animate-pulse' 
+                    ? 'bg-gradient-to-r from-red-500 to-rose-600 shadow-red-500/25 animate-pulse' 
                     : conversationState === State.SPEAKING 
-                      ? 'bg-purple-600' 
-                      : 'bg-blue-600 hover:bg-blue-700'
+                      ? 'bg-gradient-to-r from-purple-600 to-violet-600 shadow-purple-600/25' 
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-blue-600/25 hover:from-blue-700 hover:to-indigo-700'
                 }`}
               >
                 <Mic size={14} />
@@ -784,7 +797,7 @@ const VoiceAssistant = () => {
 
               <button
                 onClick={handleCloseFullscreenMap}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all flex items-center gap-1"
+                className="group flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-bold text-slate-600 bg-slate-100/80 hover:bg-gradient-to-r hover:from-slate-700 hover:to-slate-800 hover:text-white border border-slate-200/80 hover:border-transparent hover:shadow-lg transition-all duration-200"
               >
                 <X size={14} /> <span>Close</span>
               </button>
@@ -833,7 +846,7 @@ const VoiceAssistant = () => {
                 <button
                   type="submit"
                   disabled={!fsInput.trim()}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-30 text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-lg shadow-blue-600/20 flex items-center gap-1.5 active:scale-[0.97]"
                 >
                   <Send size={13} /> Send
                 </button>

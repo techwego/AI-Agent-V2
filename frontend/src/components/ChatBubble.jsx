@@ -19,52 +19,58 @@ const ChatBubble = ({ message, onSpeak, hasRoute, isSpeaking }) => {
     <div className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'} mb-5 animate-[slide-up-fade_0.4s_ease-out]`}>
       <div className={`flex max-w-[85%] ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end gap-2.5`}>
         {/* Avatar */}
-        <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
-          isUser ? 'bg-blue-100 border border-blue-200' : 'bg-purple-100 border border-purple-200'
+        <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center shadow-md ring-2 ring-white ${
+          isUser 
+            ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white' 
+            : 'bg-gradient-to-br from-violet-500 to-purple-600 text-white'
         }`}>
-          {isUser ? <User size={13} className="text-blue-600" /> : <Sparkles size={13} className="text-purple-600" />}
+          {isUser ? <User size={14} /> : <Sparkles size={14} />}
         </div>
 
         {/* Bubble */}
         <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-          <div className={`px-4 py-3 rounded-2xl border ${
+          <div className={`px-4 py-3 rounded-2xl border relative group transition-all duration-200 ${
             isUser 
-              ? 'bg-blue-600 border-blue-500 text-white rounded-br-sm' 
-              : 'bg-white border-gray-200 text-gray-700 rounded-bl-sm shadow-sm'
-          } relative group`}>
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-500/50 text-white rounded-br-md shadow-lg shadow-blue-600/15' 
+              : 'bg-white border-slate-200/80 text-slate-700 rounded-bl-md shadow-md shadow-slate-200/30 hover:shadow-lg'
+          }`}>
             {content && content.trim() ? (
-              <div className="whitespace-pre-wrap text-[13px] leading-relaxed">{content.trim()}</div>
+              <div className="whitespace-pre-wrap text-[13px] leading-relaxed font-medium">{content.trim()}</div>
             ) : (
               <div className="flex space-x-1.5 items-center h-5 px-2">
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></div>
               </div>
             )}
 
             {/* Action buttons for AI messages */}
             {!isUser && content && (
-              <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100/80 opacity-0 group-hover:opacity-100 transition-all duration-200">
                 <button 
                   onClick={handleCopy}
-                  className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+                  className="p-1.5 rounded-lg hover:bg-slate-100 transition-all text-slate-400 hover:text-slate-600"
                   title="Copy"
                 >
-                  {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                  {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                 </button>
                 {onSpeak && (
                   <button 
                     onClick={() => onSpeak(content)}
                     disabled={isSpeaking}
-                    className={`p-1 rounded transition-colors ${isSpeaking ? 'opacity-30 cursor-not-allowed' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'}`}
+                    className={`p-1.5 rounded-lg transition-all ${
+                      isSpeaking 
+                        ? 'opacity-30 cursor-not-allowed' 
+                        : 'hover:bg-blue-50 text-slate-400 hover:text-blue-600'
+                    }`}
                     title={isSpeaking ? "Agent is currently speaking" : "Speak Again"}
                   >
                     <Volume2 size={12} />
                   </button>
                 )}
                 {hasRoute && (
-                  <span className="flex items-center gap-1 text-[9px] text-amber-500 ml-1">
-                    <MapPin size={9} /> Route shown on map
+                  <span className="flex items-center gap-1 text-[9px] font-bold text-amber-600 ml-1 px-2 py-0.5 bg-amber-50 rounded-lg border border-amber-200/50">
+                    <MapPin size={9} /> Route on map
                   </span>
                 )}
               </div>
@@ -73,7 +79,7 @@ const ChatBubble = ({ message, onSpeak, hasRoute, isSpeaking }) => {
           
           {/* Timestamp */}
           {timestamp && (
-            <span className="text-[10px] text-gray-400 mt-1 px-1">
+            <span className="text-[10px] text-slate-400 mt-1.5 px-1 font-semibold">
               {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}

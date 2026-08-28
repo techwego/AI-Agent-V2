@@ -2,385 +2,326 @@ import React, { useEffect, useRef, useMemo } from 'react';
 import * as THREE from 'three';
 
 /* ─────────────────────────────────────────────────────────────────────────────
- *  AI Voice Orb — Living Aurora Nebula Sphere
+ *  AI Voice Orb — Plasma Energy Sphere
  *
- *  A multi-layered 3D energy sphere with:
- *    • GLSL vertex-shader distortion that "breathes" in real-time
- *    • Dual-shell aurora refraction glass
- *    • Orbiting sentinel light motes
- *    • Triple gyroscopic orbit rings
- *    • State-reactive color morphing (no mic icon — the orb itself IS the UI)
+ *  A living, breathing plasma sphere with:
+ *    • Custom GLSL vertex shader with 3-octave simplex noise deformation
+ *    • Iridescent chromatic fragment shader with Fresnel glow
+ *    • Transparent glass refraction outer mantle
+ *    • Spinning icosahedron energy nucleus
+ *    • Triple tilted orbit rings with glow
+ *    • 6 orbiting sentinel light motes
+ *    • Stardust particle field
+ *    • State-reactive everything — color, amplitude, speed
+ *    • NO mic icon — the sphere IS the interface
  * ────────────────────────────────────────────────────────────────────────── */
 
-// ─── Custom GLSL Vertex Shader for organic surface displacement ──────────
-const DISTORT_VERT = `
+const VERT = `
   uniform float uTime;
-  uniform float uAmplitude;
-  uniform float uFrequency;
-  varying vec3 vNormal;
-  varying vec3 vPosition;
+  uniform float uAmp;
+  uniform float uFreq;
+  varying vec3 vNorm;
+  varying vec3 vPos;
+  varying float vDisp;
 
-  // Simplex-like noise for organic ripple
-  vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-  vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-  vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
-  vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+  vec3 mod289(vec3 x){return x-floor(x*(1./289.))*289.;}
+  vec4 mod289(vec4 x){return x-floor(x*(1./289.))*289.;}
+  vec4 permute(vec4 x){return mod289(((x*34.)+1.)*x);}
+  vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-.85373472095314*r;}
 
-  float snoise(vec3 v) {
-    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-    vec3 i = floor(v + dot(v, C.yyy));
-    vec3 x0 = v - i + dot(i, C.xxx);
-    vec3 g = step(x0.yzx, x0.xyz);
-    vec3 l = 1.0 - g;
-    vec3 i1 = min(g.xyz, l.zxy);
-    vec3 i2 = max(g.xyz, l.zxy);
-    vec3 x1 = x0 - i1 + C.xxx;
-    vec3 x2 = x0 - i2 + C.yyy;
-    vec3 x3 = x0 - D.yyy;
-    i = mod289(i);
-    vec4 p = permute(permute(permute(
-        i.z + vec4(0.0, i1.z, i2.z, 1.0))
-      + i.y + vec4(0.0, i1.y, i2.y, 1.0))
-      + i.x + vec4(0.0, i1.x, i2.x, 1.0));
-    float n_ = 0.142857142857;
-    vec3 ns = n_ * D.wyz - D.xzx;
-    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-    vec4 x_ = floor(j * ns.z);
-    vec4 y_ = floor(j - 7.0 * x_);
-    vec4 x = x_ * ns.x + ns.yyyy;
-    vec4 y = y_ * ns.x + ns.yyyy;
-    vec4 h = 1.0 - abs(x) - abs(y);
-    vec4 b0 = vec4(x.xy, y.xy);
-    vec4 b1 = vec4(x.zw, y.zw);
-    vec4 s0 = floor(b0) * 2.0 + 1.0;
-    vec4 s1 = floor(b1) * 2.0 + 1.0;
-    vec4 sh = -step(h, vec4(0.0));
-    vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
-    vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
-    vec3 p0 = vec3(a0.xy, h.x);
-    vec3 p1 = vec3(a0.zw, h.y);
-    vec3 p2 = vec3(a1.xy, h.z);
-    vec3 p3 = vec3(a1.zw, h.w);
-    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
-    p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-    vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-    m = m * m;
-    return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+  float snoise(vec3 v){
+    const vec2 C=vec2(1./6.,1./3.);
+    const vec4 D=vec4(0.,.5,1.,2.);
+    vec3 i=floor(v+dot(v,C.yyy));
+    vec3 x0=v-i+dot(i,C.xxx);
+    vec3 g=step(x0.yzx,x0.xyz);
+    vec3 l=1.-g;
+    vec3 i1=min(g.xyz,l.zxy);
+    vec3 i2=max(g.xyz,l.zxy);
+    vec3 x1=x0-i1+C.xxx;
+    vec3 x2=x0-i2+C.yyy;
+    vec3 x3=x0-D.yyy;
+    i=mod289(i);
+    vec4 p=permute(permute(permute(
+      i.z+vec4(0.,i1.z,i2.z,1.))
+      +i.y+vec4(0.,i1.y,i2.y,1.))
+      +i.x+vec4(0.,i1.x,i2.x,1.));
+    float n_=.142857142857;
+    vec3 ns=n_*D.wyz-D.xzx;
+    vec4 j=p-49.*floor(p*ns.z*ns.z);
+    vec4 x_=floor(j*ns.z);
+    vec4 y_=floor(j-7.*x_);
+    vec4 x=x_*ns.x+ns.yyyy;
+    vec4 y=y_*ns.x+ns.yyyy;
+    vec4 h=1.-abs(x)-abs(y);
+    vec4 b0=vec4(x.xy,y.xy);
+    vec4 b1=vec4(x.zw,y.zw);
+    vec4 s0=floor(b0)*2.+1.;
+    vec4 s1=floor(b1)*2.+1.;
+    vec4 sh=-step(h,vec4(0.));
+    vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy;
+    vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
+    vec3 p0=vec3(a0.xy,h.x);
+    vec3 p1=vec3(a0.zw,h.y);
+    vec3 p2=vec3(a1.xy,h.z);
+    vec3 p3=vec3(a1.zw,h.w);
+    vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
+    p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
+    vec4 m=max(.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.);
+    m=m*m;
+    return 42.*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
   }
 
-  void main() {
-    vNormal = normal;
-    vPosition = position;
-    float noise = snoise(position * uFrequency + uTime * 0.6);
-    vec3 newPos = position + normal * noise * uAmplitude;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);
+  void main(){
+    vNorm=normal;
+    vPos=position;
+    // 3-octave fractal noise for organic plasma surface
+    float n1=snoise(position*uFreq+uTime*0.5)*uAmp;
+    float n2=snoise(position*uFreq*2.1+uTime*0.8)*uAmp*0.4;
+    float n3=snoise(position*uFreq*4.3+uTime*1.2)*uAmp*0.15;
+    float d=n1+n2+n3;
+    vDisp=d;
+    vec3 p=position+normal*d;
+    gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);
   }
 `;
 
-// ─── Custom GLSL Fragment Shader for iridescent aurora color ─────────────
-const DISTORT_FRAG = `
+const FRAG = `
   uniform float uTime;
-  uniform vec3 uColor1;
-  uniform vec3 uColor2;
-  uniform vec3 uColor3;
-  varying vec3 vNormal;
-  varying vec3 vPosition;
+  uniform vec3 uC1;
+  uniform vec3 uC2;
+  uniform vec3 uC3;
+  uniform float uAmp;
+  varying vec3 vNorm;
+  varying vec3 vPos;
+  varying float vDisp;
 
-  void main() {
-    // Fresnel for rim-light glow
-    vec3 viewDir = normalize(cameraPosition - vPosition);
-    float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 2.5);
+  void main(){
+    vec3 vDir=normalize(cameraPosition-vPos);
+    float fresnel=pow(1.-max(dot(vDir,vNorm),0.),3.0);
 
-    // Tri-color aurora gradient driven by position + time
-    float t1 = sin(vPosition.y * 3.0 + uTime * 0.8) * 0.5 + 0.5;
-    float t2 = cos(vPosition.x * 2.5 + uTime * 0.5) * 0.5 + 0.5;
-    vec3 col = mix(uColor1, uColor2, t1);
-    col = mix(col, uColor3, t2 * 0.4);
+    // Tri-color iridescent blend driven by displacement + position
+    float t1=sin(vPos.y*3.5+uTime*0.7)*0.5+0.5;
+    float t2=cos(vPos.x*2.8+uTime*0.4)*0.5+0.5;
+    float t3=sin(vDisp*8.0+uTime)*0.5+0.5;
+    vec3 c=mix(uC1,uC2,t1);
+    c=mix(c,uC3,t2*0.5);
+    // Bright displacement highlights
+    c+=uC3*t3*0.3;
+    // Fresnel rim glow
+    c+=fresnel*uC3*1.5;
+    // Brighten active deformation areas
+    c+=abs(vDisp)*uC2*3.0;
 
-    // Add bright fresnel rim
-    col += fresnel * uColor3 * 1.2;
-
-    gl_FragColor = vec4(col, 0.92 - fresnel * 0.15);
+    float alpha=0.88-fresnel*0.1;
+    gl_FragColor=vec4(c,alpha);
   }
 `;
 
 const VoiceOrb = ({ state = 'IDLE', onClick }) => {
   const mountRef = useRef(null);
   const stateRef = useRef(state);
-  const uniformsRef = useRef(null);
+  const uRef = useRef(null);
 
   useEffect(() => { stateRef.current = state; }, [state]);
 
-  // Color palettes per state (lerped smoothly)
   const palettes = useMemo(() => ({
-    IDLE:        { c1: [0.11, 0.31, 0.85], c2: [0.22, 0.53, 0.98], c3: [0.58, 0.78, 1.00] },
-    LISTENING:   { c1: [0.00, 0.72, 0.88], c2: [0.00, 0.90, 0.95], c3: [0.40, 1.00, 1.00] },
-    INTRODUCING: { c1: [0.35, 0.18, 0.85], c2: [0.62, 0.32, 0.98], c3: [0.82, 0.55, 1.00] },
-    SPEAKING:    { c1: [0.35, 0.18, 0.85], c2: [0.62, 0.32, 0.98], c3: [0.82, 0.55, 1.00] },
-    PROCESSING:  { c1: [0.85, 0.55, 0.04], c2: [0.95, 0.72, 0.15], c3: [1.00, 0.90, 0.40] },
-    RETRIEVING:  { c1: [0.85, 0.55, 0.04], c2: [0.95, 0.72, 0.15], c3: [1.00, 0.90, 0.40] },
-    GENERATING:  { c1: [0.70, 0.30, 0.90], c2: [0.85, 0.50, 1.00], c3: [0.95, 0.80, 1.00] },
+    IDLE:        { c1:[0.11,0.30,0.85], c2:[0.25,0.55,1.00], c3:[0.60,0.80,1.00], amp:0.06, freq:1.6, speed:1 },
+    LISTENING:   { c1:[0.00,0.68,0.90], c2:[0.10,0.88,1.00], c3:[0.50,1.00,1.00], amp:0.22, freq:2.5, speed:2.5 },
+    INTRODUCING: { c1:[0.40,0.15,0.90], c2:[0.65,0.35,1.00], c3:[0.85,0.60,1.00], amp:0.16, freq:2.0, speed:2 },
+    SPEAKING:    { c1:[0.40,0.15,0.90], c2:[0.65,0.35,1.00], c3:[0.85,0.60,1.00], amp:0.16, freq:2.0, speed:2 },
+    PROCESSING:  { c1:[0.85,0.50,0.00], c2:[0.95,0.70,0.10], c3:[1.00,0.88,0.35], amp:0.12, freq:3.2, speed:3 },
+    RETRIEVING:  { c1:[0.85,0.50,0.00], c2:[0.95,0.70,0.10], c3:[1.00,0.88,0.35], amp:0.12, freq:3.2, speed:3 },
+    GENERATING:  { c1:[0.65,0.25,0.92], c2:[0.82,0.48,1.00], c3:[0.95,0.78,1.00], amp:0.14, freq:2.6, speed:2.2 },
   }), []);
 
   useEffect(() => {
-    const container = mountRef.current;
-    if (!container) return;
+    const el = mountRef.current;
+    if (!el) return;
 
-    const w = container.clientWidth || 260;
-    const h = container.clientHeight || 260;
+    const W = el.clientWidth || 260;
+    const H = el.clientHeight || 260;
 
-    // ─── Scene ───────────────────────────────────────────────────────
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 100);
-    camera.position.set(0, 0, 5.2);
+    const cam = new THREE.PerspectiveCamera(40, W / H, 0.1, 100);
+    cam.position.set(0, 0, 5.4);
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true, alpha: true, powerPreference: 'high-performance'
-    });
-    renderer.setSize(w, h);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.4;
-    container.appendChild(renderer.domElement);
+    const ren = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    ren.setSize(W, H);
+    ren.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    ren.toneMapping = THREE.ACESFilmicToneMapping;
+    ren.toneMappingExposure = 1.5;
+    el.appendChild(ren.domElement);
 
-    // ─── Lighting ────────────────────────────────────────────────────
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    const keyLight = new THREE.DirectionalLight(0x93c5fd, 2.2);
-    keyLight.position.set(4, 5, 3);
-    scene.add(keyLight);
-    const fillLight = new THREE.DirectionalLight(0xc084fc, 1.5);
-    fillLight.position.set(-3, -3, 2);
-    scene.add(fillLight);
+    // Lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const kl = new THREE.DirectionalLight(0x93c5fd, 2.5); kl.position.set(4, 5, 3); scene.add(kl);
+    const fl = new THREE.DirectionalLight(0xc084fc, 1.8); fl.position.set(-3, -3, 2); scene.add(fl);
+    const ol = new THREE.PointLight(0x60a5fa, 4, 12); scene.add(ol);
+    const ol2 = new THREE.PointLight(0xa78bfa, 3, 10); scene.add(ol2);
 
-    // Orbiting specular highlight
-    const orbitLight = new THREE.PointLight(0x60a5fa, 4, 10);
-    scene.add(orbitLight);
-
-    // ─── Layer 1: GLSL Distorted Aurora Core (the hero) ──────────────
-    const R = 1.3;
-    const coreGeo = new THREE.SphereGeometry(R, 64, 64);
-    const uniforms = {
-      uTime:      { value: 0 },
-      uAmplitude: { value: 0.08 },
-      uFrequency: { value: 1.8 },
-      uColor1:    { value: new THREE.Vector3(0.11, 0.31, 0.85) },
-      uColor2:    { value: new THREE.Vector3(0.22, 0.53, 0.98) },
-      uColor3:    { value: new THREE.Vector3(0.58, 0.78, 1.00) },
+    // ── L1: GLSL Plasma Core ──
+    const R = 1.25;
+    const cGeo = new THREE.SphereGeometry(R, 80, 80);
+    const u = {
+      uTime: { value: 0 }, uAmp: { value: 0.06 }, uFreq: { value: 1.6 },
+      uC1: { value: new THREE.Vector3(0.11, 0.30, 0.85) },
+      uC2: { value: new THREE.Vector3(0.25, 0.55, 1.00) },
+      uC3: { value: new THREE.Vector3(0.60, 0.80, 1.00) },
     };
-    uniformsRef.current = uniforms;
-
-    const coreMat = new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader: DISTORT_VERT,
-      fragmentShader: DISTORT_FRAG,
-      transparent: true,
-      depthWrite: false,
-    });
-    const core = new THREE.Mesh(coreGeo, coreMat);
+    uRef.current = u;
+    const cMat = new THREE.ShaderMaterial({ uniforms: u, vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+    const core = new THREE.Mesh(cGeo, cMat);
     scene.add(core);
 
-    // ─── Layer 2: Glass refraction outer shell ───────────────────────
-    const shellGeo = new THREE.SphereGeometry(R * 1.08, 48, 48);
-    const shellMat = new THREE.MeshPhysicalMaterial({
-      color: 0x3b82f6,
-      emissive: 0x1e40af,
-      emissiveIntensity: 0.15,
-      roughness: 0.05,
-      metalness: 0.0,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.02,
-      transmission: 0.85,
-      ior: 1.5,
-      thickness: 0.6,
-      transparent: true,
-      opacity: 0.45,
-      envMapIntensity: 1.5,
+    // ── L2: Glass mantle ──
+    const sGeo = new THREE.SphereGeometry(R * 1.12, 48, 48);
+    const sMat = new THREE.MeshPhysicalMaterial({
+      color: 0x3b82f6, emissive: 0x1e3a8a, emissiveIntensity: 0.12,
+      roughness: 0.03, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.01,
+      transmission: 0.88, ior: 1.52, thickness: 0.5,
+      transparent: true, opacity: 0.35, envMapIntensity: 2
     });
-    const shell = new THREE.Mesh(shellGeo, shellMat);
+    const shell = new THREE.Mesh(sGeo, sMat);
     scene.add(shell);
 
-    // ─── Layer 3: Inner luminous energy nucleus ──────────────────────
-    const nucleusGeo = new THREE.IcosahedronGeometry(0.45, 3);
-    const nucleusMat = new THREE.MeshBasicMaterial({
-      color: 0x93c5fd,
-      transparent: true,
-      opacity: 0.6,
-    });
-    const nucleus = new THREE.Mesh(nucleusGeo, nucleusMat);
+    // ── L3: Spinning icosahedron nucleus ──
+    const nGeo = new THREE.IcosahedronGeometry(0.38, 2);
+    const nMat = new THREE.MeshBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.55, wireframe: true });
+    const nucleus = new THREE.Mesh(nGeo, nMat);
     scene.add(nucleus);
 
-    // ─── Layer 4: Triple gyroscopic orbit rings ──────────────────────
+    // ── L4: Triple orbit rings ──
     const rings = [];
-    const ringConfigs = [
-      { radius: 1.72, tube: 0.014, color: 0x38bdf8, tiltX: Math.PI * 0.38, tiltY: 0 },
-      { radius: 1.82, tube: 0.010, color: 0x818cf8, tiltX: -Math.PI * 0.28, tiltY: Math.PI * 0.15 },
-      { radius: 1.58, tube: 0.012, color: 0xa78bfa, tiltX: Math.PI * 0.50, tiltY: Math.PI * 0.35 },
-    ];
-    ringConfigs.forEach(cfg => {
-      const geo = new THREE.TorusGeometry(cfg.radius, cfg.tube, 16, 80);
-      const mat = new THREE.MeshBasicMaterial({
-        color: cfg.color,
-        transparent: true,
-        opacity: 0.35,
-        blending: THREE.AdditiveBlending,
-      });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.rotation.x = cfg.tiltX;
-      mesh.rotation.y = cfg.tiltY;
+    [
+      { r: 1.65, t: 0.016, c: 0x38bdf8, tx: Math.PI * 0.40, ty: 0 },
+      { r: 1.78, t: 0.010, c: 0x818cf8, tx: -Math.PI * 0.30, ty: Math.PI * 0.18 },
+      { r: 1.52, t: 0.013, c: 0xa78bfa, tx: Math.PI * 0.55, ty: Math.PI * 0.38 },
+    ].forEach((cfg, i) => {
+      const g = new THREE.TorusGeometry(cfg.r, cfg.t, 16, 100);
+      const m = new THREE.MeshBasicMaterial({ color: cfg.c, transparent: true, opacity: 0.30, blending: THREE.AdditiveBlending });
+      const mesh = new THREE.Mesh(g, m);
+      mesh.rotation.x = cfg.tx; mesh.rotation.y = cfg.ty;
       scene.add(mesh);
-      rings.push({ mesh, geo, mat, speed: 0.4 + Math.random() * 0.3 });
+      rings.push({ mesh, g, m, spd: 0.35 + i * 0.15 });
     });
 
-    // ─── Layer 5: Sentinel light motes (tiny glowing spheres orbiting) ──
-    const moteCount = 6;
+    // ── L5: Sentinel motes ──
     const motes = [];
-    for (let i = 0; i < moteCount; i++) {
-      const mGeo = new THREE.SphereGeometry(0.04, 8, 8);
-      const mMat = new THREE.MeshBasicMaterial({
-        color: 0x93c5fd,
-        transparent: true,
-        opacity: 0.9,
-      });
-      const mMesh = new THREE.Mesh(mGeo, mMat);
-      scene.add(mMesh);
-      motes.push({
-        mesh: mMesh, geo: mGeo, mat: mMat,
-        orbit: R + 0.35 + Math.random() * 0.3,
-        speed: 0.6 + Math.random() * 0.8,
-        phase: Math.random() * Math.PI * 2,
-        tilt: (Math.random() - 0.5) * Math.PI * 0.6,
-      });
+    for (let i = 0; i < 8; i++) {
+      const mg = new THREE.SphereGeometry(0.035 + Math.random() * 0.025, 8, 8);
+      const mm = new THREE.MeshBasicMaterial({ color: 0xbfdbfe, transparent: true, opacity: 0.85 });
+      const mesh = new THREE.Mesh(mg, mm);
+      scene.add(mesh);
+      motes.push({ mesh, g: mg, m: mm, orb: R + 0.3 + Math.random() * 0.4, spd: 0.5 + Math.random() * 0.9, ph: Math.random() * Math.PI * 2, tilt: (Math.random() - 0.5) * 1.2 });
     }
 
-    // ─── Layer 6: Sparse dust-field particles ────────────────────────
-    const dustCount = 60;
-    const dustGeo = new THREE.BufferGeometry();
-    const dustPos = new Float32Array(dustCount * 3);
-    for (let i = 0; i < dustCount; i++) {
-      const r = R + 0.5 + Math.random() * 0.8;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(Math.random() * 2 - 1);
-      dustPos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
-      dustPos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
-      dustPos[i*3+2] = r * Math.cos(phi);
+    // ── L6: Stardust ──
+    const dN = 70;
+    const dGeo = new THREE.BufferGeometry();
+    const dP = new Float32Array(dN * 3);
+    for (let i = 0; i < dN; i++) {
+      const r2 = R + 0.6 + Math.random() * 0.9;
+      const th = Math.random() * Math.PI * 2;
+      const ph = Math.acos(Math.random() * 2 - 1);
+      dP[i*3] = r2 * Math.sin(ph) * Math.cos(th);
+      dP[i*3+1] = r2 * Math.sin(ph) * Math.sin(th);
+      dP[i*3+2] = r2 * Math.cos(ph);
     }
-    dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
-    const dustMat = new THREE.PointsMaterial({
-      size: 0.035, color: 0xbfdbfe,
-      transparent: true, opacity: 0.6,
-      blending: THREE.AdditiveBlending,
-    });
-    const dust = new THREE.Points(dustGeo, dustMat);
+    dGeo.setAttribute('position', new THREE.BufferAttribute(dP, 3));
+    const dMat = new THREE.PointsMaterial({ size: 0.04, color: 0xbfdbfe, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
+    const dust = new THREE.Points(dGeo, dMat);
     scene.add(dust);
 
-    // ─── Animation Loop ──────────────────────────────────────────────
-    const clock = new THREE.Clock();
-    let animId;
+    // ── Animation ──
+    const clk = new THREE.Clock();
+    let anim;
+    const lv3 = (c, t, s) => { c.x += (t[0] - c.x) * s; c.y += (t[1] - c.y) * s; c.z += (t[2] - c.z) * s; };
 
-    const lerpV3 = (cur, tgt, t) => {
-      cur.x += (tgt[0] - cur.x) * t;
-      cur.y += (tgt[1] - cur.y) * t;
-      cur.z += (tgt[2] - cur.z) * t;
-    };
-
-    const animate = () => {
-      animId = requestAnimationFrame(animate);
-      const t = clock.getElapsedTime();
+    const loop = () => {
+      anim = requestAnimationFrame(loop);
+      const t = clk.getElapsedTime();
       const st = stateRef.current;
-      const pal = palettes[st] || palettes.IDLE;
+      const p = palettes[st] || palettes.IDLE;
 
       const isActive = st === 'LISTENING' || st === 'INTRODUCING' || st === 'SPEAKING';
-      const isProc   = st === 'PROCESSING' || st === 'RETRIEVING' || st === 'GENERATING';
+      const isProc = st === 'PROCESSING' || st === 'RETRIEVING' || st === 'GENERATING';
 
-      // ── Smooth color morphing ──
-      lerpV3(uniforms.uColor1.value, pal.c1, 0.06);
-      lerpV3(uniforms.uColor2.value, pal.c2, 0.06);
-      lerpV3(uniforms.uColor3.value, pal.c3, 0.06);
-      uniforms.uTime.value = t;
+      // Smooth uniform lerping
+      lv3(u.uC1.value, p.c1, 0.05);
+      lv3(u.uC2.value, p.c2, 0.05);
+      lv3(u.uC3.value, p.c3, 0.05);
+      u.uAmp.value += (p.amp - u.uAmp.value) * 0.06;
+      u.uFreq.value += (p.freq - u.uFreq.value) * 0.06;
+      u.uTime.value = t * p.speed;
 
-      // ── Amplitude reacts to state ──
-      let targetAmp = 0.06;
-      let targetFreq = 1.8;
-      if (st === 'LISTENING') { targetAmp = 0.18; targetFreq = 2.8; }
-      else if (st === 'SPEAKING' || st === 'INTRODUCING') { targetAmp = 0.14; targetFreq = 2.2; }
-      else if (isProc) { targetAmp = 0.10; targetFreq = 3.5; }
-      uniforms.uAmplitude.value += (targetAmp - uniforms.uAmplitude.value) * 0.08;
-      uniforms.uFrequency.value += (targetFreq - uniforms.uFrequency.value) * 0.08;
-
-      // ── Levitation & breathing ──
-      const lev = Math.sin(t * 1.5) * 0.1;
-      const breathe = 1.0 + Math.sin(t * (isActive ? 5.0 : 1.8)) * (isActive ? 0.05 : 0.02);
+      // Levitation
+      const lev = Math.sin(t * 1.4) * 0.12;
+      const breathe = 1 + Math.sin(t * (isActive ? 5 : 1.6)) * (isActive ? 0.06 : 0.02);
 
       core.position.y = lev;
-      core.rotation.y = t * 0.35;
+      core.rotation.y = t * 0.3;
       core.scale.setScalar(breathe);
 
       shell.position.y = lev;
-      shell.rotation.y = -t * 0.2;
-      shell.scale.setScalar(breathe * 1.08);
-      shellMat.emissiveIntensity = 0.15 + Math.sin(t * 3) * 0.08;
+      shell.rotation.y = -t * 0.15;
+      shell.scale.setScalar(breathe * 1.12);
+      sMat.emissiveIntensity = 0.12 + Math.sin(t * 3) * 0.06;
 
       nucleus.position.y = lev;
-      nucleus.rotation.x = t * 1.2;
-      nucleus.rotation.z = t * 0.9;
-      nucleus.scale.setScalar(breathe * (0.6 + Math.sin(t * 4) * 0.15));
+      nucleus.rotation.x = t * 1.5;
+      nucleus.rotation.z = t * 1.1;
+      const nPulse = 0.55 + Math.sin(t * 5) * 0.2;
+      nucleus.scale.setScalar(nPulse);
+      nMat.opacity = 0.3 + Math.sin(t * 4) * 0.2;
 
-      // ── Gyroscopic rings ──
+      // Rings
       rings.forEach((r, i) => {
-        r.mesh.rotation.z += (isActive ? 0.03 : 0.01) * r.speed * (i % 2 === 0 ? 1 : -1);
+        r.mesh.rotation.z += (isActive ? 0.035 : 0.008) * r.spd * (i % 2 === 0 ? 1 : -1);
         r.mesh.scale.setScalar(breathe);
         r.mesh.position.y = lev;
-        r.mat.opacity = isActive ? 0.55 : isProc ? 0.45 : 0.30;
+        r.m.opacity = isActive ? 0.55 : isProc ? 0.42 : 0.25;
       });
 
-      // ── Sentinel motes orbiting ──
+      // Motes
       motes.forEach(m => {
-        const angle = t * m.speed + m.phase;
-        m.mesh.position.x = Math.cos(angle) * m.orbit;
-        m.mesh.position.y = Math.sin(angle) * m.orbit * 0.6 + lev;
-        m.mesh.position.z = Math.sin(angle + m.tilt) * m.orbit * 0.4;
-        m.mesh.scale.setScalar(0.8 + Math.sin(t * 3 + m.phase) * 0.4);
-        m.mat.opacity = 0.6 + Math.sin(t * 4 + m.phase) * 0.35;
+        const a = t * m.spd + m.ph;
+        m.mesh.position.set(
+          Math.cos(a) * m.orb,
+          Math.sin(a) * m.orb * 0.5 + lev,
+          Math.sin(a + m.tilt) * m.orb * 0.35
+        );
+        m.mesh.scale.setScalar(0.7 + Math.sin(t * 3 + m.ph) * 0.5);
+        m.m.opacity = 0.5 + Math.sin(t * 4 + m.ph) * 0.4;
       });
 
-      // ── Dust field rotation ──
-      dust.rotation.y = t * (isProc ? 0.8 : 0.15);
-      dust.rotation.x = Math.sin(t * 0.3) * 0.1;
+      dust.rotation.y = t * (isProc ? 0.6 : 0.12);
       dust.position.y = lev;
 
-      // ── Orbiting specular light ──
-      orbitLight.position.set(
-        Math.sin(t * 1.0) * 3,
-        Math.cos(t * 0.8) * 2.5,
-        Math.cos(t * 1.0) * 2
-      );
+      ol.position.set(Math.sin(t * 0.9) * 3.2, Math.cos(t * 0.7) * 2.8, Math.cos(t) * 2);
+      ol2.position.set(-Math.cos(t * 0.8) * 2.5, Math.sin(t * 1.1) * 2, Math.sin(t * 0.6) * 3);
 
-      renderer.render(scene, camera);
+      ren.render(scene, cam);
     };
-    animate();
+    loop();
 
-    // ─── Resize handling ─────────────────────────────────────────────
     const onResize = () => {
-      if (!container) return;
-      const nw = container.clientWidth || 260;
-      const nh = container.clientHeight || 260;
-      camera.aspect = nw / nh;
-      camera.updateProjectionMatrix();
-      renderer.setSize(nw, nh);
+      if (!el) return;
+      const nw = el.clientWidth || 260, nh = el.clientHeight || 260;
+      cam.aspect = nw / nh;
+      cam.updateProjectionMatrix();
+      ren.setSize(nw, nh);
     };
     window.addEventListener('resize', onResize);
 
-    // ─── Cleanup ─────────────────────────────────────────────────────
     return () => {
       window.removeEventListener('resize', onResize);
-      cancelAnimationFrame(animId);
-      if (container && renderer.domElement) container.removeChild(renderer.domElement);
-      [coreGeo, coreMat, shellGeo, shellMat, nucleusGeo, nucleusMat, dustGeo, dustMat]
-        .forEach(d => d.dispose());
-      rings.forEach(r => { r.geo.dispose(); r.mat.dispose(); });
-      motes.forEach(m => { m.geo.dispose(); m.mat.dispose(); });
-      renderer.dispose();
+      cancelAnimationFrame(anim);
+      if (el && ren.domElement) el.removeChild(ren.domElement);
+      [cGeo, cMat, sGeo, sMat, nGeo, nMat, dGeo, dMat].forEach(d => d.dispose());
+      rings.forEach(r => { r.g.dispose(); r.m.dispose(); });
+      motes.forEach(m => { m.g.dispose(); m.m.dispose(); });
+      ren.dispose();
     };
   }, []);
 
@@ -389,46 +330,34 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
   const isProcessing = state === 'PROCESSING' || state === 'RETRIEVING' || state === 'GENERATING';
 
   return (
-    <div className="relative flex flex-col items-center justify-center select-none py-1">
-
-      {/* Expanding ripple halos for active states */}
-      {isListening && (
+    <div className="relative flex flex-col items-center justify-center select-none">
+      {/* CSS ripple halos for active states */}
+      {(isListening || isSpeaking) && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-56 h-56 sm:w-68 sm:h-68 rounded-full border-2 border-cyan-400/30 animate-[ping_2.2s_cubic-bezier(0,0,0.2,1)_infinite]" />
-          <div className="absolute w-64 h-64 sm:w-76 sm:h-76 rounded-full border border-sky-300/20 animate-[ping_2.8s_cubic-bezier(0,0,0.2,1)_infinite_0.4s]" />
-        </div>
-      )}
-      {isSpeaking && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-56 h-56 sm:w-68 sm:h-68 rounded-full border-2 border-purple-400/30 animate-[ping_1.8s_cubic-bezier(0,0,0.2,1)_infinite]" />
-          <div className="absolute w-64 h-64 sm:w-76 sm:h-76 rounded-full border border-violet-300/20 animate-[ping_2.4s_cubic-bezier(0,0,0.2,1)_infinite_0.3s]" />
+          <div className={`w-56 h-56 sm:w-64 sm:h-64 rounded-full border-2 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite] ${
+            isListening ? 'border-cyan-400/25' : 'border-violet-400/25'
+          }`} />
+          <div className={`absolute w-64 h-64 sm:w-72 sm:h-72 rounded-full border animate-[ping_2.6s_cubic-bezier(0,0,0.2,1)_infinite_0.3s] ${
+            isListening ? 'border-sky-300/15' : 'border-purple-300/15'
+          }`} />
         </div>
       )}
 
-      {/* Clickable container */}
       <div
         onClick={onClick}
         className="relative group cursor-pointer active:scale-[0.96] transition-transform duration-200 flex items-center justify-center"
-        role="button"
-        tabIndex={0}
-        aria-label="Activate voice assistant"
+        role="button" tabIndex={0} aria-label="Activate voice assistant"
       >
-        {/* Ambient glow backdrop */}
-        <div className={`absolute -inset-4 rounded-full blur-3xl transition-all duration-700 pointer-events-none ${
-          isListening
-            ? 'bg-cyan-400/35 scale-115'
-            : isSpeaking
-              ? 'bg-violet-500/35 scale-115'
-              : isProcessing
-                ? 'bg-amber-400/30 scale-110'
-                : 'bg-blue-400/20 group-hover:bg-blue-500/30 group-hover:scale-110'
+        {/* Ambient glow */}
+        <div className={`absolute -inset-5 rounded-full blur-3xl transition-all duration-700 pointer-events-none ${
+          isListening   ? 'bg-cyan-400/30 scale-[1.15]' :
+          isSpeaking    ? 'bg-violet-500/30 scale-[1.15]' :
+          isProcessing  ? 'bg-amber-400/25 scale-110' :
+                          'bg-blue-400/15 group-hover:bg-blue-500/25 group-hover:scale-110'
         }`} />
 
-        {/* 3D WebGL Canvas — the orb is the entire interactive element */}
-        <div
-          ref={mountRef}
-          className="w-52 h-52 sm:w-60 sm:h-60 relative z-10 pointer-events-none"
-        />
+        {/* 3D Canvas */}
+        <div ref={mountRef} className="w-56 h-56 sm:w-64 sm:h-64 relative z-10 pointer-events-none" />
       </div>
     </div>
   );
