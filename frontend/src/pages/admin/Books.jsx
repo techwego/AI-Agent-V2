@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit, Trash2, X, BookOpen, Filter, RefreshCw } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, X, BookOpen, RefreshCw } from 'lucide-react';
 import { getBooks, createBook, updateBook, deleteBook } from '../../api/client';
 import { useToast } from '../../components/Toast';
 
@@ -112,99 +112,102 @@ const Books = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto h-full flex flex-col pb-10">
+    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto h-full flex flex-col pb-4">
       
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <BookOpen className="text-blue-600" /> Books & Shelf Directory
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <BookOpen className="text-blue-600 shrink-0" size={22} /> 
+            <span>Books & Shelf Directory</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-1">Manage physical book locations, floor codes, and shelf allocations.</p>
+          <p className="text-xs text-slate-500 mt-0.5">Manage physical book locations, floor codes, and shelf allocations.</p>
         </div>
-        <div className="flex gap-2.5">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <button 
             onClick={fetchBooks} 
             disabled={loading}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             <span>Refresh</span>
           </button>
           <button 
             onClick={openAddModal} 
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-600/20 transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-600/20 transition-all active:scale-95 whitespace-nowrap"
           >
             <Plus size={15} />
-            <span>Add New Book</span>
+            <span>Add Book</span>
           </button>
         </div>
       </div>
 
       {/* Table Container */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden min-h-0">
         
         {/* Search Filter Bar */}
-        <div className="p-4 border-b border-slate-100 flex gap-4 bg-slate-50/50">
+        <div className="p-3 sm:p-4 border-b border-slate-100 flex gap-3 bg-slate-50/50">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+            <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400" size={15} />
             <input 
               type="text" 
-              placeholder="Search catalog by title, author, or shelf rack code..."
+              placeholder="Search catalog by title, author, or rack..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium"
+              className="w-full bg-white border border-slate-200 rounded-xl pl-9 sm:pl-10 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium"
             />
           </div>
         </div>
 
-        {/* Table Content */}
-        <div className="flex-1 overflow-auto">
+        {/* Table Content with fluid responsive widths & zero horizontal overflow */}
+        <div className="flex-1 overflow-y-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
+            <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200 text-slate-600">
               <tr>
-                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">Book & Author</th>
-                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider hidden md:table-cell">Department</th>
-                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider">3D Wayfinder Rack</th>
-                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider hidden sm:table-cell">Availability</th>
-                <th className="px-6 py-3.5 font-bold text-slate-600 uppercase tracking-wider text-right">Actions</th>
+                <th className="px-3 sm:px-5 py-3 font-bold uppercase tracking-wider">Book & Author</th>
+                <th className="px-3 sm:px-4 py-3 font-bold uppercase tracking-wider hidden md:table-cell">Department</th>
+                <th className="px-3 sm:px-4 py-3 font-bold uppercase tracking-wider">3D Rack</th>
+                <th className="px-3 sm:px-4 py-3 font-bold uppercase tracking-wider hidden sm:table-cell">Stock</th>
+                <th className="px-3 sm:px-4 py-3 font-bold uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {loading ? (
                 [...Array(8)].map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
-                    <td className="px-6 py-4"><div className="h-3.5 bg-slate-200 rounded w-48 mb-1.5" /><div className="h-2.5 bg-slate-100 rounded w-24" /></td>
-                    <td className="px-6 py-4 hidden md:table-cell"><div className="h-3.5 bg-slate-200 rounded w-24" /></td>
-                    <td className="px-6 py-4"><div className="h-3.5 bg-slate-200 rounded w-16" /></td>
-                    <td className="px-6 py-4 hidden sm:table-cell"><div className="h-3.5 bg-slate-200 rounded w-12" /></td>
-                    <td className="px-6 py-4"><div className="h-6 bg-slate-100 rounded w-14 ml-auto" /></td>
+                    <td className="px-3 sm:px-5 py-3.5"><div className="h-3.5 bg-slate-200 rounded w-36 sm:w-48 mb-1.5" /><div className="h-2.5 bg-slate-100 rounded w-20 sm:w-24" /></td>
+                    <td className="px-3 sm:px-4 py-3.5 hidden md:table-cell"><div className="h-3.5 bg-slate-200 rounded w-20" /></td>
+                    <td className="px-3 sm:px-4 py-3.5"><div className="h-3.5 bg-slate-200 rounded w-14" /></td>
+                    <td className="px-3 sm:px-4 py-3.5 hidden sm:table-cell"><div className="h-3.5 bg-slate-200 rounded w-12" /></td>
+                    <td className="px-3 sm:px-4 py-3.5 text-right"><div className="h-5 bg-slate-100 rounded w-12 ml-auto" /></td>
                   </tr>
                 ))
               ) : currentBooks.length > 0 ? (
                 currentBooks.map((book) => (
                   <tr key={book.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-6 py-3.5">
-                      <div className="font-bold text-slate-900 text-xs">{book.title}</div>
-                      <div className="text-slate-400 text-[11px] mt-0.5">{book.author}</div>
+                    <td className="px-3 sm:px-5 py-3">
+                      <div className="font-bold text-slate-900 text-xs line-clamp-1 sm:line-clamp-2">{book.title}</div>
+                      <div className="text-slate-400 text-[11px] mt-0.5 truncate">{book.author || 'Unknown Author'}</div>
                     </td>
-                    <td className="px-6 py-3.5 text-slate-600">{book.department || '—'}</td>
-                    <td className="px-6 py-3.5">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                    <td className="px-3 sm:px-4 py-3 text-slate-600 hidden md:table-cell truncate max-w-[150px]">
+                      {book.department || '—'}
+                    </td>
+                    <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                         {book.rack ? `Rack ${book.rack}` : '—'}
                       </span>
                       <div className="text-slate-400 text-[10px] mt-0.5">Floor {book.floor || '1'}</div>
                     </td>
-                    <td className="px-6 py-3.5">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200">
-                        {book.available !== undefined ? book.available : book.copies} / {book.copies || 0} copies
+                    <td className="px-3 sm:px-4 py-3 hidden sm:table-cell whitespace-nowrap">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-[10px] sm:text-[11px] font-semibold border border-slate-200">
+                        {book.available !== undefined ? book.available : book.copies} / {book.copies || 0}
                       </span>
                     </td>
-                    <td className="px-6 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
                         <button 
                           onClick={() => openEditModal(book)} 
                           className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
@@ -225,7 +228,7 @@ const Books = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-slate-400 text-xs">
+                  <td colSpan="5" className="px-4 py-12 text-center text-slate-400 text-xs">
                     No books matched the search criteria.
                   </td>
                 </tr>
@@ -235,25 +238,25 @@ const Books = () => {
         </div>
         
         {/* Pagination */}
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-slate-50/50">
-          <span>
-            Showing <strong>{totalItems > 0 ? startIndex + 1 : 0}</strong> to <strong>{endIndex}</strong> of <strong>{totalItems}</strong> entries
+        <div className="p-3 sm:p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-slate-50/50">
+          <span className="text-[11px] sm:text-xs">
+            <strong>{totalItems > 0 ? startIndex + 1 : 0}</strong>-<strong>{endIndex}</strong> of <strong>{totalItems}</strong>
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button 
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
-              className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 shadow-sm transition-colors"
+              className="px-2.5 sm:px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 shadow-sm transition-colors text-xs"
             >
-              Previous
+              Prev
             </button>
-            <span className="px-2 font-semibold text-slate-800">
-              {page} / {totalPages || 1}
+            <span className="px-1.5 font-semibold text-slate-800 text-xs">
+              {page}/{totalPages || 1}
             </span>
             <button 
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages || totalPages === 0 || loading}
-              className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 shadow-sm transition-colors"
+              className="px-2.5 sm:px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 shadow-sm transition-colors text-xs"
             >
               Next
             </button>
@@ -264,17 +267,17 @@ const Books = () => {
       {/* Add / Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 w-full max-w-lg shadow-2xl animate-[fadeIn_0.2s_ease-out]">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold text-slate-900">
+          <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-7 w-full max-w-lg shadow-2xl animate-[fadeIn_0.2s_ease-out] max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">
                 {editingBook ? 'Edit Book Record' : 'Add New Book to Catalog'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-700">
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-700 p-1">
                 <X size={18} />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium">
+            <form onSubmit={handleSubmit} className="space-y-3.5 text-xs font-medium">
               <div>
                 <label className="block text-slate-700 mb-1 font-semibold">Book Title *</label>
                 <input 
@@ -282,7 +285,7 @@ const Books = () => {
                   type="text" 
                   value={formData.title} 
                   onChange={e => setFormData({...formData, title: e.target.value})} 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
                   placeholder="e.g. Introduction to Algorithms" 
                 />
               </div>
@@ -293,18 +296,18 @@ const Books = () => {
                   type="text" 
                   value={formData.author} 
                   onChange={e => setFormData({...formData, author: e.target.value})} 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
                   placeholder="e.g. Thomas H. Cormen" 
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-700 mb-1 font-semibold">Department</label>
                   <input 
                     type="text" 
                     value={formData.department} 
                     onChange={e => setFormData({...formData, department: e.target.value})} 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
                     placeholder="Computer Science" 
                   />
                 </div>
@@ -314,19 +317,19 @@ const Books = () => {
                     type="text" 
                     value={formData.isbn} 
                     onChange={e => setFormData({...formData, isbn: e.target.value})} 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
                     placeholder="978-0262033848" 
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-700 mb-1 font-semibold">3D Rack Location</label>
                   <input 
                     type="text" 
                     value={formData.rack} 
                     onChange={e => setFormData({...formData, rack: e.target.value})} 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
                     placeholder="e.g. C4 or A1" 
                   />
                 </div>
@@ -336,7 +339,7 @@ const Books = () => {
                     type="text" 
                     value={formData.floor} 
                     onChange={e => setFormData({...formData, floor: e.target.value})} 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
                     placeholder="1 or 2" 
                   />
                 </div>
@@ -349,7 +352,7 @@ const Books = () => {
                     min="0" 
                     value={formData.available} 
                     onChange={e => setFormData({...formData, available: e.target.value})} 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
                   />
                 </div>
                 <div>
@@ -360,24 +363,24 @@ const Books = () => {
                     min="0" 
                     value={formData.copies} 
                     onChange={e => setFormData({...formData, copies: e.target.value})} 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none" 
                   />
                 </div>
               </div>
               
-              <div className="flex gap-2.5 justify-end pt-4 border-t border-slate-100">
+              <div className="flex gap-2.5 justify-end pt-3 border-t border-slate-100">
                 <button 
                   type="button" 
                   onClick={() => setShowModal(false)} 
                   disabled={saving}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={saving}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5"
                 >
                   {saving && <RefreshCw size={14} className="animate-spin" />}
                   <span>{saving ? 'Saving...' : (editingBook ? 'Save Changes' : 'Create Book')}</span>

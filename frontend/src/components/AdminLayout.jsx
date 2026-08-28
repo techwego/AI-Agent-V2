@@ -43,29 +43,48 @@ const AdminLayout = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans relative">
-      {/* Mobile Menu Button & Header */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 z-30 absolute top-0 left-0 right-0 h-16">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white">
-            <GraduationCap size={16} />
+      {/* Mobile Top Header */}
+      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white/95 backdrop-blur-md border-b border-slate-200 z-30 absolute top-0 left-0 right-0 h-14 shadow-sm">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0 shadow-md shadow-blue-500/20">
+            <GraduationCap size={18} />
           </div>
-          <div>
-            <h1 className="text-sm font-bold text-slate-900 leading-tight">Admin Portal</h1>
+          <div className="truncate">
+            <h1 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight truncate">Admin Portal</h1>
+            <p className="text-[9px] text-slate-500 font-semibold truncate">Library Intelligence</p>
           </div>
         </div>
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 bg-slate-100 rounded-lg text-slate-700">
-          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => navigate('/assistant')}
+            className="p-1.5 text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+            title="Open Assistant"
+          >
+            <ArrowUpRight size={14} />
+            <span className="hidden sm:inline text-[11px]">User View</span>
+          </button>
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+            className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 transition-colors"
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        </div>
       </div>
       
-      {/* Mobile overlay */}
+      {/* Mobile drawer backdrop overlay */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+        <div 
+          className="lg:hidden fixed inset-0 bg-slate-900/60 z-40 backdrop-blur-sm transition-opacity" 
+          onClick={() => setIsMobileMenuOpen(false)} 
+        />
       )}
 
-      
-      {/* Sidebar */}
-      <aside className={`w-64 bg-white border-r border-slate-200 flex flex-col z-50 shrink-0 select-none transition-transform duration-300 absolute md:relative h-full ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
+      {/* Sidebar (Responsive drawer on mobile/portrait, pinned on desktop) */}
+      <aside className={`w-64 bg-white border-r border-slate-200 flex flex-col z-50 shrink-0 select-none transition-transform duration-300 ease-in-out fixed lg:relative h-full shadow-2xl lg:shadow-none ${
+        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      }`}>
         
         {/* Sidebar Brand Header */}
         <div className="h-16 px-5 border-b border-slate-100 flex items-center justify-between">
@@ -78,10 +97,16 @@ const AdminLayout = () => {
               <p className="text-[10px] text-slate-500 font-medium">Library Intelligence</p>
             </div>
           </div>
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+          >
+            <X size={16} />
+          </button>
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
           <div className="px-3 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             Management & Data
           </div>
@@ -94,7 +119,7 @@ const AdminLayout = () => {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                   isActive 
-                    ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' 
+                    ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100 font-bold' 
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`
               }
@@ -136,9 +161,9 @@ const AdminLayout = () => {
         </div>
       </aside>
 
-      {/* Main Admin View Area */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 pt-16 md:pt-0">
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+      {/* Main Admin View Area with optimized responsive padding */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 pt-14 lg:pt-0">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-7">
           <Outlet />
         </div>
       </main>

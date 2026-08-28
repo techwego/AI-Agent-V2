@@ -70,6 +70,7 @@ export const updateDepartment = (id, data) => api.put(`/admin/departments/${id}`
 export const deleteDepartment = (id) => api.delete(`/admin/departments/${id}`);
 
 export const getUsers = () => api.get('/admin/users');
+export const createUser = (data) => api.post('/auth/register', data);
 export const deleteUser = (id) => api.delete(`/admin/users/${id}`);
 
 export const uploadFile = (formData) => api.post('/admin/upload', formData);
