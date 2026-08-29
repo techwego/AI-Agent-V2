@@ -570,17 +570,17 @@ const VoiceAssistant = () => {
             </div>
 
             {/* Scrolling Speech Transcript */}
-            <div className="w-full rounded-2xl p-4 shrink-0 border border-slate-200/80 bg-white/95 backdrop-blur-md shadow-sm flex flex-col max-h-[180px]">
-              <div className="flex items-center justify-between mb-2 shrink-0">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+            <div className="w-full rounded-3xl p-5 sm:p-6 shrink-0 border border-slate-200/80 bg-white/95 backdrop-blur-md shadow-lg flex flex-col min-h-[220px] max-h-[300px] mb-2">
+              <div className="flex items-center justify-between mb-3 shrink-0">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
                   Live Transcript
                 </span>
               </div>
-              <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar text-sm font-medium text-slate-800">
+              <div className="flex-1 overflow-y-auto pr-3 space-y-4 custom-scrollbar text-base sm:text-lg font-medium text-slate-800">
                 {chatMessages.filter(m => m.role !== 'system').map((msg, idx) => (
                   <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`px-3 py-2 rounded-xl max-w-[90%] ${msg.role === 'user' ? 'bg-blue-50 text-blue-900 border border-blue-100' : 'bg-slate-50 text-slate-700 border border-slate-100'}`}>
+                    <div className={`px-4 py-3 rounded-2xl max-w-[90%] shadow-sm ${msg.role === 'user' ? 'bg-blue-50 text-blue-900 border border-blue-100' : 'bg-slate-50 text-slate-700 border border-slate-200'}`}>
                       {msg.content}
                     </div>
                   </div>

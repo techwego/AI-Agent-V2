@@ -29,13 +29,13 @@ const ChatBubble = ({ message, onSpeak, hasRoute, isSpeaking }) => {
 
         {/* Bubble */}
         <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-          <div className={`px-4 py-3 rounded-2xl border relative group ${
+          <div className={`px-5 py-4 rounded-[20px] border relative group ${
             isUser 
               ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-500/50 text-white rounded-br-md shadow-sm' 
-              : 'bg-white border-slate-200/80 text-slate-700 rounded-bl-md shadow-sm'
+              : 'bg-white border-slate-200/80 text-slate-800 rounded-bl-md shadow-sm'
           }`}>
             {content && content.trim() ? (
-              <div className="whitespace-pre-wrap text-[13px] leading-relaxed font-medium">{content.trim()}</div>
+              <div className="whitespace-pre-wrap text-[15px] sm:text-base leading-relaxed font-medium">{content.trim()}</div>
             ) : (
               <div className="flex space-x-1.5 items-center h-5 px-2">
                 <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
