@@ -194,7 +194,11 @@ class SpeechRecognitionManager {
       formData.append('audio', blob, 'recording.webm');
       const token = localStorage.getItem('token') || '';
       
-      const response = await fetch('/api/transcribe', {
+      const API_ROOT = import.meta.env.VITE_API_URL 
+        ? (import.meta.env.VITE_API_URL.endsWith('/api') ? import.meta.env.VITE_API_URL : `${import.meta.env.VITE_API_URL}/api`)
+        : '/api';
+
+      const response = await fetch(`${API_ROOT}/transcribe`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData

@@ -95,7 +95,7 @@ const VoiceAssistant = () => {
 
   useEffect(() => {
     chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages, activeTab, interactionMode]);
+  }, [chatMessages, voiceMessages, activeTab, interactionMode]);
 
   useEffect(() => {
     sttManager.onTranscription((text) => {
@@ -578,7 +578,7 @@ const VoiceAssistant = () => {
                 </span>
               </div>
               <div className="flex-1 overflow-y-auto pr-3 space-y-4 custom-scrollbar text-base sm:text-lg font-medium text-slate-800">
-                {chatMessages.filter(m => m.role !== 'system').map((msg, idx) => (
+                {voiceMessages.filter(m => m.role !== 'system').map((msg, idx) => (
                   <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`px-4 py-3 rounded-2xl max-w-[90%] shadow-sm ${msg.role === 'user' ? 'bg-blue-50 text-blue-900 border border-blue-100' : 'bg-slate-50 text-slate-700 border border-slate-200'}`}>
                       {msg.content}
