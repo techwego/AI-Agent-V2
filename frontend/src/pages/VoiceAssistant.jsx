@@ -562,9 +562,9 @@ const VoiceAssistant = () => {
             </div>
 
             {/* 3D Voice Orb + Status (Perfectly Centered) */}
-            <div className="flex-1 flex flex-col items-center justify-center w-full min-h-[260px]">
+            <div className="flex-1 flex flex-col items-center justify-center w-full min-h-[300px]">
               <VoiceOrb state={conversationState} onClick={handleOrbClick} />
-              <div className="mt-4">
+              <div className="mt-4 z-10">
                 <StatusIndicator state={conversationState} />
               </div>
             </div>
