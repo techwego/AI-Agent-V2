@@ -1015,6 +1015,9 @@ class LibraryRAG:
         if lower_input_clean in ['hi', 'hello', 'hey', 'hi sam', 'hello sam', 'hey sam', 'good morning', 'good afternoon', 'good evening']:
             yield "Hello! How can I help you today? Whether you are looking for a specific book, need information about our opening hours, or want directions to a particular rack, just let me know."
             return
+        if lower_input_clean in ['thank you', 'thanks', 'thank you so much', 'thank you very much', 'thanks a lot']:
+            yield "You're very welcome! Please feel free to ask if you're looking for any specific book, author, or rack in the library."
+            return
 
         try:
             t_embed = time.time()

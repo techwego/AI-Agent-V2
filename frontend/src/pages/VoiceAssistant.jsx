@@ -296,6 +296,18 @@ const VoiceAssistant = () => {
         ttsManager.enqueue(cleanRemaining);
       }
 
+      if (!fullResponse.trim()) {
+        const fallbackMsg = "I couldn't find details for that query. Could you please specify the book title, author, or rack you are looking for?";
+        fullResponse = fallbackMsg;
+        setVoiceMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], content: fallbackMsg };
+          return newMessages;
+        });
+        stateManager.setState(State.SPEAKING);
+        ttsManager.enqueue(fallbackMsg);
+      }
+
       // When full speech playback is complete, return to IDLE
       ttsManager.endStream(() => {
         stateManager.setState(State.IDLE);
