@@ -1,8 +1,8 @@
 # 📊 AI Library Management System — Overview & Release Tracker
 
 > **Project:** Speech-to-Speech AI Library Assistant  
-> **Current Release:** v7.8.9 · Branch `main`  
-> **Date Generated:** 2026-09-04 19:04 IST  
+> **Current Release:** v7.9.0 · Branch `main`  
+> **Date Generated:** 2026-09-04 19:09 IST  
 > **Developer:** Arun P · TechWeGo
 
 ---
@@ -82,7 +82,8 @@ gantt
 | **v7.6.6** | `a60f04c` | 2026-08-29 | 15:35 IST | Voice UI | fix: map voiceMessages instead of chatMessages in Voice Mode transcript, fix scroll ref | ✅ Stable |
 | v7.6.5 | `4ac0b98` | 2026-08-29 | 14:07 IST | Chat UI | feat: add dotlottie animation for empty chat state, update UI | ✅ Deployed |
 | v7.6.4 | `f91bb0e` | 2026-08-29 | 10:34 IST | Chat UI | feat: increase chat text size, add 3D particle background, ensure robust AI latency handling | ✅ Deployed |
-| v7.8.9 | `TBD` | 2026-09-04 | 19:04 IST | Frontend | feat(ui): remove redundant hardcoded proactive greeting so orb click jumps straight to listening | ✅ Deployed |
+| v7.9.0 | `TBD` | 2026-09-04 | 19:09 IST | Frontend | feat(ui): restore one-time hardcoded intro on first orb click, and intercept first chat 'hi' to use the same intro without LLM calls | ✅ Deployed |
+| v7.8.9 | `06a66f1` | 2026-09-04 | 19:04 IST | Frontend | feat(ui): remove redundant hardcoded proactive greeting so orb click jumps straight to listening | ✅ Deployed |
 | v7.8.8 | `b56de5a` | 2026-09-04 | 18:55 IST | Frontend | fix(ui): resolve j.map crash and massive WebGL context leak caused by unstable function references rendering 3D map | ✅ Deployed |
 | v7.8.7 | `4c7ae4a` | 2026-09-04 | 18:41 IST | Backend | fix(config): force python-dotenv to override cached terminal OS variables | ✅ Deployed |
 | v7.8.6 | `2c5c88e` | 2026-09-04 | 18:35 IST | Backend | fix: change LLM to openai/gpt-oss-20b due to Groq API key restrictions | ✅ Deployed |

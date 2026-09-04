@@ -35,14 +35,8 @@ const VoiceAssistant = () => {
   // SEPARATE CONVERSATION STATES (DO NOT COMBINE VOICE & CHAT)
   // -------------------------------------------------------------
   const [voiceMessages, setVoiceMessages] = useState([]);
-  
-  const [chatMessages, setChatMessages] = useState([
-    { 
-      role: 'assistant', 
-      content: "Hello! I'm Sam, your AI Library Assistant. I can help you search books, verify shelf availability, and guide you through the library. How can I help you today?", 
-      timestamp: Date.now() 
-    }
-  ]);
+  const [chatMessages, setChatMessages] = useState([]);
+  const hasIntroducedRef = useRef(false);
 
   const [input, setInput] = useState('');
   const [fsInput, setFsInput] = useState('');
@@ -203,6 +197,28 @@ const VoiceAssistant = () => {
     }
     if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) return;
     
+    // Initial greeting for Voice Mode
+    if (!hasIntroducedRef.current && currentState === State.IDLE) {
+      hasIntroducedRef.current = true;
+
+      const hour = new Date().getHours();
+      let greeting = 'Good evening';
+      if (hour < 12) greeting = 'Good morning';
+      else if (hour < 17) greeting = 'Good afternoon';
+      
+      const welcomeText = `${greeting}! I am Sam, your AI Library Assistant. Which book or rack are you looking for today?`;
+      
+      setVoiceMessages([{ role: 'assistant', content: welcomeText, timestamp: Date.now() }]);
+
+      stateManager.setState(State.INTRODUCING);
+      ttsManager.speak(welcomeText, () => {
+        if (stateManager.getState() === State.INTRODUCING) {
+          stateManager.setState(State.IDLE);
+        }
+      });
+      return;
+    }
+
     startListening();
   }, [handleInterrupt, startListening]);
 
@@ -330,6 +346,24 @@ const VoiceAssistant = () => {
       setInput('');
     } else {
       setFsInput('');
+    }
+
+    const isFirstMessage = chatMessages.length === 0;
+    const isGreeting = /^(hi|hello|hey|good morning|good afternoon|good evening|greetings)\b/i.test(queryText.trim());
+
+    if (isFirstMessage && isGreeting) {
+      const hour = new Date().getHours();
+      let greeting = 'Good evening';
+      if (hour < 12) greeting = 'Good morning';
+      else if (hour < 17) greeting = 'Good afternoon';
+      
+      const welcomeText = `${greeting}! I am Sam, your AI Library Assistant. Which book or rack are you looking for today?`;
+      
+      setChatMessages([
+        { role: 'user', content: queryText, timestamp: Date.now() },
+        { role: 'assistant', content: welcomeText, timestamp: Date.now() + 1 }
+      ]);
+      return;
     }
 
     const newMessages = [...chatMessages, { role: 'user', content: queryText, timestamp: Date.now() }];
