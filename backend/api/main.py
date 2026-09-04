@@ -1,4 +1,5 @@
 import os
+import asyncio
 import sys
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if PROJECT_ROOT not in sys.path:
@@ -233,25 +234,14 @@ async def chat(request: ChatRequest):
 import tempfile
 from groq import Groq
 
-WHISPER_HALLUCINATIONS = {
-    'thank you', 'thank you.', 'thanks', 'thanks.', 'thank you very much.',
-    'thank you so much.', 'thank you for watching.', 'thanks for watching.',
-    'subtitles by', 'you', 'bye', 'goodbye', 'please subscribe', 'subscribe',
-    'mbc', 'sous-titres', 'watching', 'the end', 'amara.org', 'thank you very much',
-    'thank you so much', 'thank you for watching', 'thanks for watching'
-}
-
 @app.post("/api/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...)):
+    """Transcribe audio using Groq Whisper — matches proven v6.0.0 implementation."""
     if not Config.GROQ_API_KEY:
         raise HTTPException(status_code=500, detail="Groq API key not configured")
     
-    file_bytes = await audio.read()
-    if len(file_bytes) < 200:
-        return {"text": ""}
-
     with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
-        temp_audio.write(file_bytes)
+        shutil.copyfileobj(audio.file, temp_audio)
         temp_audio_path = temp_audio.name
 
     try:
@@ -263,14 +253,11 @@ async def transcribe_audio(audio: UploadFile = File(...)):
                 response_format="json",
             )
         
-        raw_text = (transcription.text or "").strip()
-        print(f"[TRANSCRIBE] Received {len(file_bytes)} bytes audio -> Whisper result: '{raw_text}'")
-        normalized = raw_text.lower().strip(".!,? ")
-        if normalized in WHISPER_HALLUCINATIONS or len(normalized) < 2:
-            return {"text": ""}
-
-        return {"text": raw_text}
+        result_text = (transcription.text or "").strip()
+        print(f"[TRANSCRIBE] Whisper result: '{result_text}'")
+        return {"text": result_text}
     except Exception as e:
+        print(f"[TRANSCRIBE] Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if os.path.exists(temp_audio_path):
