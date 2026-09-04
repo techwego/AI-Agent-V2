@@ -22,7 +22,7 @@ class SpeechRecognitionManager {
     this.maxListeningTimer = null;
 
     this.hasSpoken = false;
-    this.SILENCE_THRESHOLD = 15; // Match v6.0.0
+    this.SILENCE_THRESHOLD = 3; // Lowered to 3 for quiet Realtek mics
     this.FFT_SIZE = 512;
 
     // Callbacks
@@ -52,8 +52,14 @@ class SpeechRecognitionManager {
         if (this.stream) {
           try { this.stream.getTracks().forEach(t => t.stop()); } catch(e){}
         }
-        // Match v6.0.0: simple { audio: true } — no constraints that fight Realtek drivers
-        this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Disable aggressive Chromium noise suppression which mutes Realtek arrays
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: true
+          }
+        });
       }
 
       const track = this.stream.getAudioTracks()[0];
@@ -84,15 +90,14 @@ class SpeechRecognitionManager {
       };
 
       this.mediaRecorder.onstop = async () => {
-        // ALWAYS send to server for transcription — let Whisper decide
-        // This is the v6.0.0 approach: never filter on the client side
-        if (this.audioChunks.length > 0) {
+        // Only send if speech was actually detected, otherwise it's just silence
+        if (this.audioChunks.length > 0 && this.hasSpoken) {
           const audioBlob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
           console.log(`[STT] MediaRecorder stopped. Size: ${audioBlob.size} bytes, hasSpoken: ${this.hasSpoken}, chunks: ${this.audioChunks.length}`);
           await this.sendForTranscription(audioBlob);
         } else {
-          console.log('[STT] MediaRecorder stopped with 0 chunks');
-          // Only fire silence callback if absolutely no audio was captured
+          console.log(`[STT] MediaRecorder stopped. No speech detected (hasSpoken: false). Dropping ${this.audioChunks.length} chunks.`);
+          // Fire silence callback since no speech was detected
           if (this.silenceTimeoutCallback) {
             this.silenceTimeoutCallback();
           }
