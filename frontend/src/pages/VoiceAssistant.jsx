@@ -190,8 +190,12 @@ const VoiceAssistant = () => {
       return; 
     }
     if (currentState === State.LISTENING) { 
+      // Don't force IDLE here — sttManager.stopListening() will fire the
+      // transcriptionCallback (sync if interim text exists, async if Whisper
+      // upload is needed). That callback calls handleVoiceInput which sets
+      // PROCESSING → RETRIEVING → GENERATING → SPEAKING.
+      // If no speech was captured at all, silenceTimeoutCallback resets to IDLE.
       sttManager.stopListening(); 
-      stateManager.setState(State.IDLE); 
       return; 
     }
     if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) return;
