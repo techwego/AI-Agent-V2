@@ -2,7 +2,7 @@ import os
 from typing import Optional
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 def _parse_bool(val: str, default: bool = False) -> bool:
     if not val:
