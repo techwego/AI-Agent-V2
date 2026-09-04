@@ -14,7 +14,7 @@ class Config:
     GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
     
     # Models
-    GROQ_MODEL: str = os.environ.get("GROQ_MODEL", "llama3-70b-8192")
+    GROQ_MODEL: str = os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b")
     EMBEDDING_MODEL: str = os.environ.get("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
     RERANKER_MODEL: str = os.environ.get("RERANKER_MODEL", "Xenova/ms-marco-MiniLM-L-6-v2")
     
