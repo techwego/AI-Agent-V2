@@ -174,7 +174,8 @@ const VoiceAssistant = () => {
   const handleOrbClick = useCallback(() => {
     const currentState = stateManager.getState();
     if (currentState === State.SPEAKING || currentState === State.INTRODUCING) { 
-      handleInterrupt(); 
+      // Interrupt Sam and start listening to user speech immediately
+      startListening(); 
       return; 
     }
     if (currentState === State.LISTENING) { 
@@ -204,8 +205,8 @@ const VoiceAssistant = () => {
 
       stateManager.setState(State.INTRODUCING);
       ttsManager.speak(welcomeText, () => {
-        // After self-introduction, return to IDLE so the user can click to speak
-        stateManager.setState(State.IDLE);
+        // Automatically start listening immediately so user can ask their question right away
+        startListening();
       });
       return;
     }

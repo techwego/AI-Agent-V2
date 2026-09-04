@@ -232,14 +232,14 @@ class SpeechRecognitionManager {
 
       const data = await response.json();
       const text = (data.text || '').trim();
-      if (text && !this.isHallucination(text)) {
+      if (text) {
         this.transcriptionReceived = true;
         console.log('[STT] Transcribed successfully:', text);
         if (this.transcriptionCallback) {
           this.transcriptionCallback(text);
         }
       } else {
-        console.log('[STT] Filtered empty/hallucinated text:', text);
+        console.log('[STT] No transcription received');
         if (this.errorCallback) {
           this.errorCallback("I didn't catch that. Please speak again.");
         }

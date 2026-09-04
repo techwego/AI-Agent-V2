@@ -283,10 +283,7 @@ async def transcribe_audio(audio: UploadFile = File(...)):
             )
         
         raw_text = transcription.text.strip() if transcription and transcription.text else ""
-        if is_stt_hallucination(raw_text):
-            print(f"[STT] Filtered out Whisper hallucination: '{raw_text}'")
-            return {"text": ""}
-            
+        print(f"[STT] Whisper transcribed: '{raw_text}'")
         return {"text": raw_text}
     except Exception as e:
         print(f"[STT] Transcription error: {e}")
