@@ -99,11 +99,17 @@ const VoiceAssistant = () => {
 
   useEffect(() => {
     sttManager.onTranscription((text) => {
-      if (text && text.trim()) {
+      const normalized = (text || '').toLowerCase().trim().replace(/[.,!?]/g, "");
+      const hallucinations = [
+        "thank you", "thanks", "thank you very much", "thank you so much",
+        "thanks for watching", "thank you for watching", "subtitles by", "you"
+      ];
+
+      if (text && text.trim() && !hallucinations.includes(normalized)) {
         handleVoiceInput(text.trim());
       } else {
         stateManager.setState(State.IDLE);
-        showToast("I didn't catch that. Please speak again.", 'info');
+        // Silently reset without annoying the user with a popup
       }
     });
 
@@ -112,10 +118,9 @@ const VoiceAssistant = () => {
       showToast(errorMsg, 'error');
     });
 
-    // Silence timeout: no speech detected, return to idle with a gentle prompt
+    // Silence timeout: no speech detected, return to idle silently
     sttManager.onSilenceTimeout(() => {
       stateManager.setState(State.IDLE);
-      showToast("I didn't catch that. Please speak again.", 'info');
     });
 
     // Live interim transcript: show partial words as user speaks

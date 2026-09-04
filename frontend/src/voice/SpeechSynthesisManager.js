@@ -247,6 +247,21 @@ class SpeechSynthesisManager {
   isSpeaking() {
     return this.speaking || (('speechSynthesis' in window) && window.speechSynthesis.speaking);
   }
+
+  startStream() {
+    this.cancel();
+  }
+
+  endStream(onEnd) {
+    this.onAllFinished = onEnd;
+    if (this.queue.length === 0 && !this.isProcessingQueue) {
+      if (this.onAllFinished) {
+        const cb = this.onAllFinished;
+        this.onAllFinished = null;
+        cb();
+      }
+    }
+  }
 }
 
 const ttsManager = new SpeechSynthesisManager();
