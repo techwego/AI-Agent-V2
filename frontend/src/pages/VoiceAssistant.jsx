@@ -426,14 +426,19 @@ const VoiceAssistant = () => {
     }
   };
 
-  const handleRackClick = (rackId) => {
+  const handleRackClick = useCallback((rackId) => {
     setRouteTo(rackId);
     showToast(`Destination set to Rack ${rackId}`, 'info');
-  };
+  }, [showToast]);
 
-  const handleRouteComplete = (steps) => {
+  const handleRouteComplete = useCallback((destCode, steps) => {
+    // onRouteComplete provides destCode as first arg, steps as second
     setRouteSteps(steps || []);
-  };
+  }, []);
+
+  const handleConfigLoaded = useCallback((c) => {
+    setTotalFloors(c.floors || 2);
+  }, []);
 
   const handleCloseFullscreenMap = () => {
     setIsMapFullscreen(false);
@@ -823,7 +828,7 @@ const VoiceAssistant = () => {
               activeFloor={activeFloor}
               onRackClick={handleRackClick}
               onRouteComplete={handleRouteComplete}
-              onConfigLoaded={(c) => setTotalFloors(c.floors || 2)}
+              onConfigLoaded={handleConfigLoaded}
             />
 
             {/* Turn-by-Turn Guidance Overlay */}
