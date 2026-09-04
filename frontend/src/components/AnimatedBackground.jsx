@@ -8,105 +8,226 @@ const AnimatedBackground = () => {
     const container = mountRef.current;
     if (!container) return;
 
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // 1. Scene & Camera Setup
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 200;
+    camera.position.z = 240;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
+    // 2. High-Efficiency WebGL Renderer
+    const renderer = new THREE.WebGLRenderer({ 
+      alpha: true, 
+      antialias: true, 
+      powerPreference: 'low-power' 
+    });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     container.appendChild(renderer.domElement);
 
-    const particleCount = 400;
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
+    // 3. Constellation Nodes & Particle Field (Digital Knowledge Mesh)
+    const nodeCount = 180;
+    const nodeGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(nodeCount * 3);
     const velocities = [];
 
-    for (let i = 0; i < particleCount; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 600;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 600;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 400;
-      
+    for (let i = 0; i < nodeCount; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 550;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 450;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 300;
+
       velocities.push({
-        x: (Math.random() - 0.5) * 0.2,
-        y: (Math.random() - 0.5) * 0.2,
-        z: (Math.random() - 0.5) * 0.2
+        x: (Math.random() - 0.5) * (prefersReducedMotion ? 0.02 : 0.15),
+        y: (Math.random() - 0.5) * (prefersReducedMotion ? 0.02 : 0.15),
+        z: (Math.random() - 0.5) * (prefersReducedMotion ? 0.02 : 0.15)
       });
     }
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    nodeGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-    const material = new THREE.PointsMaterial({
-      color: 0x3b82f6, // Blue-500
-      size: 2.5,
+    const nodeMaterial = new THREE.PointsMaterial({
+      color: 0x38bdf8, // Electric Cyan
+      size: 3.0,
       transparent: true,
-      opacity: 0.6,
-      blending: THREE.NormalBlending,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
       sizeAttenuation: true
     });
 
-    const particles = new THREE.Points(geometry, material);
-    scene.add(particles);
+    const nodes = new THREE.Points(nodeGeometry, nodeMaterial);
+    scene.add(nodes);
 
-    const shapes = new THREE.Group();
-    const bgMaterials = [
-      new THREE.MeshBasicMaterial({ color: 0x818cf8, wireframe: true, transparent: true, opacity: 0.1 }),
-      new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.1 })
+    // 4. Dynamic Connecting Light Strands (Network Graph Lines)
+    const lineMaterial = new THREE.LineBasicMaterial({
+      color: 0x6366f1, // Royal Indigo
+      transparent: true,
+      opacity: 0.18,
+      blending: THREE.AdditiveBlending
+    });
+
+    const maxConnections = 300;
+    const linePositions = new Float32Array(maxConnections * 6);
+    const lineGeometry = new THREE.BufferGeometry();
+    lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+    const lineMesh = new THREE.LineSegments(lineGeometry, lineMaterial);
+    scene.add(lineMesh);
+
+    // 5. Floating 3D Wireframe Book Volumes & Scholar Crystals
+    const floatingGroup = new THREE.Group();
+    const wireMaterials = [
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.18 }), // Cyan
+      new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true, transparent: true, opacity: 0.15 }), // Scholar Gold
+      new THREE.MeshBasicMaterial({ color: 0x818cf8, wireframe: true, transparent: true, opacity: 0.16 }), // Indigo
     ];
-    
-    for (let i = 0; i < 5; i++) {
-      const geo = i % 2 === 0 ? new THREE.IcosahedronGeometry(20 + Math.random() * 20, 1) : new THREE.OctahedronGeometry(25 + Math.random() * 15, 1);
-      const mesh = new THREE.Mesh(geo, bgMaterials[i % 2]);
-      mesh.position.set(
-        (Math.random() - 0.5) * 300,
-        (Math.random() - 0.5) * 300,
-        (Math.random() - 0.5) * 150 - 50
-      );
-      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-      mesh.userData = {
-        rx: (Math.random() - 0.5) * 0.005,
-        ry: (Math.random() - 0.5) * 0.005,
-        rz: (Math.random() - 0.5) * 0.005
-      };
-      shapes.add(mesh);
-    }
-    scene.add(shapes);
 
+    // Helper: Create a stylized wireframe 3D Book
+    const createBookMesh = (w, h, d, mat) => {
+      const geo = new THREE.BoxGeometry(w, h, d, 2, 2, 2);
+      return new THREE.Mesh(geo, mat);
+    };
+
+    for (let i = 0; i < 8; i++) {
+      let mesh;
+      const mat = wireMaterials[i % 3];
+      if (i % 2 === 0) {
+        // Book volume
+        mesh = createBookMesh(16 + Math.random() * 8, 22 + Math.random() * 10, 5 + Math.random() * 4, mat);
+      } else {
+        // Knowledge crystal / polyhedral node
+        const geo = i % 3 === 0 ? new THREE.OctahedronGeometry(14 + Math.random() * 8, 1) : new THREE.IcosahedronGeometry(12 + Math.random() * 6, 1);
+        mesh = new THREE.Mesh(geo, mat);
+      }
+
+      mesh.position.set(
+        (Math.random() - 0.5) * 400,
+        (Math.random() - 0.5) * 320,
+        (Math.random() - 0.5) * 200 - 30
+      );
+      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      mesh.userData = {
+        rx: (Math.random() - 0.5) * (prefersReducedMotion ? 0.001 : 0.004),
+        ry: (Math.random() - 0.5) * (prefersReducedMotion ? 0.001 : 0.005),
+        rz: (Math.random() - 0.5) * (prefersReducedMotion ? 0.001 : 0.003),
+        initY: mesh.position.y,
+        floatSpeed: 0.001 + Math.random() * 0.002
+      };
+      floatingGroup.add(mesh);
+    }
+    scene.add(floatingGroup);
+
+    // 6. Interactive Mouse Parallax
+    let mouseX = 0;
+    let mouseY = 0;
+    let targetX = 0;
+    let targetY = 0;
+
+    const handleMouseMove = (e) => {
+      if (prefersReducedMotion) return;
+      mouseX = (e.clientX - window.innerWidth / 2) * 0.04;
+      mouseY = (e.clientY - window.innerHeight / 2) * 0.04;
+    };
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+
+    // 7. Animation Loop with Tab Visibility Performance Guard
     let animationFrameId;
+    let isPaused = false;
+    let clock = new THREE.Clock();
 
     const animate = () => {
+      if (isPaused) return;
       animationFrameId = requestAnimationFrame(animate);
 
-      const posAttr = geometry.attributes.position;
-      for (let i = 0; i < particleCount; i++) {
-        posAttr.array[i * 3] += velocities[i].x;
-        posAttr.array[i * 3 + 1] += velocities[i].y;
-        posAttr.array[i * 3 + 2] += velocities[i].z;
+      const elapsedTime = clock.getElapsedTime();
 
-        if (posAttr.array[i * 3] > 300) posAttr.array[i * 3] = -300;
-        if (posAttr.array[i * 3] < -300) posAttr.array[i * 3] = 300;
-        if (posAttr.array[i * 3 + 1] > 300) posAttr.array[i * 3 + 1] = -300;
-        if (posAttr.array[i * 3 + 1] < -300) posAttr.array[i * 3 + 1] = 300;
-        if (posAttr.array[i * 3 + 2] > 200) posAttr.array[i * 3 + 2] = -200;
-        if (posAttr.array[i * 3 + 2] < -200) posAttr.array[i * 3 + 2] = 200;
+      // Smooth camera parallax
+      targetX += (mouseX - targetX) * 0.05;
+      targetY += (mouseY - targetY) * 0.05;
+      camera.position.x = targetX;
+      camera.position.y = -targetY;
+      camera.lookAt(scene.position);
+
+      // Update particle node positions
+      const posAttr = nodeGeometry.attributes.position;
+      const posArray = posAttr.array;
+
+      for (let i = 0; i < nodeCount; i++) {
+        posArray[i * 3] += velocities[i].x;
+        posArray[i * 3 + 1] += velocities[i].y;
+        posArray[i * 3 + 2] += velocities[i].z;
+
+        if (posArray[i * 3] > 280) posArray[i * 3] = -280;
+        if (posArray[i * 3] < -280) posArray[i * 3] = 280;
+        if (posArray[i * 3 + 1] > 220) posArray[i * 3 + 1] = -220;
+        if (posArray[i * 3 + 1] < -220) posArray[i * 3 + 1] = 220;
+        if (posArray[i * 3 + 2] > 150) posArray[i * 3 + 2] = -150;
+        if (posArray[i * 3 + 2] < -150) posArray[i * 3 + 2] = 150;
       }
       posAttr.needsUpdate = true;
-      
-      particles.rotation.y += 0.0005;
-      particles.rotation.x += 0.0002;
 
-      shapes.children.forEach(mesh => {
+      // Update light strand network connections
+      let lineIndex = 0;
+      const linePosArray = lineGeometry.attributes.position.array;
+      const connectionDistance = 65;
+
+      for (let i = 0; i < nodeCount && lineIndex < maxConnections * 6; i++) {
+        for (let j = i + 1; j < nodeCount && lineIndex < maxConnections * 6; j++) {
+          const dx = posArray[i * 3] - posArray[j * 3];
+          const dy = posArray[i * 3 + 1] - posArray[j * 3 + 1];
+          const dz = posArray[i * 3 + 2] - posArray[j * 3 + 2];
+          const distSq = dx * dx + dy * dy + dz * dz;
+
+          if (distSq < connectionDistance * connectionDistance) {
+            linePosArray[lineIndex++] = posArray[i * 3];
+            linePosArray[lineIndex++] = posArray[i * 3 + 1];
+            linePosArray[lineIndex++] = posArray[i * 3 + 2];
+
+            linePosArray[lineIndex++] = posArray[j * 3];
+            linePosArray[lineIndex++] = posArray[j * 3 + 1];
+            linePosArray[lineIndex++] = posArray[j * 3 + 2];
+          }
+        }
+      }
+
+      // Clear unused line segments
+      for (let k = lineIndex; k < maxConnections * 6; k++) {
+        linePosArray[k] = 0;
+      }
+      lineGeometry.attributes.position.needsUpdate = true;
+
+      // Rotate and float geometric books
+      floatingGroup.children.forEach(mesh => {
         mesh.rotation.x += mesh.userData.rx;
         mesh.rotation.y += mesh.userData.ry;
         mesh.rotation.z += mesh.userData.rz;
+        mesh.position.y = mesh.userData.initY + Math.sin(elapsedTime * 0.8 + mesh.position.x) * 6;
       });
+
+      nodes.rotation.y = elapsedTime * 0.02;
 
       renderer.render(scene, camera);
     };
 
     animate();
 
+    // 8. Visibility Change Listener (Pause when tab hidden to guarantee 0% CPU drain)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isPaused = true;
+        cancelAnimationFrame(animationFrameId);
+      } else {
+        if (isPaused) {
+          isPaused = false;
+          clock.start();
+          animate();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // 9. Resize Listener
     const handleResize = () => {
+      if (!container) return;
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -115,24 +236,34 @@ const AnimatedBackground = () => {
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       cancelAnimationFrame(animationFrameId);
       if (container && renderer.domElement) {
         container.removeChild(renderer.domElement);
       }
-      geometry.dispose();
-      material.dispose();
-      bgMaterials.forEach(m => m.dispose());
-      shapes.children.forEach(m => m.geometry.dispose());
+      nodeGeometry.dispose();
+      nodeMaterial.dispose();
+      lineGeometry.dispose();
+      lineMaterial.dispose();
+      wireMaterials.forEach(m => m.dispose());
+      floatingGroup.children.forEach(m => m.geometry.dispose());
       renderer.dispose();
     };
   }, []);
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 bg-slate-50">
-      <div ref={mountRef} className="absolute inset-0 opacity-60 mix-blend-multiply" />
-      <div className="absolute inset-0 bg-gradient-to-b from-blue-100/30 via-transparent to-white/60" />
-      <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] rounded-full bg-blue-300/20 blur-[100px] transform-gpu" />
-      <div className="absolute bottom-[-10%] right-[10%] w-[500px] h-[500px] rounded-full bg-indigo-300/20 blur-[100px] transform-gpu" />
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 bg-[#0a192f]">
+      {/* Three.js Constellation Canvas */}
+      <div ref={mountRef} className="absolute inset-0 opacity-80" />
+      
+      {/* Ambient Library Aisle Depth Grid */}
+      <div className="absolute inset-0 aisle-grid-bg opacity-30" />
+      
+      {/* Atmosphere Glow Spots */}
+      <div className="absolute top-[-10%] left-[15%] w-[650px] h-[650px] rounded-full bg-cyan-500/10 blur-[120px] transform-gpu pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[10%] w-[550px] h-[550px] rounded-full bg-indigo-500/15 blur-[120px] transform-gpu pointer-events-none" />
+      <div className="absolute top-[40%] right-[25%] w-[400px] h-[400px] rounded-full bg-amber-500/5 blur-[100px] transform-gpu pointer-events-none" />
     </div>
   );
 };
