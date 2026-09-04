@@ -48,8 +48,6 @@ const VoiceAssistant = () => {
   const [fsInput, setFsInput] = useState('');
   const [routeFrom, setRouteFrom] = useState('entrance');
   const [routeTo, setRouteTo] = useState(null);
-  const [hasIntroduced, setHasIntroduced] = useState(false);
-  const hasIntroducedRef = useRef(false);
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'map' | 'search'
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [activeFloor, setActiveFloor] = useState('both');
@@ -166,7 +164,7 @@ const VoiceAssistant = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [conversationState, hasIntroduced, isMapFullscreen]);
+  }, [conversationState, isMapFullscreen]);
 
   const handleLogout = () => {
     ttsManager.cancel();
@@ -204,30 +202,6 @@ const VoiceAssistant = () => {
       return; 
     }
     if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) return;
-    
-    // Initial greeting
-    if (!hasIntroducedRef.current && currentState === State.IDLE) {
-      hasIntroducedRef.current = true;
-      setHasIntroduced(true);
-
-      const hour = new Date().getHours();
-      let greeting = 'Good evening';
-      if (hour < 12) greeting = 'Good morning';
-      else if (hour < 17) greeting = 'Good afternoon';
-      
-      const welcomeText = `${greeting}! I am Sam, your AI Library Assistant. Which book or rack are you looking for today?`;
-      
-      // Update voice message state
-      setVoiceMessages([{ role: 'assistant', content: welcomeText, timestamp: Date.now() }]);
-
-      stateManager.setState(State.INTRODUCING);
-      ttsManager.speak(welcomeText, () => {
-        if (stateManager.getState() === State.INTRODUCING) {
-          stateManager.setState(State.IDLE);
-        }
-      });
-      return;
-    }
     
     startListening();
   }, [handleInterrupt, startListening]);
