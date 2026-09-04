@@ -112,9 +112,31 @@ const VoiceAssistant = () => {
       showToast(errorMsg, 'error');
     });
 
+    // Silence timeout: no speech detected, return to idle with a gentle prompt
+    sttManager.onSilenceTimeout(() => {
+      stateManager.setState(State.IDLE);
+      showToast("I didn't catch that. Please speak again.", 'info');
+    });
+
+    // Live interim transcript: show partial words as user speaks
+    sttManager.onInterimTranscription((interimText) => {
+      // Update the last user message with interim text for live feedback
+      if (interimText) {
+        setVoiceMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last && last.role === 'user' && last.interim) {
+            return [...prev.slice(0, -1), { role: 'user', content: interimText, timestamp: Date.now(), interim: true }];
+          }
+          return [...prev, { role: 'user', content: interimText, timestamp: Date.now(), interim: true }];
+        });
+      }
+    });
+
     return () => {
       sttManager.onTranscription(() => {});
       sttManager.onError(() => {});
+      sttManager.onSilenceTimeout(() => {});
+      sttManager.onInterimTranscription(() => {});
       ttsManager.cancel();
       sttManager.stopListening();
       stateManager.reset();
@@ -206,8 +228,9 @@ const VoiceAssistant = () => {
   // -------------------------------------------------------------
   const handleVoiceInput = useCallback(async (text) => {
     stateManager.setState(State.PROCESSING);
-    const history = [...voiceMessagesRef.current];
-    setVoiceMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
+    const history = [...voiceMessagesRef.current].filter(m => !m.interim);
+    // Replace any interim transcript with the final confirmed text
+    setVoiceMessages(prev => [...prev.filter(m => !m.interim), { role: 'user', content: text, timestamp: Date.now() }]);
     setTimeout(() => {
       stateManager.setState(State.RETRIEVING);
       streamVoiceAIResponse(text, history);
