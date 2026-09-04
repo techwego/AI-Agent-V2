@@ -1010,6 +1010,12 @@ class LibraryRAG:
         print("\n[STATE] -> RETRIEVING")
         print(f"\nTranscript:\n{user_input}")
         
+        lower_input_exact = user_input.lower().strip()
+        lower_input_clean = re.sub(r'[^\w\s]', '', lower_input_exact)
+        if lower_input_clean in ['hi', 'hello', 'hey', 'hi sam', 'hello sam', 'hey sam', 'good morning', 'good afternoon', 'good evening']:
+            yield "Hello! How can I help you today? Whether you are looking for a specific book, need information about our opening hours, or want directions to a particular rack, just let me know."
+            return
+
         try:
             t_embed = time.time()
             expanded_query = self._expand_query(user_input, history)
@@ -1195,6 +1201,7 @@ class LibraryRAG:
                 "Adopt a professional, calm, friendly, confident, and efficient female persona. "
                 "Use clear, neutral Indian English or international English. "
                 "INTENT RULES:\n"
+                "0. GREETING INTENT: If the user simply says 'hi', 'hello', or greets you, do NOT repeat your full introduction. Just say a brief, contextual reply like 'Hello! How can I help you today?'.\n"
                 "1. GENERAL LIBRARY INTENT: If the user asks general questions about the library (e.g. 'how many books do we have', 'how many books are there', 'total books', 'library hours', 'rules', 'policies'): Answer naturally with the total count or policies. NEVER output any `<ROUTE_...>` tags. The map must stay closed.\n"
                 "2. BOOK INFO INTENT: If the user is asking about a specific book (availability, author, title, number of copies, description, etc.), respond with the relevant book details in the chat. Do NOT ask for their location. Do NOT output any `<ROUTE_...>` tags. The map will stay closed.\n"
                 "3. PATH / LOCATION INTENT: If the user is asking where a specific book/rack physically is, or asking for directions/route/path (e.g. 'where is this book', 'where is it kept', 'show me the path', 'take me to it', 'how do I get there', 'route me to rack B2', 'path from floor 1 to floor 2'):\n"

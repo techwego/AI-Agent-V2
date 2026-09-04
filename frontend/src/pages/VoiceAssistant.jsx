@@ -35,6 +35,7 @@ const VoiceAssistant = () => {
   // SEPARATE CONVERSATION STATES (DO NOT COMBINE VOICE & CHAT)
   // -------------------------------------------------------------
   const [voiceMessages, setVoiceMessages] = useState([]);
+  const [interimText, setInterimText] = useState('');
   
   const [chatMessages, setChatMessages] = useState([
     { 
@@ -107,6 +108,15 @@ const VoiceAssistant = () => {
       }
     });
 
+    sttManager.onInterimTranscription((text) => {
+      setInterimText(text);
+    });
+
+    sttManager.onSilenceTimeout(() => {
+      setInterimText('');
+      stateManager.setState(State.IDLE);
+    });
+
     sttManager.onError((errorMsg) => {
       stateManager.setState(State.IDLE);
       showToast(errorMsg, 'error');
@@ -114,6 +124,8 @@ const VoiceAssistant = () => {
 
     return () => {
       sttManager.onTranscription(() => {});
+      sttManager.onInterimTranscription(() => {});
+      sttManager.onSilenceTimeout(() => {});
       sttManager.onError(() => {});
       ttsManager.cancel();
       sttManager.stopListening();
@@ -244,7 +256,9 @@ const VoiceAssistant = () => {
 
       ttsManager.cancel();
       ttsManager.onAllFinished = () => {
-        stateManager.reset();
+        // Continuous conversational loop
+        stateManager.setState(State.LISTENING);
+        sttManager.startListening();
       };
 
       while (!done) {

@@ -27,19 +27,29 @@ class SpeechRecognitionManager {
       try {
         this.nativeRecognition = new SpeechRecognition();
         this.nativeRecognition.continuous = false;
-        this.nativeRecognition.interimResults = false;
+        this.nativeRecognition.interimResults = true;
         this.nativeRecognition.lang = 'en-US';
 
         this.nativeRecognition.onresult = (event) => {
-          if (event.results && event.results[0] && event.results[0][0]) {
-            const text = event.results[0][0].transcript;
-            if (text && text.trim()) {
-              this.transcriptionReceived = true;
-              this.audioChunks = []; // Skip server upload since native transcribed it
-              if (this.transcriptionCallback) {
-                this.transcriptionCallback(text.trim());
-              }
+          let interimText = '';
+          let finalText = '';
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalText += event.results[i][0].transcript;
+            } else {
+              interimText += event.results[i][0].transcript;
             }
+          }
+
+          if (finalText.trim()) {
+            this.transcriptionReceived = true;
+            this.audioChunks = []; // Skip server upload since native transcribed it
+            if (this.transcriptionCallback) {
+              this.transcriptionCallback(finalText.trim());
+            }
+          } else if (interimText.trim() && this.interimCallback) {
+            this.interimCallback(interimText.trim());
           }
         };
 
@@ -53,7 +63,18 @@ class SpeechRecognitionManager {
     }
   }
 
-  onTranscription(cb) { this.transcriptionCallback = cb; }
+  onTranscription(callback) {
+    this.transcriptionCallback = callback;
+  }
+
+  onInterimTranscription(callback) {
+    this.interimCallback = callback;
+  }
+
+  onSilenceTimeout(callback) {
+    this.silenceTimeoutCallback = callback;
+  }
+
   onError(cb) { this.errorCallback = cb; }
   onVolumeChange(cb) { this.volumeCallback = cb; }
   isListening() { return this.listening; }
@@ -141,13 +162,16 @@ class SpeechRecognitionManager {
         silenceStart = Date.now();
       } else {
         const now = Date.now();
-        // End of speech detected after 700ms silence
-        if (this.hasSpoken && (now - silenceStart > 700)) {
+        // End of speech detected after 2000ms silence
+        if (this.hasSpoken && (now - silenceStart > 2000)) {
           this.stopListening();
         } 
         // Complete silence for 5s timeout
         else if (!this.hasSpoken && (now - initialSilenceStart > 5000)) {
           this.stopListening();
+          if (this.silenceTimeoutCallback) {
+            this.silenceTimeoutCallback();
+          }
         }
       }
     }, 100);
