@@ -116,7 +116,8 @@ const VoiceAssistant = () => {
     sttManager.onError((errorMsg) => {
       setInterimText('');
       stateManager.setState(State.IDLE);
-      showToast(errorMsg, 'error');
+      const isMild = errorMsg.includes("didn't catch") || errorMsg.includes("No speech") || errorMsg.includes("speak again");
+      showToast(errorMsg, isMild ? 'info' : 'error');
     });
 
     return () => {

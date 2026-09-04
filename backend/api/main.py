@@ -231,7 +231,29 @@ async def chat(request: ChatRequest):
     return StreamingResponse(generate(), media_type="text/plain")
 
 import tempfile
+import re
 from groq import Groq
+
+HALLUCINATED_PHRASES = {
+    'thank you', 'thank you.', 'thank you!', 'thanks', 'thanks.', 'thanks!',
+    'thank you very much', 'thank you very much.', 'thank you so much',
+    'thank you for watching', 'thank you for watching.', 'thanks for watching',
+    'thanks for watching.', 'subtitles by', 'you', 'bye', 'bye.', 'bye!',
+    'please subscribe', 'subscribe', 'goodbye', 'goodbye.', 'mbc',
+    'sous-titres', 'amara.org'
+}
+
+def is_stt_hallucination(text: str) -> bool:
+    if not text:
+        return True
+    cleaned = text.strip()
+    normalized = re.sub(r'[^\w\s]', '', cleaned).strip().lower()
+    if not normalized or normalized in HALLUCINATED_PHRASES:
+        return True
+    parts = [p.strip() for p in re.split(r'[.!?]+', cleaned) if p.strip()]
+    if parts and all(re.sub(r'[^\w\s]', '', p).strip().lower() in HALLUCINATED_PHRASES for p in parts):
+        return True
+    return False
 
 @app.post("/api/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...)):
@@ -243,15 +265,31 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         temp_audio_path = temp_audio.name
 
     try:
+        # Check audio file size to discard empty audio frames
+        file_size = os.path.getsize(temp_audio_path)
+        if file_size < 3500:
+            print(f"[STT] Discarded near-empty audio frame ({file_size} bytes)")
+            return {"text": ""}
+
         client = Groq(api_key=Config.GROQ_API_KEY)
         with open(temp_audio_path, "rb") as file:
             transcription = client.audio.transcriptions.create(
-                file=(audio.filename, file.read()),
+                file=(audio.filename or "recording.webm", file.read()),
                 model="whisper-large-v3-turbo",
+                language="en",
+                temperature=0.0,
+                prompt="Anna University Library Assistant query asking for book titles, authors, rack numbers, shelves, categories, departments, availability.",
                 response_format="json",
             )
-        return {"text": transcription.text}
+        
+        raw_text = transcription.text.strip() if transcription and transcription.text else ""
+        if is_stt_hallucination(raw_text):
+            print(f"[STT] Filtered out Whisper hallucination: '{raw_text}'")
+            return {"text": ""}
+            
+        return {"text": raw_text}
     except Exception as e:
+        print(f"[STT] Transcription error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if os.path.exists(temp_audio_path):

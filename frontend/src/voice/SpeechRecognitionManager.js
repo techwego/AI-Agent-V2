@@ -12,6 +12,7 @@ class SpeechRecognitionManager {
     this.hasSpoken = false;
     this.transcriptionReceived = false;
     this.SILENCE_THRESHOLD = 15;
+    this.SPEECH_THRESHOLD = 22;
     this.FFT_SIZE = 512;
     this.transcriptionCallback = null;
     this.errorCallback = null;
@@ -20,6 +21,16 @@ class SpeechRecognitionManager {
     this.latestInterimText = '';
 
     this.initNativeRecognition();
+  }
+
+  isHallucination(text) {
+    if (!text) return true;
+    const normalized = text.toLowerCase().replace(/[^\w\s]/g, '').trim();
+    return !normalized || [
+      'thank you', 'thanks', 'thank you very much', 'thank you so much',
+      'thank you for watching', 'thanks for watching', 'subtitles by',
+      'you', 'bye', 'goodbye', 'please subscribe', 'mbc', 'sous-titres'
+    ].includes(normalized);
   }
 
   initNativeRecognition() {
@@ -43,14 +54,14 @@ class SpeechRecognitionManager {
             }
           }
 
-          if (finalText.trim()) {
+          if (finalText.trim() && !this.isHallucination(finalText)) {
             this.transcriptionReceived = true;
             this.latestInterimText = '';
             this.audioChunks = []; // Skip server upload since native transcribed it
             if (this.transcriptionCallback) {
               this.transcriptionCallback(finalText.trim());
             }
-          } else if (interimText.trim()) {
+          } else if (interimText.trim() && !this.isHallucination(interimText)) {
             this.latestInterimText = interimText.trim();
             if (this.interimCallback) {
               this.interimCallback(this.latestInterimText);
@@ -102,7 +113,16 @@ class SpeechRecognitionManager {
         this.analyser = this.audioContext.createAnalyser();
         this.analyser.fftSize = this.FFT_SIZE;
         this.microphone = this.audioContext.createMediaStreamSource(this.stream);
-        this.microphone.connect(this.analyser);
+
+        // Boost microphone gain by 2.0x so audio to Whisper is sufficiently amplified & uncorrupted
+        this.gainNode = this.audioContext.createGain();
+        this.gainNode.gain.value = 2.0;
+
+        this.destination = this.audioContext.createMediaStreamDestination();
+
+        this.microphone.connect(this.gainNode);
+        this.gainNode.connect(this.analyser);
+        this.gainNode.connect(this.destination);
       } else if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
       }
@@ -110,20 +130,28 @@ class SpeechRecognitionManager {
       this.listening = true;
       this.hasSpoken = false;
 
-      // 1. Start parallel MediaRecorder for reliable Whisper backend fallback
+      // 1. Start parallel MediaRecorder using amplified destination stream for reliable Whisper backend fallback
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
         ? 'audio/webm;codecs=opus' 
         : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : undefined);
       
-      this.mediaRecorder = new MediaRecorder(this.stream, mimeType ? { mimeType } : {});
+      const recordingStream = (this.destination && this.destination.stream) ? this.destination.stream : this.stream;
+      this.mediaRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : {});
       this.mediaRecorder.ondataavailable = (e) => { 
         if (e.data && e.data.size > 0) this.audioChunks.push(e.data); 
       };
       this.mediaRecorder.onstop = async () => {
-        // If native recognition didn't already transcribe, send audio to backend Whisper
+        // Only send to Whisper if speech was actually detected and audio is not empty/silent
         if (!this.transcriptionReceived && this.audioChunks.length > 0) {
           const blob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
-          await this.sendForTranscription(blob);
+          if (this.hasSpoken && blob.size >= 3500) {
+            await this.sendForTranscription(blob);
+          } else {
+            console.log(`[STT] Silence/empty frame suppressed (size: ${blob.size}, hasSpoken: ${this.hasSpoken})`);
+            if (this.errorCallback) {
+              this.errorCallback("I didn't catch that. Please speak again.");
+            }
+          }
         }
       };
       this.mediaRecorder.start(100);
@@ -163,7 +191,7 @@ class SpeechRecognitionManager {
       }
       if (this.volumeCallback) this.volumeCallback(maxVol);
 
-      if (maxVol > this.SILENCE_THRESHOLD) {
+      if (maxVol > this.SPEECH_THRESHOLD) {
         this.hasSpoken = true;
         silenceStart = Date.now();
       } else {
@@ -199,7 +227,7 @@ class SpeechRecognitionManager {
     if (this.volumeCallback) this.volumeCallback(0);
 
     // If native speech recognition provided interim text, but hadn't finalized before stop was triggered:
-    if (!this.transcriptionReceived && this.latestInterimText && this.latestInterimText.trim()) {
+    if (!this.transcriptionReceived && this.latestInterimText && this.latestInterimText.trim() && !this.isHallucination(this.latestInterimText)) {
       const captured = this.latestInterimText.trim();
       this.transcriptionReceived = true;
       this.latestInterimText = '';
@@ -257,8 +285,13 @@ class SpeechRecognitionManager {
       
       const data = await response.json();
       const text = (data.text || '').trim();
-      if (text && this.transcriptionCallback) {
+      if (text && !this.isHallucination(text) && this.transcriptionCallback) {
         this.transcriptionCallback(text);
+      } else {
+        console.log('[STT] Empty or hallucinated transcription filtered out:', text);
+        if (this.errorCallback) {
+          this.errorCallback("I didn't catch that. Please speak again.");
+        }
       }
     } catch (err) {
       console.error('Transcription API error:', err);
