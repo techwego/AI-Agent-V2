@@ -260,13 +260,11 @@ async def transcribe_audio(audio: UploadFile = File(...)):
             transcription = client.audio.transcriptions.create(
                 file=(audio.filename or "recording.webm", file.read()),
                 model="whisper-large-v3-turbo",
-                prompt="University library assistant: search books, find shelf racks, authors, book titles, library catalog, floor navigation.",
-                temperature=0.0,
-                language="en",
                 response_format="json",
             )
         
         raw_text = (transcription.text or "").strip()
+        print(f"[TRANSCRIBE] Received {len(file_bytes)} bytes audio -> Whisper result: '{raw_text}'")
         normalized = raw_text.lower().strip(".!,? ")
         if normalized in WHISPER_HALLUCINATIONS or len(normalized) < 2:
             return {"text": ""}
