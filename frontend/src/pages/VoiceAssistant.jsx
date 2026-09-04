@@ -197,9 +197,9 @@ const VoiceAssistant = () => {
 
       stateManager.setState(State.INTRODUCING);
       ttsManager.speak(welcomeText, () => {
-        if (stateManager.getState() === State.INTRODUCING) {
-          stateManager.setState(State.IDLE);
-        }
+        // After intro, automatically start listening for the user's first question
+        stateManager.setState(State.LISTENING);
+        sttManager.startListening();
       });
       return;
     }

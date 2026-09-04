@@ -162,7 +162,11 @@ class SpeechSynthesisManager {
 
       utterance.onend = finish;
       utterance.onerror = (e) => {
-        console.warn('Web Speech note:', e.error);
+        // 'interrupted' and 'canceled' fire when ttsManager.cancel() is called — not real errors
+        if (e.error === 'interrupted' || e.error === 'canceled') {
+          return; // Do NOT call finish — cancel() already cleared the queue
+        }
+        console.warn('Web Speech error:', e.error);
         finish();
       };
 

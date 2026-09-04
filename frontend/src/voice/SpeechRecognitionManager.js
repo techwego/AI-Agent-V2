@@ -198,9 +198,7 @@ class SpeechRecognitionManager {
       try { this.mediaRecorder.stop(); } catch(e){}
     }
 
-    if (this.audioContext && this.audioContext.state === 'running') {
-      try { this.audioContext.suspend(); } catch(e){}
-    }
+    // Don't suspend audioContext — we reuse it for the continuous conversational loop
 
     if (this.volumeCallback) this.volumeCallback(0);
   }
