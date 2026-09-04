@@ -52,14 +52,8 @@ class SpeechRecognitionManager {
         if (this.stream) {
           try { this.stream.getTracks().forEach(t => t.stop()); } catch(e){}
         }
-        // Disable aggressive Chromium noise suppression which mutes Realtek arrays
-        this.stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: true
-          }
-        });
+        // Exact v6.0.0 approach: simple { audio: true }
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       }
 
       const track = this.stream.getAudioTracks()[0];

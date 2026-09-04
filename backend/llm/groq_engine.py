@@ -48,34 +48,64 @@ class GroqEngine(LLMEngine):
 
             in_think_block = False
             buffer = ""
+            yielded_anything = False
             
-            for chunk in response:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    buffer += chunk.choices[0].delta.content
-                    
-                    while True:
-                        if not in_think_block:
-                            if "<think>" in buffer:
-                                before, rest = buffer.split("<think>", 1)
-                                if before:
-                                    yield before
-                                buffer = rest
-                                in_think_block = True
+            try:
+                for chunk in response:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        buffer += chunk.choices[0].delta.content
+                        
+                        while True:
+                            if not in_think_block:
+                                if "<think>" in buffer:
+                                    before, rest = buffer.split("<think>", 1)
+                                    if before:
+                                        yield before
+                                        yielded_anything = True
+                                    buffer = rest
+                                    in_think_block = True
+                                else:
+                                    if len(buffer) > 7:
+                                        safe_text = buffer[:-7]
+                                        buffer = buffer[-7:]
+                                        yield safe_text
+                                        yielded_anything = True
+                                    break
                             else:
-                                if len(buffer) > 7:
-                                    safe_text = buffer[:-7]
-                                    buffer = buffer[-7:]
-                                    yield safe_text
-                                break
-                        else:
-                            if "</think>" in buffer:
-                                _, rest = buffer.split("</think>", 1)
-                                buffer = rest
-                                in_think_block = False
-                            else:
-                                if len(buffer) > 9:
-                                    buffer = buffer[-9:]
-                                break
+                                if "</think>" in buffer:
+                                    _, rest = buffer.split("</think>", 1)
+                                    buffer = rest
+                                    in_think_block = False
+                                else:
+                                    if len(buffer) > 9:
+                                        buffer = buffer[-9:]
+                                    break
+            except Exception as stream_err:
+                # Mid-stream disconnect (e.g. "peer closed connection")
+                print(f"[GROQ] Mid-stream error: {stream_err}")
+                if not yielded_anything:
+                    # Nothing was sent yet — retry with a fresh request
+                    print("[GROQ] Retrying with fresh request...")
+                    try:
+                        response2 = self.client.chat.completions.create(
+                            model=Config.GROQ_MODEL,
+                            messages=[{"role": "user", "content": prompt}],
+                            stream=False,
+                            temperature=0.3,
+                        )
+                        if response2.choices and response2.choices[0].message.content:
+                            import re
+                            content = response2.choices[0].message.content
+                            content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
+                            yield content.strip()
+                            yielded_anything = True
+                    except Exception as retry_err:
+                        print(f"[GROQ] Retry also failed: {retry_err}")
+                
+                if not yielded_anything:
+                    yield "I had a connection issue. Please try your question again."
+                    Config.record_llm_error()
+                    return
             
             if not in_think_block and buffer:
                 if not buffer.startswith("<thin"):
