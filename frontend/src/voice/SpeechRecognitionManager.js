@@ -5,163 +5,66 @@ class SpeechRecognitionManager {
     this.analyser = null;
     this.microphone = null;
     this.stream = null;
-    this.nativeRecognition = null;
+    
     this.listening = false;
     this.audioChunks = [];
-    this.checkSilenceInterval = null;
+    
     this.maxListeningTimer = null;
+    this.checkSilenceInterval = null;
+    
     this.hasSpoken = false;
-    this.transcriptionReceived = false;
-    this.latestInterimText = '';
+    this.SILENCE_THRESHOLD = 10;
     this.FFT_SIZE = 512;
+    
+    // Callbacks
     this.transcriptionCallback = null;
     this.errorCallback = null;
     this.volumeCallback = null;
-    this.interimCallback = null;
     this.silenceTimeoutCallback = null;
-
-    this.initNativeRecognition();
+    this.interimCallback = null;
   }
 
-  // --- Whisper / WebSpeech hallucination filter ---
-  isHallucination(text) {
-    if (!text) return true;
-    const normalized = text.toLowerCase().replace(/[^\w\s]/g, '').trim();
-    return !normalized || normalized.length < 2 || [
-      'thank you', 'thanks', 'thank you very much', 'thank you so much',
-      'thank you for watching', 'thanks for watching', 'subtitles by',
-      'you', 'bye', 'goodbye', 'please subscribe', 'subscribe', 'mbc',
-      'sous-titres', 'watching', 'the end', 'amara.org', 'thank you.',
-      'thank you very much.', 'thank you so much.', 'thanks.'
-    ].includes(normalized);
+  onTranscription(callback) {
+    this.transcriptionCallback = callback;
   }
 
-  initNativeRecognition() {
-    if (typeof window === 'undefined') return;
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      try {
-        this.nativeRecognition = new SpeechRecognition();
-        this.nativeRecognition.continuous = true;
-        this.nativeRecognition.interimResults = true;
-        this.nativeRecognition.lang = 'en-US';
-
-        this.nativeRecognition.onresult = (event) => {
-          let interimText = '';
-          let finalText = '';
-
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              finalText += event.results[i][0].transcript;
-            } else {
-              interimText += event.results[i][0].transcript;
-            }
-          }
-
-          if (finalText.trim() && !this.isHallucination(finalText)) {
-            console.log('[STT] Native WebSpeech recognized final:', finalText.trim());
-            this.transcriptionReceived = true;
-            this.latestInterimText = '';
-            this.audioChunks = [];
-            const result = finalText.trim();
-            this.stopListening();
-            if (this.transcriptionCallback) {
-              this.transcriptionCallback(result);
-            }
-          } else if (interimText.trim() && !this.isHallucination(interimText)) {
-            this.latestInterimText = interimText.trim();
-            this.hasSpoken = true;
-            if (this.interimCallback) {
-              this.interimCallback(this.latestInterimText);
-            }
-          }
-        };
-
-        this.nativeRecognition.onerror = (event) => {
-          if (event.error !== 'no-speech' && event.error !== 'aborted') {
-            console.warn('[STT] Native recognition note:', event.error);
-          }
-        };
-      } catch (e) {
-        console.warn('[STT] Native recognition init error:', e);
-        this.nativeRecognition = null;
-      }
-    }
+  onError(callback) {
+    this.errorCallback = callback;
   }
 
-  onTranscription(cb) { this.transcriptionCallback = cb; }
-  onInterimTranscription(cb) { this.interimCallback = cb; }
-  onSilenceTimeout(cb) { this.silenceTimeoutCallback = cb; }
-  onError(cb) { this.errorCallback = cb; }
-  onVolumeChange(cb) { this.volumeCallback = cb; }
-  isListening() { return this.listening; }
+  onVolumeChange(callback) {
+    this.volumeCallback = callback;
+  }
+
+  onSilenceTimeout(callback) {
+    this.silenceTimeoutCallback = callback;
+  }
+
+  onInterimTranscription(callback) {
+    this.interimCallback = callback;
+  }
+
+  isListening() {
+    return this.listening;
+  }
 
   async startListening() {
     if (this.listening) return;
-    this.transcriptionReceived = false;
-    this.latestInterimText = '';
-    this.audioChunks = [];
-    this.hasSpoken = false;
 
     try {
-      // 1. Acquire microphone with native hardware AGC and acoustic processing
+      // 1. Acquire standard microphone stream (identical to v6.0.0)
       if (!this.stream || !this.stream.active || !this.stream.getAudioTracks().some(t => t.readyState === 'live')) {
         if (this.stream) {
           try { this.stream.getTracks().forEach(t => t.stop()); } catch(e){}
         }
-        this.stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
-        });
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         this.microphone = null;
       }
 
       const track = this.stream.getAudioTracks()[0];
       console.log('[STT] Mic ready:', track.label, '| state:', track.readyState);
 
-      // 2. Direct MediaRecorder on hardware stream (100% reliable bytes, no WebAudio starvation)
-      let mimeType = '';
-      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-        mimeType = 'audio/webm;codecs=opus';
-      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-        mimeType = 'audio/webm';
-      }
-
-      this.mediaRecorder = new MediaRecorder(this.stream, mimeType ? { mimeType } : {});
-      this.mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) {
-          this.audioChunks.push(e.data);
-        }
-      };
-
-      this.mediaRecorder.onstop = async () => {
-        if (this.transcriptionReceived) return;
-
-        if (this.audioChunks.length === 0) {
-          if (this.silenceTimeoutCallback) this.silenceTimeoutCallback();
-          return;
-        }
-
-        const blob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
-        console.log(`[STT] MediaRecorder stopped. Size: ${blob.size} bytes, hasSpoken: ${this.hasSpoken}, chunks: ${this.audioChunks.length}`);
-
-        if (blob.size >= 1000) {
-          await this.sendForTranscription(blob);
-        } else {
-          console.log(`[STT] Buffer below speech threshold (${blob.size} bytes), aborting upload`);
-          if (this.silenceTimeoutCallback) {
-            this.silenceTimeoutCallback();
-          }
-        }
-      };
-
-      this.mediaRecorder.start(100);
-      this.listening = true;
-
-      // 3. Web Audio analyser strictly for passive VAD (Voice Activity Detection) & Visualizer
+      // 2. Setup Web Audio API for VAD & 3D Orb soundwave animation
       if (!this.audioContext || this.audioContext.state === 'closed') {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
       }
@@ -171,31 +74,54 @@ class SpeechRecognitionManager {
 
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = this.FFT_SIZE;
-      this.analyser.smoothingTimeConstant = 0.3;
-
       this.microphone = this.audioContext.createMediaStreamSource(this.stream);
       this.microphone.connect(this.analyser);
 
-      // 4. Start Native Web Speech API in parallel
-      if (this.nativeRecognition) {
-        try {
-          this.nativeRecognition.start();
-          console.log('[STT] Native WebSpeech started');
-        } catch (e) {
-          // Fallback to MediaRecorder + Whisper
+      // 3. Setup MediaRecorder directly on microphone stream
+      this.audioChunks = [];
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        ? 'audio/webm;codecs=opus' 
+        : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : undefined);
+      
+      this.mediaRecorder = new MediaRecorder(this.stream, mimeType ? { mimeType } : {});
+      
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          this.audioChunks.push(event.data);
         }
-      }
+      };
+
+      this.mediaRecorder.onstop = async () => {
+        if (this.audioChunks.length > 0) {
+          const audioBlob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
+          console.log(`[STT] MediaRecorder stopped. Size: ${audioBlob.size} bytes, chunks: ${this.audioChunks.length}`);
+          await this.sendForTranscription(audioBlob);
+        } else {
+          if (this.silenceTimeoutCallback) {
+            this.silenceTimeoutCallback();
+          }
+        }
+      };
+
+      this.mediaRecorder.start(100);
+      this.listening = true;
+      this.hasSpoken = false;
 
       this.startSilenceDetection();
-
-      // Max listening safety window: 15s
+      
+      // Safety timeout: 15s max listening
       this.maxListeningTimer = setTimeout(() => {
-        if (this.listening) this.stopListening();
+        if (this.listening) {
+          console.warn('[STT] Safety timeout: auto stopping listening');
+          this.stopListening();
+        }
       }, 15000);
 
     } catch (err) {
-      console.error('[STT] Microphone access error:', err);
-      if (this.errorCallback) this.errorCallback('Could not access microphone. Please check permissions.');
+      console.error('[STT] Error starting microphone:', err);
+      if (this.errorCallback) {
+        this.errorCallback('Could not access microphone. Please check permissions.');
+      }
     }
   }
 
@@ -208,31 +134,35 @@ class SpeechRecognitionManager {
     this.checkSilenceInterval = setInterval(() => {
       if (!this.analyser) return;
       this.analyser.getByteFrequencyData(dataArray);
+      
+      // Calculate peak volume & average energy
+      let maxVolume = 0;
       let sum = 0;
-      let maxVol = 0;
       for (let i = 0; i < dataArray.length; i++) {
         sum += dataArray[i];
-        if (dataArray[i] > maxVol) maxVol = dataArray[i];
+        if (dataArray[i] > maxVolume) {
+          maxVolume = dataArray[i];
+        }
       }
-      const avgVol = sum / dataArray.length;
-      if (this.volumeCallback) this.volumeCallback(maxVol);
+      const avgVolume = sum / dataArray.length;
 
-      // VAD Speech Activity: either peak volume > 10 or average frequency energy > 3
-      if (maxVol > 10 || avgVol > 3) {
+      // Notify volume for orb visualizer
+      if (this.volumeCallback) {
+        this.volumeCallback(maxVolume);
+      }
+
+      if (maxVolume > this.SILENCE_THRESHOLD || avgVolume > 3) {
         this.hasSpoken = true;
         silenceStart = Date.now();
       } else {
         const now = Date.now();
-        // End of speech: 1.8s silence after user spoke
-        if (this.hasSpoken && (now - silenceStart > 1800)) {
+        // End of speech: 1.5s silence after user spoke
+        if (this.hasSpoken && (now - silenceStart > 1500)) {
           this.stopListening();
-        }
-        // No speech at all for 7s → silence timeout
+        } 
+        // Complete silence for 7s
         else if (!this.hasSpoken && (now - initialSilenceStart > 7000)) {
           this.stopListening();
-          if (this.silenceTimeoutCallback) {
-            this.silenceTimeoutCallback();
-          }
         }
       }
     }, 100);
@@ -241,61 +171,42 @@ class SpeechRecognitionManager {
   stopListening() {
     if (!this.listening) return;
     this.listening = false;
-
+    
+    // Clear intervals and timers
     if (this.checkSilenceInterval) {
       clearInterval(this.checkSilenceInterval);
       this.checkSilenceInterval = null;
     }
+    
     if (this.maxListeningTimer) {
       clearTimeout(this.maxListeningTimer);
       this.maxListeningTimer = null;
     }
 
-    if (this.volumeCallback) this.volumeCallback(0);
-
-    // If native recognition captured interim text before stop was called, use it immediately
-    if (!this.transcriptionReceived && this.latestInterimText && !this.isHallucination(this.latestInterimText)) {
-      const captured = this.latestInterimText.trim();
-      this.transcriptionReceived = true;
-      this.latestInterimText = '';
-      this.audioChunks = [];
-
-      if (this.nativeRecognition) {
-        try { this.nativeRecognition.stop(); } catch(e){}
-      }
-      if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-        try { this.mediaRecorder.stop(); } catch(e){}
-      }
-
-      if (this.transcriptionCallback) {
-        this.transcriptionCallback(captured);
-      }
-      return;
-    }
-
-    if (this.nativeRecognition) {
-      try { this.nativeRecognition.stop(); } catch(e){}
-    }
-
+    // Stop recording
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-      try { this.mediaRecorder.stop(); } catch(e){}
+      this.mediaRecorder.stop();
+    }
+
+    // Reset volume
+    if (this.volumeCallback) {
+      this.volumeCallback(0);
     }
   }
 
   forceReset() {
-    this.latestInterimText = '';
     this.stopListening();
     this.audioChunks = [];
     this.hasSpoken = false;
-    this.transcriptionReceived = false;
   }
 
   async sendForTranscription(blob) {
     try {
       const formData = new FormData();
       formData.append('audio', blob, 'recording.webm');
-      const token = localStorage.getItem('token') || '';
 
+      const token = localStorage.getItem('token') || '';
+      
       const API_ROOT = import.meta.env.VITE_API_URL
         ? (import.meta.env.VITE_API_URL.endsWith('/api') ? import.meta.env.VITE_API_URL : `${import.meta.env.VITE_API_URL}/api`)
         : '/api';
@@ -307,23 +218,24 @@ class SpeechRecognitionManager {
       });
 
       if (!response.ok) {
-        throw new Error(`Transcription failed: ${response.status}`);
+        throw new Error(`Transcription failed with status ${response.status}`);
       }
 
       const data = await response.json();
       const text = (data.text || '').trim();
-      if (text && !this.isHallucination(text)) {
-        this.transcriptionReceived = true;
-        console.log('[STT] Whisper transcribed successfully:', text);
+      
+      console.log('[STT] Transcribed text:', text);
+
+      if (text && text.length > 0) {
         if (this.transcriptionCallback) {
           this.transcriptionCallback(text);
         }
       } else {
-        console.log('[STT] Empty or silence hallucination filtered out:', text);
         if (this.silenceTimeoutCallback) {
           this.silenceTimeoutCallback();
         }
       }
+      
     } catch (err) {
       console.error('[STT] Transcription API error:', err);
       if (this.errorCallback) {
@@ -333,4 +245,5 @@ class SpeechRecognitionManager {
   }
 }
 
-export default new SpeechRecognitionManager();
+const instance = new SpeechRecognitionManager();
+export default instance;

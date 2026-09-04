@@ -247,7 +247,7 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Groq API key not configured")
     
     file_bytes = await audio.read()
-    if len(file_bytes) < 1000:
+    if len(file_bytes) < 200:
         return {"text": ""}
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
