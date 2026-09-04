@@ -37,13 +37,7 @@ const VoiceAssistant = () => {
   const [voiceMessages, setVoiceMessages] = useState([]);
   const [interimText, setInterimText] = useState('');
   
-  const [chatMessages, setChatMessages] = useState([
-    { 
-      role: 'assistant', 
-      content: "Hello! I'm Sam, your AI Library Assistant. I can help you search books, verify shelf availability, and guide you through the library. How can I help you today?", 
-      timestamp: Date.now() 
-    }
-  ]);
+  const [chatMessages, setChatMessages] = useState([]);
 
   const [input, setInput] = useState('');
   const [fsInput, setFsInput] = useState('');
@@ -674,7 +668,7 @@ const VoiceAssistant = () => {
               {/* Messages View */}
               <div className={`absolute inset-0 flex flex-col ${activeTab !== 'chat' ? 'hidden' : 'flex'}`}>
                 <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3 transform-gpu will-change-scroll flex flex-col">
-                  {chatMessages.length === 1 && chatMessages[0].role === 'assistant' ? (
+                  {chatMessages.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center opacity-90 animate-[fadeIn_0.5s_ease-out]">
                       <dotlottie-player 
                         src="https://lottie.host/5f487827-1593-41da-9e88-be41a8bddc2d/fBYqkdblAg.lottie" 
