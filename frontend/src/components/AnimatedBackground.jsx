@@ -26,8 +26,8 @@ const AnimatedBackground = () => {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     container.appendChild(renderer.domElement);
 
-    // 3. Constellation Nodes & Particle Field (Digital Knowledge Mesh)
-    const nodeCount = 180;
+    // 3. Constellation Nodes & Particle Field (Digital Library Mesh)
+    const nodeCount = 160;
     const nodeGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(nodeCount * 3);
     const velocities = [];
@@ -47,11 +47,10 @@ const AnimatedBackground = () => {
     nodeGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
     const nodeMaterial = new THREE.PointsMaterial({
-      color: 0x38bdf8, // Electric Cyan
-      size: 3.0,
+      color: 0x3b82f6, // Vibrant Blue
+      size: 2.8,
       transparent: true,
-      opacity: 0.85,
-      blending: THREE.AdditiveBlending,
+      opacity: 0.65,
       sizeAttenuation: true
     });
 
@@ -62,47 +61,46 @@ const AnimatedBackground = () => {
     const lineMaterial = new THREE.LineBasicMaterial({
       color: 0x6366f1, // Royal Indigo
       transparent: true,
-      opacity: 0.18,
-      blending: THREE.AdditiveBlending
+      opacity: 0.14,
     });
 
-    const maxConnections = 300;
+    const maxConnections = 250;
     const linePositions = new Float32Array(maxConnections * 6);
     const lineGeometry = new THREE.BufferGeometry();
     lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
     const lineMesh = new THREE.LineSegments(lineGeometry, lineMaterial);
     scene.add(lineMesh);
 
-    // 5. Floating 3D Wireframe Book Volumes & Scholar Crystals
+    // 5. Floating 3D Wireframe Book Volumes & Academic Crystals
     const floatingGroup = new THREE.Group();
     const wireMaterials = [
-      new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.18 }), // Cyan
-      new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true, transparent: true, opacity: 0.15 }), // Scholar Gold
-      new THREE.MeshBasicMaterial({ color: 0x818cf8, wireframe: true, transparent: true, opacity: 0.16 }), // Indigo
+      new THREE.MeshBasicMaterial({ color: 0x2563eb, wireframe: true, transparent: true, opacity: 0.22 }), // Royal Blue
+      new THREE.MeshBasicMaterial({ color: 0x4f46e5, wireframe: true, transparent: true, opacity: 0.18 }), // Indigo
+      new THREE.MeshBasicMaterial({ color: 0x0284c7, wireframe: true, transparent: true, opacity: 0.20 }), // Sky/Cyan
     ];
 
-    // Helper: Create a stylized wireframe 3D Book
+    // Helper: Create stylized wireframe 3D Book
     const createBookMesh = (w, h, d, mat) => {
       const geo = new THREE.BoxGeometry(w, h, d, 2, 2, 2);
       return new THREE.Mesh(geo, mat);
     };
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 9; i++) {
       let mesh;
       const mat = wireMaterials[i % 3];
       if (i % 2 === 0) {
-        // Book volume
-        mesh = createBookMesh(16 + Math.random() * 8, 22 + Math.random() * 10, 5 + Math.random() * 4, mat);
+        // 3D Book Volume
+        mesh = createBookMesh(18 + Math.random() * 8, 24 + Math.random() * 8, 5 + Math.random() * 4, mat);
       } else {
-        // Knowledge crystal / polyhedral node
-        const geo = i % 3 === 0 ? new THREE.OctahedronGeometry(14 + Math.random() * 8, 1) : new THREE.IcosahedronGeometry(12 + Math.random() * 6, 1);
+        // Academic Crystal / Knowledge Polyhedron
+        const geo = i % 3 === 0 ? new THREE.OctahedronGeometry(15 + Math.random() * 6, 1) : new THREE.IcosahedronGeometry(12 + Math.random() * 6, 1);
         mesh = new THREE.Mesh(geo, mat);
       }
 
       mesh.position.set(
-        (Math.random() - 0.5) * 400,
+        (Math.random() - 0.5) * 420,
         (Math.random() - 0.5) * 320,
-        (Math.random() - 0.5) * 200 - 30
+        (Math.random() - 0.5) * 200 - 40
       );
       mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
       mesh.userData = {
@@ -124,8 +122,8 @@ const AnimatedBackground = () => {
 
     const handleMouseMove = (e) => {
       if (prefersReducedMotion) return;
-      mouseX = (e.clientX - window.innerWidth / 2) * 0.04;
-      mouseY = (e.clientY - window.innerHeight / 2) * 0.04;
+      mouseX = (e.clientX - window.innerWidth / 2) * 0.035;
+      mouseY = (e.clientY - window.innerHeight / 2) * 0.035;
     };
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
 
@@ -189,7 +187,6 @@ const AnimatedBackground = () => {
         }
       }
 
-      // Clear unused line segments
       for (let k = lineIndex; k < maxConnections * 6; k++) {
         linePosArray[k] = 0;
       }
@@ -200,17 +197,17 @@ const AnimatedBackground = () => {
         mesh.rotation.x += mesh.userData.rx;
         mesh.rotation.y += mesh.userData.ry;
         mesh.rotation.z += mesh.userData.rz;
-        mesh.position.y = mesh.userData.initY + Math.sin(elapsedTime * 0.8 + mesh.position.x) * 6;
+        mesh.position.y = mesh.userData.initY + Math.sin(elapsedTime * 0.8 + mesh.position.x) * 5;
       });
 
-      nodes.rotation.y = elapsedTime * 0.02;
+      nodes.rotation.y = elapsedTime * 0.015;
 
       renderer.render(scene, camera);
     };
 
     animate();
 
-    // 8. Visibility Change Listener (Pause when tab hidden to guarantee 0% CPU drain)
+    // 8. Visibility Change Listener (Pause loop when tab is hidden to save CPU/GPU)
     const handleVisibilityChange = () => {
       if (document.hidden) {
         isPaused = true;
@@ -253,17 +250,17 @@ const AnimatedBackground = () => {
   }, []);
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 bg-[#0a192f]">
-      {/* Three.js Constellation Canvas */}
-      <div ref={mountRef} className="absolute inset-0 opacity-80" />
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/50">
+      {/* 3D Wireframe Books & Node Canvas */}
+      <div ref={mountRef} className="absolute inset-0 opacity-70" />
       
-      {/* Ambient Library Aisle Depth Grid */}
-      <div className="absolute inset-0 aisle-grid-bg opacity-30" />
+      {/* Ambient Perspective Library Aisle Grid */}
+      <div className="absolute inset-0 aisle-grid-bg opacity-50" />
       
-      {/* Atmosphere Glow Spots */}
-      <div className="absolute top-[-10%] left-[15%] w-[650px] h-[650px] rounded-full bg-cyan-500/10 blur-[120px] transform-gpu pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[10%] w-[550px] h-[550px] rounded-full bg-indigo-500/15 blur-[120px] transform-gpu pointer-events-none" />
-      <div className="absolute top-[40%] right-[25%] w-[400px] h-[400px] rounded-full bg-amber-500/5 blur-[100px] transform-gpu pointer-events-none" />
+      {/* Soft Luminous Atmospheric Glow Spots */}
+      <div className="absolute top-[-10%] left-[15%] w-[650px] h-[650px] rounded-full bg-blue-300/20 blur-[120px] transform-gpu pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[10%] w-[550px] h-[550px] rounded-full bg-indigo-200/25 blur-[120px] transform-gpu pointer-events-none" />
+      <div className="absolute top-[40%] right-[25%] w-[400px] h-[400px] rounded-full bg-sky-200/20 blur-[100px] transform-gpu pointer-events-none" />
     </div>
   );
 };

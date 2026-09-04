@@ -20,10 +20,10 @@ const ChatBubble = ({ message, onSpeak, hasRoute, isSpeaking }) => {
       <div className={`flex max-w-[85%] ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end gap-2.5`}>
         
         {/* Avatar */}
-        <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center shadow-lg ring-1 ring-white/20 ${
+        <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center shadow-md ring-2 ring-white ${
           isUser 
-            ? 'bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-sky-500/20' 
-            : 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-indigo-500/20'
+            ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-600/20' 
+            : 'bg-gradient-to-br from-violet-600 to-purple-600 text-white shadow-violet-600/20'
         }`}>
           {isUser ? <User size={14} /> : <Sparkles size={14} />}
         </div>
@@ -32,28 +32,28 @@ const ChatBubble = ({ message, onSpeak, hasRoute, isSpeaking }) => {
         <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
           <div className={`px-5 py-4 rounded-[22px] border relative group transition-all ${
             isUser 
-              ? 'bg-gradient-to-r from-sky-600 to-blue-600 border-sky-400/40 text-white rounded-br-sm shadow-lg shadow-sky-950/40' 
-              : 'bg-slate-900/85 backdrop-blur-xl border-slate-700/80 text-slate-100 rounded-bl-sm shadow-xl shadow-black/40'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-500/50 text-white rounded-br-xs shadow-sm' 
+              : 'bg-white border-slate-200/90 text-slate-800 rounded-bl-xs shadow-sm'
           }`}>
             {content && content.trim() ? (
-              <div className="whitespace-pre-wrap text-[15px] sm:text-base leading-relaxed font-normal">{content.trim()}</div>
+              <div className="whitespace-pre-wrap text-[15px] sm:text-base leading-relaxed font-medium">{content.trim()}</div>
             ) : (
               <div className="flex space-x-1.5 items-center h-5 px-2">
-                <div className="w-1.5 h-1.5 bg-sky-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                <div className="w-1.5 h-1.5 bg-sky-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                <div className="w-1.5 h-1.5 bg-sky-400 rounded-full animate-bounce"></div>
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
               </div>
             )}
 
             {/* Action buttons for Assistant messages */}
             {!isUser && content && (
-              <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-slate-700/60 opacity-70 group-hover:opacity-100 transition-all duration-200">
+              <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100 opacity-70 group-hover:opacity-100 transition-all duration-200">
                 <button 
                   onClick={handleCopy}
-                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-all"
+                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
                   title="Copy response"
                 >
-                  {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                  {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
                 </button>
                 
                 {onSpeak && (
@@ -62,8 +62,8 @@ const ChatBubble = ({ message, onSpeak, hasRoute, isSpeaking }) => {
                     disabled={isSpeaking}
                     className={`p-1.5 rounded-lg transition-all ${
                       isSpeaking 
-                        ? 'opacity-30 cursor-not-allowed text-slate-500' 
-                        : 'hover:bg-slate-800 text-slate-400 hover:text-sky-300'
+                        ? 'opacity-30 cursor-not-allowed text-slate-400' 
+                        : 'hover:bg-blue-50 text-slate-400 hover:text-blue-600'
                     }`}
                     title={isSpeaking ? "Agent is currently speaking" : "Speak Again"}
                   >
@@ -72,8 +72,8 @@ const ChatBubble = ({ message, onSpeak, hasRoute, isSpeaking }) => {
                 )}
 
                 {hasRoute && (
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-amber-300 px-2.5 py-0.5 bg-amber-950/60 rounded-lg border border-amber-500/40 shadow-sm font-mono">
-                    <MapPin size={10} className="text-amber-400" /> 3D ROUTE READY
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-amber-700 px-2.5 py-0.5 bg-amber-50 rounded-lg border border-amber-200 shadow-xs font-mono">
+                    <MapPin size={10} className="text-amber-600" /> 3D ROUTE READY
                   </span>
                 )}
               </div>
@@ -82,7 +82,7 @@ const ChatBubble = ({ message, onSpeak, hasRoute, isSpeaking }) => {
           
           {/* Timestamp */}
           {timestamp && (
-            <span className="text-[10px] text-slate-500 mt-1.5 px-1 font-mono">
+            <span className="text-[10px] text-slate-400 mt-1.5 px-1 font-mono">
               {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}

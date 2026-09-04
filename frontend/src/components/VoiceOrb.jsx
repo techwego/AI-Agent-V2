@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { Mic, Loader2, Sparkles, Volume2 } from 'lucide-react';
+import { Mic, Loader2, Sparkles } from 'lucide-react';
 
 const VoiceOrb = ({ state = 'IDLE', onClick }) => {
   const mountRef = useRef(null);
@@ -31,14 +31,14 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.3;
+    renderer.toneMappingExposure = 1.25;
     container.appendChild(renderer.domElement);
 
-    // 3. Lighting (Atmospheric Scholar Palette)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+    // 3. Lighting (Vibrant Blue Specular Lighting)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0x38bdf8, 2.5); // Electric Cyan
+    const keyLight = new THREE.DirectionalLight(0x60a5fa, 2.5); // Sky Blue
     keyLight.position.set(3, 4, 3);
     scene.add(keyLight);
 
@@ -46,11 +46,11 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
     fillLight.position.set(-3, -2, 2);
     scene.add(fillLight);
 
-    const rimLight = new THREE.PointLight(0xf59e0b, 3.5, 10); // Scholar Gold rim
+    const rimLight = new THREE.PointLight(0x38bdf8, 3.5, 10); // Cyan rim
     rimLight.position.set(0, 3, -2);
     scene.add(rimLight);
 
-    const innerLight = new THREE.PointLight(0x0284c7, 3.0, 6);
+    const innerLight = new THREE.PointLight(0x3b82f6, 3.0, 6);
     scene.add(innerLight);
 
     // 4. Main 3D Sphere Geometry with High Subdivision for Smooth Audio Waves
@@ -58,18 +58,18 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
     const sphereGeo = new THREE.IcosahedronGeometry(sphereRadius, 32);
     const originalPositions = Float32Array.from(sphereGeo.attributes.position.array);
 
-    // Custom Glassy Deep Sapphire Material
+    // Custom Glassy Vibrant Royal Blue Material
     const sphereMat = new THREE.MeshPhysicalMaterial({
-      color: 0x0f2b5c,
-      emissive: 0x0284c7,
-      emissiveIntensity: 0.35,
+      color: 0x2563eb,
+      emissive: 0x1d4ed8,
+      emissiveIntensity: 0.30,
       roughness: 0.12,
-      metalness: 0.2,
+      metalness: 0.15,
       clearcoat: 1.0,
       clearcoatRoughness: 0.08,
-      transmission: 0.55,
-      ior: 1.55,
-      thickness: 1.4,
+      transmission: 0.50,
+      ior: 1.52,
+      thickness: 1.3,
       reflectivity: 0.95,
       wireframe: false,
     });
@@ -80,7 +80,7 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
     // 5. Inner Core Energy Node (Data Library Core)
     const innerGeo = new THREE.SphereGeometry(0.85, 24, 24);
     const innerMat = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
+      color: 0x60a5fa,
       transparent: true,
       opacity: 0.65,
       wireframe: true
@@ -89,13 +89,13 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
     scene.add(innerMesh);
 
     // 6. Surrounding 3D Orbiting Knowledge Particles Halo
-    const particleCount = 160;
+    const particleCount = 150;
     const particleGeo = new THREE.BufferGeometry();
     const particlePos = new Float32Array(particleCount * 3);
     const particleColors = new Float32Array(particleCount * 3);
 
     for (let i = 0; i < particleCount; i++) {
-      const radius = sphereRadius + 0.35 + Math.random() * 0.5;
+      const radius = sphereRadius + 0.35 + Math.random() * 0.45;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos((Math.random() * 2) - 1);
 
@@ -103,28 +103,20 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
       particlePos[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
       particlePos[i * 3 + 2] = radius * Math.cos(phi);
 
-      // Gradient color (Cyan to Scholar Gold to Indigo)
-      if (i % 3 === 0) {
-        // Gold mote
-        particleColors[i * 3] = 0.96;
-        particleColors[i * 3 + 1] = 0.62;
-        particleColors[i * 3 + 2] = 0.04;
-      } else {
-        // Cyan/Indigo mote
-        particleColors[i * 3] = 0.22;
-        particleColors[i * 3 + 1] = 0.74;
-        particleColors[i * 3 + 2] = 0.97;
-      }
+      // Gradient color (Sky Blue to Indigo)
+      particleColors[i * 3] = 0.2 + Math.random() * 0.3;     // R
+      particleColors[i * 3 + 1] = 0.6 + Math.random() * 0.4; // G
+      particleColors[i * 3 + 2] = 0.98;                      // B
     }
 
     particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
     particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
 
     const particleMat = new THREE.PointsMaterial({
-      size: 0.05,
+      size: 0.045,
       vertexColors: true,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.8,
       blending: THREE.AdditiveBlending
     });
 
@@ -147,10 +139,10 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
     ring1.rotation.x = Math.PI / 2.3;
     ringGroup.add(ring1);
 
-    // Ring 2 (Polar Gold Ring)
+    // Ring 2 (Polar Indigo Ring)
     const ring2Geo = new THREE.RingGeometry(1.78, 1.83, 64);
     const ring2Mat = new THREE.MeshBasicMaterial({
-      color: 0xf59e0b,
+      color: 0x818cf8,
       side: THREE.DoubleSide,
       transparent: true,
       opacity: 0.35,
@@ -181,28 +173,28 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
       // State-specific dynamic colors & wave parameters
       let speed = 1.2;
       let amplitude = 0.08;
-      let targetColor = new THREE.Color(0x0f2b5c);
-      let targetEmissive = new THREE.Color(0x0284c7);
-      let targetCoreColor = new THREE.Color(0x38bdf8);
+      let targetColor = new THREE.Color(0x2563eb);
+      let targetEmissive = new THREE.Color(0x1d4ed8);
+      let targetCoreColor = new THREE.Color(0x60a5fa);
 
       if (isListen) {
-        speed = 3.5;
-        amplitude = 0.20;
-        targetColor = new THREE.Color(0x0369a1);
-        targetEmissive = new THREE.Color(0x38bdf8);
-        targetCoreColor = new THREE.Color(0x7dd3fc);
+        speed = 3.4;
+        amplitude = 0.19;
+        targetColor = new THREE.Color(0x0284c7);
+        targetEmissive = new THREE.Color(0x0369a1);
+        targetCoreColor = new THREE.Color(0x38bdf8);
       } else if (isSpeak) {
         speed = 3.0;
-        amplitude = 0.18;
-        targetColor = new THREE.Color(0x4338ca);
-        targetEmissive = new THREE.Color(0x818cf8);
-        targetCoreColor = new THREE.Color(0xc084fc);
+        amplitude = 0.17;
+        targetColor = new THREE.Color(0x4f46e5);
+        targetEmissive = new THREE.Color(0x4338ca);
+        targetCoreColor = new THREE.Color(0xa855f7);
       } else if (isProc) {
-        speed = 4.5;
-        amplitude = 0.12;
-        targetColor = new THREE.Color(0xb45309);
-        targetEmissive = new THREE.Color(0xf59e0b);
-        targetCoreColor = new THREE.Color(0xfcd34d);
+        speed = 4.2;
+        amplitude = 0.11;
+        targetColor = new THREE.Color(0xd97706);
+        targetEmissive = new THREE.Color(0xb45309);
+        targetCoreColor = new THREE.Color(0xfbbf24);
       }
 
       // Smooth color transitions
@@ -244,12 +236,12 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
       innerMesh.position.y = orbMesh.position.y;
 
       // Orbiting Particles Animation
-      particles.rotation.y = elapsedTime * 0.25 * (isProc ? 2.8 : 1.0);
+      particles.rotation.y = elapsedTime * 0.25 * (isProc ? 2.5 : 1.0);
       particles.rotation.x = Math.sin(elapsedTime * 0.3) * 0.15;
 
       // Multi-Ring Gyroscopic Orbit Animation
-      ring1.rotation.z += (isListen || isSpeak) ? 0.025 : 0.008;
-      ring2.rotation.y += (isProc) ? 0.03 : 0.006;
+      ring1.rotation.z += (isListen || isSpeak) ? 0.02 : 0.008;
+      ring2.rotation.y += (isProc) ? 0.025 : 0.006;
       ring2.rotation.z += 0.004;
 
       if (isListen || isSpeak) {
@@ -261,8 +253,8 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
       }
 
       // Orbit specular point light
-      rimLight.position.x = Math.sin(elapsedTime * 0.8) * 3.5;
-      rimLight.position.y = Math.cos(elapsedTime * 0.8) * 3.5;
+      rimLight.position.x = Math.sin(elapsedTime * 0.8) * 3;
+      rimLight.position.y = Math.cos(elapsedTime * 0.8) * 3;
 
       renderer.render(scene, camera);
     };
@@ -322,15 +314,15 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
       {/* Dynamic Sound Wave Acoustic Rings (Listening / Speaking) */}
       {isListening && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-64 h-64 sm:w-72 sm:h-72 rounded-full border-2 border-sky-400/40 animate-[pulse-ring_2s_cubic-bezier(0.2,0.8,0.2,1)_infinite]" />
-          <div className="absolute w-72 h-72 sm:w-80 sm:h-80 rounded-full border border-cyan-300/30 animate-[pulse-ring_2s_cubic-bezier(0.2,0.8,0.2,1)_infinite_0.6s]" />
+          <div className="w-64 h-64 sm:w-72 sm:h-72 rounded-full border-2 border-blue-400/40 animate-[pulse-ring_2s_cubic-bezier(0.2,0.8,0.2,1)_infinite]" />
+          <div className="absolute w-72 h-72 sm:w-80 sm:h-80 rounded-full border border-sky-400/25 animate-[pulse-ring_2s_cubic-bezier(0.2,0.8,0.2,1)_infinite_0.6s]" />
         </div>
       )}
 
       {isSpeaking && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-64 h-64 sm:w-72 sm:h-72 rounded-full border-2 border-indigo-400/40 animate-[pulse-ring_1.8s_ease-out_infinite]" />
-          <div className="absolute w-72 h-72 sm:w-80 sm:h-80 rounded-full border border-purple-400/30 animate-[pulse-ring_1.8s_ease-out_infinite_0.5s]" />
+          <div className="absolute w-72 h-72 sm:w-80 sm:h-80 rounded-full border border-purple-400/25 animate-[pulse-ring_1.8s_ease-out_infinite_0.5s]" />
         </div>
       )}
 
@@ -342,15 +334,15 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
         tabIndex={0}
         aria-label="Activate voice assistant"
       >
-        {/* Ambient Ground Reflection / Shadow */}
+        {/* Soft Ambient Ground Reflection / Shadow */}
         <div className={`absolute -inset-4 rounded-full blur-2xl transition-all duration-700 pointer-events-none ${
           isListening 
-            ? 'bg-sky-500/30 scale-115' 
+            ? 'bg-blue-500/40 scale-115' 
             : isSpeaking 
-              ? 'bg-indigo-500/30 scale-115' 
+              ? 'bg-indigo-500/40 scale-115' 
               : isProcessing 
-                ? 'bg-amber-500/30 scale-110' 
-                : 'bg-sky-500/15 group-hover:bg-sky-500/30 group-hover:scale-105'
+                ? 'bg-amber-500/35 scale-110' 
+                : 'bg-blue-400/20 group-hover:bg-blue-500/35 group-hover:scale-105'
         }`} />
 
         {/* 3D WebGL Canvas Mount */}
@@ -361,11 +353,11 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
 
         {/* Floating Center Frosted Glass Mic Glyphs */}
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-          <div className="p-3.5 rounded-full bg-slate-900/60 backdrop-blur-xl border border-sky-400/30 shadow-xl group-hover:border-sky-400/60 group-hover:scale-110 transition-all duration-300">
+          <div className="p-3.5 rounded-full bg-white/30 backdrop-blur-md border border-white/60 shadow-md group-hover:bg-white/45 group-hover:scale-110 transition-all duration-300">
             {isProcessing ? (
-              <Loader2 size={24} className="animate-spin text-amber-400 drop-shadow-md" />
+              <Loader2 size={24} className="animate-spin text-white drop-shadow-md" />
             ) : (
-              <Mic size={24} className={`text-sky-300 drop-shadow-md ${isListening ? 'animate-pulse text-sky-200' : ''}`} />
+              <Mic size={24} className={`text-white drop-shadow-md ${isListening ? 'animate-pulse text-blue-100' : ''}`} />
             )}
           </div>
         </div>
