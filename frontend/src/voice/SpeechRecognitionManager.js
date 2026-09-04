@@ -13,7 +13,7 @@ class SpeechRecognitionManager {
     this.hasSpoken = false;
     this.transcriptionReceived = false;
     this.latestInterimText = '';
-    this.SILENCE_THRESHOLD = 5;
+    this.SILENCE_THRESHOLD = 3;
     this.FFT_SIZE = 512;
     this.transcriptionCallback = null;
     this.errorCallback = null;
@@ -123,34 +123,37 @@ class SpeechRecognitionManager {
       const track = this.stream.getAudioTracks()[0];
       console.log('[STT] Mic ready:', track.label, '| state:', track.readyState);
 
-      // 2. Web Audio analyser for VAD (Voice Activity Detection)
+      // 2. Web Audio graph: GainNode → Analyser (VAD) + MediaStreamDestination (Whisper)
       if (!this.audioContext || this.audioContext.state === 'closed') {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        this.analyser = null;
-        this.microphone = null;
       }
       if (this.audioContext.state === 'suspended') {
         try { await this.audioContext.resume(); } catch(e){}
       }
 
-      if (!this.analyser) {
-        this.analyser = this.audioContext.createAnalyser();
-        this.analyser.fftSize = this.FFT_SIZE;
-        this.analyser.smoothingTimeConstant = 0.3;
-      }
+      // Always rebuild the audio graph so the MediaStreamDestination is fresh
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = this.FFT_SIZE;
+      this.analyser.smoothingTimeConstant = 0.3;
 
-      if (!this.microphone) {
-        this.microphone = this.audioContext.createMediaStreamSource(this.stream);
-        // Boost low-gain microphone signals before feeding to the analyser
-        const gainNode = this.audioContext.createGain();
-        gainNode.gain.value = 2.0;
-        this.microphone.connect(gainNode);
-        gainNode.connect(this.analyser);
-      }
+      this.microphone = this.audioContext.createMediaStreamSource(this.stream);
+
+      // Boost low-gain Realtek microphone signals (3.5x) before analysis AND recording
+      const gainNode = this.audioContext.createGain();
+      gainNode.gain.value = 3.5;
+      this.microphone.connect(gainNode);
+
+      // Feed boosted audio to Analyser for VAD
+      gainNode.connect(this.analyser);
+
+      // Feed boosted audio to a MediaStreamDestination so MediaRecorder captures the amplified signal
+      const destination = this.audioContext.createMediaStreamDestination();
+      gainNode.connect(destination);
+      const boostedStream = destination.stream;
 
       this.listening = true;
 
-      // 3. Start MediaRecorder with proper codec and bitrate
+      // 3. Start MediaRecorder on the BOOSTED stream (not the raw mic stream)
       let recorderOptions = {};
       if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
         recorderOptions = { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 128000 };
@@ -158,7 +161,7 @@ class SpeechRecognitionManager {
         recorderOptions = { mimeType: 'audio/webm', audioBitsPerSecond: 128000 };
       }
 
-      this.mediaRecorder = new MediaRecorder(this.stream, recorderOptions);
+      this.mediaRecorder = new MediaRecorder(boostedStream, recorderOptions);
       this.mediaRecorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
           this.audioChunks.push(e.data);
