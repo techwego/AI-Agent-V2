@@ -12,7 +12,7 @@ class SpeechRecognitionManager {
     this.hasSpoken = false;
     this.transcriptionReceived = false;
     this.SILENCE_THRESHOLD = 5;
-    this.SPEECH_THRESHOLD = 10;
+    this.SPEECH_THRESHOLD = 8;
     this.FFT_SIZE = 512;
     this.transcriptionCallback = null;
     this.errorCallback = null;
@@ -70,7 +70,6 @@ class SpeechRecognitionManager {
         };
 
         this.nativeRecognition.onerror = (event) => {
-          // Native recognition failed, MediaRecorder fallback will handle transcription seamlessly
           console.warn('Native speech recognition note:', event.error);
         };
       } catch (e) {
@@ -102,94 +101,100 @@ class SpeechRecognitionManager {
     this.audioChunks = [];
 
     try {
-      const hasLiveTrack = this.stream && this.stream.getAudioTracks().some(t => t.readyState === 'live' && t.enabled);
-      if (!this.stream || !hasLiveTrack) {
-        this.stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: false,
-            autoGainControl: true
-          } 
-        });
+      // ── 1. Always get a FRESH mic stream every turn ──
+      // This avoids stale/ended tracks from previous sessions
+      if (this.stream) {
+        this.stream.getTracks().forEach(t => t.stop());
+        this.stream = null;
+      }
+      // Tear down old audio graph nodes that reference the old stream
+      if (this.microphone) {
+        try { this.microphone.disconnect(); } catch(e){}
         this.microphone = null;
       }
-      
+
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: false,   // false: let Whisper hear the raw voice
+          autoGainControl: true,
+          sampleRate: 16000
+        }
+      });
+
+      // Verify we got a live track
+      const track = this.stream.getAudioTracks()[0];
+      if (!track || track.readyState !== 'live') {
+        throw new Error('Mic track is not live');
+      }
+      console.log('[STT] Mic track acquired:', track.label, 'state:', track.readyState, 'enabled:', track.enabled);
+
+      // ── 2. AudioContext for VAD analysis ONLY (not for recording) ──
       if (!this.audioContext || this.audioContext.state === 'closed') {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        this.analyser = null;
-        this.microphone = null;
-        this.silentGain = null;
       }
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
       }
 
-      if (!this.analyser) {
-        this.analyser = this.audioContext.createAnalyser();
-        this.analyser.fftSize = this.FFT_SIZE;
-        this.analyser.smoothingTimeConstant = 0.3;
-      }
-      
-      if (!this.silentGain) {
-        this.silentGain = this.audioContext.createGain();
-        this.silentGain.gain.value = 0; // Silent sink to force Chrome audio processing
-        this.analyser.connect(this.silentGain);
-        this.silentGain.connect(this.audioContext.destination);
-      }
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = this.FFT_SIZE;
+      this.analyser.smoothingTimeConstant = 0.3;
 
-      if (!this.microphone) {
-        this.microphone = this.audioContext.createMediaStreamSource(this.stream);
-        // Boost microphone gain by 2.0x so audio to Whisper is sufficiently amplified
-        this.gainNode = this.audioContext.createGain();
-        this.gainNode.gain.value = 2.0;
-        this.destination = this.audioContext.createMediaStreamDestination();
+      this.microphone = this.audioContext.createMediaStreamSource(this.stream);
+      this.microphone.connect(this.analyser);
 
-        this.microphone.connect(this.gainNode);
-        this.gainNode.connect(this.analyser);
-        this.gainNode.connect(this.destination);
-      }
+      // Connect analyser to a silent gain node → destination
+      // This forces Chrome to actively pull audio frames through the pipeline
+      const silentGain = this.audioContext.createGain();
+      silentGain.gain.value = 0;
+      this.analyser.connect(silentGain);
+      silentGain.connect(this.audioContext.destination);
 
       this.listening = true;
       this.hasSpoken = false;
 
-      // 1. Direct hardware MediaRecorder for robust Whisper fallback
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-        ? 'audio/webm;codecs=opus' 
+      // ── 3. MediaRecorder records directly from raw hardware mic stream ──
+      // NO MediaStreamAudioDestinationNode — that's what was causing silent recordings
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
         : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : undefined);
-      
-      const recordingStream = (this.destination && this.destination.stream) ? this.destination.stream : this.stream;
-      this.mediaRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : {});
-      this.mediaRecorder.ondataavailable = (e) => { 
-        if (e.data && e.data.size > 0) this.audioChunks.push(e.data); 
+
+      this.mediaRecorder = new MediaRecorder(this.stream, mimeType ? { mimeType } : {});
+      this.mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) this.audioChunks.push(e.data);
       };
       this.mediaRecorder.onstop = async () => {
-        // Only send to Whisper if audio is not completely empty
-        if (!this.transcriptionReceived && this.audioChunks.length > 0) {
-          const blob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
-          if (blob.size >= 300) {
-            await this.sendForTranscription(blob);
-          } else {
-            console.log(`[STT] Silence/empty frame suppressed (size: ${blob.size}, hasSpoken: ${this.hasSpoken})`);
-            if (this.errorCallback) {
-              this.errorCallback("I didn't catch that. Please speak again.");
-            }
+        if (this.transcriptionReceived) return;
+
+        const blob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
+        console.log(`[STT] MediaRecorder stopped. Size: ${blob.size}, hasSpoken: ${this.hasSpoken}, chunks: ${this.audioChunks.length}`);
+
+        // Always send to Whisper if we have actual data (> 300 bytes of WebM headers).
+        // Let the backend hallucination filter handle silent audio — don't block here.
+        if (blob.size > 300) {
+          await this.sendForTranscription(blob);
+        } else {
+          console.log(`[STT] Suppressed empty container (${blob.size} bytes)`);
+          if (this.errorCallback) {
+            this.errorCallback("I didn't catch that. Please speak again.");
           }
         }
       };
       this.mediaRecorder.start(100);
 
-      // 2. Start native Web Speech API in parallel for instant 0-latency results
+      // ── 4. Start native Web Speech API in parallel for instant results ──
       if (this.nativeRecognition) {
-        try { 
-          this.nativeRecognition.start(); 
+        try {
+          this.nativeRecognition.start();
         } catch(e) {
-          // If already running or permission issue, fallback to MediaRecorder handles it
+          // Already running or permission issue — MediaRecorder fallback handles it
         }
       }
 
       this.startSilenceDetection();
-      this.maxListeningTimer = setTimeout(() => { 
-        if (this.listening) this.stopListening(); 
+      this.maxListeningTimer = setTimeout(() => {
+        if (this.listening) this.stopListening();
       }, 20000);
 
     } catch (err) {
@@ -208,8 +213,8 @@ class SpeechRecognitionManager {
       if (!this.analyser) return;
       this.analyser.getByteFrequencyData(dataArray);
       let maxVol = 0;
-      for (let i = 0; i < dataArray.length; i++) { 
-        if (dataArray[i] > maxVol) maxVol = dataArray[i]; 
+      for (let i = 0; i < dataArray.length; i++) {
+        if (dataArray[i] > maxVol) maxVol = dataArray[i];
       }
       if (this.volumeCallback) this.volumeCallback(maxVol);
 
@@ -221,7 +226,7 @@ class SpeechRecognitionManager {
         // End of speech detected after 2500ms silence
         if (this.hasSpoken && (now - silenceStart > 2500)) {
           this.stopListening();
-        } 
+        }
         // Complete silence for 8s timeout
         else if (!this.hasSpoken && (now - initialSilenceStart > 8000)) {
           this.stopListening();
@@ -245,7 +250,7 @@ class SpeechRecognitionManager {
       clearTimeout(this.maxListeningTimer);
       this.maxListeningTimer = null;
     }
-    
+
     if (this.volumeCallback) this.volumeCallback(0);
 
     // If native speech recognition provided interim text, but hadn't finalized before stop was triggered:
@@ -290,8 +295,8 @@ class SpeechRecognitionManager {
       const formData = new FormData();
       formData.append('audio', blob, 'recording.webm');
       const token = localStorage.getItem('token') || '';
-      
-      const API_ROOT = import.meta.env.VITE_API_URL 
+
+      const API_ROOT = import.meta.env.VITE_API_URL
         ? (import.meta.env.VITE_API_URL.endsWith('/api') ? import.meta.env.VITE_API_URL : `${import.meta.env.VITE_API_URL}/api`)
         : '/api';
 
@@ -300,11 +305,11 @@ class SpeechRecognitionManager {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData
       });
-      
+
       if (!response.ok) {
         throw new Error(`Transcription failed: ${response.status}`);
       }
-      
+
       const data = await response.json();
       const text = (data.text || '').trim();
       if (text && !this.isHallucination(text) && this.transcriptionCallback) {
