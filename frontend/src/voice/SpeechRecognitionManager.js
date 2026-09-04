@@ -13,7 +13,6 @@ class SpeechRecognitionManager {
     this.hasSpoken = false;
     this.transcriptionReceived = false;
     this.latestInterimText = '';
-    this.SILENCE_THRESHOLD = 3;
     this.FFT_SIZE = 512;
     this.transcriptionCallback = null;
     this.errorCallback = null;
@@ -24,15 +23,16 @@ class SpeechRecognitionManager {
     this.initNativeRecognition();
   }
 
-  // --- Whisper hallucination filter ---
+  // --- Whisper / WebSpeech hallucination filter ---
   isHallucination(text) {
     if (!text) return true;
     const normalized = text.toLowerCase().replace(/[^\w\s]/g, '').trim();
-    return !normalized || [
+    return !normalized || normalized.length < 2 || [
       'thank you', 'thanks', 'thank you very much', 'thank you so much',
       'thank you for watching', 'thanks for watching', 'subtitles by',
       'you', 'bye', 'goodbye', 'please subscribe', 'subscribe', 'mbc',
-      'sous-titres', 'watching', 'the end', 'amara.org'
+      'sous-titres', 'watching', 'the end', 'amara.org', 'thank you.',
+      'thank you very much.', 'thank you so much.', 'thanks.'
     ].includes(normalized);
   }
 
@@ -79,7 +79,7 @@ class SpeechRecognitionManager {
 
         this.nativeRecognition.onerror = (event) => {
           if (event.error !== 'no-speech' && event.error !== 'aborted') {
-            console.warn('[STT] Native recognition error:', event.error);
+            console.warn('[STT] Native recognition note:', event.error);
           }
         };
       } catch (e) {
@@ -104,7 +104,7 @@ class SpeechRecognitionManager {
     this.hasSpoken = false;
 
     try {
-      // 1. Acquire microphone with optimized audio constraints
+      // 1. Acquire microphone with native hardware AGC and acoustic processing
       if (!this.stream || !this.stream.active || !this.stream.getAudioTracks().some(t => t.readyState === 'live')) {
         if (this.stream) {
           try { this.stream.getTracks().forEach(t => t.stop()); } catch(e){}
@@ -112,9 +112,8 @@ class SpeechRecognitionManager {
         this.stream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,
-            noiseSuppression: false,   // Prevents aggressive clipping on Realtek mic arrays
-            autoGainControl: true,     // Lets the OS boost low-gain microphones
-            sampleRate: { ideal: 16000 }
+            noiseSuppression: true,
+            autoGainControl: true
           }
         });
         this.microphone = null;
@@ -123,45 +122,15 @@ class SpeechRecognitionManager {
       const track = this.stream.getAudioTracks()[0];
       console.log('[STT] Mic ready:', track.label, '| state:', track.readyState);
 
-      // 2. Web Audio graph: GainNode → Analyser (VAD) + MediaStreamDestination (Whisper)
-      if (!this.audioContext || this.audioContext.state === 'closed') {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (this.audioContext.state === 'suspended') {
-        try { await this.audioContext.resume(); } catch(e){}
-      }
-
-      // Always rebuild the audio graph so the MediaStreamDestination is fresh
-      this.analyser = this.audioContext.createAnalyser();
-      this.analyser.fftSize = this.FFT_SIZE;
-      this.analyser.smoothingTimeConstant = 0.3;
-
-      this.microphone = this.audioContext.createMediaStreamSource(this.stream);
-
-      // Boost low-gain Realtek microphone signals (3.5x) before analysis AND recording
-      const gainNode = this.audioContext.createGain();
-      gainNode.gain.value = 3.5;
-      this.microphone.connect(gainNode);
-
-      // Feed boosted audio to Analyser for VAD
-      gainNode.connect(this.analyser);
-
-      // Feed boosted audio to a MediaStreamDestination so MediaRecorder captures the amplified signal
-      const destination = this.audioContext.createMediaStreamDestination();
-      gainNode.connect(destination);
-      const boostedStream = destination.stream;
-
-      this.listening = true;
-
-      // 3. Start MediaRecorder on the BOOSTED stream (not the raw mic stream)
-      let recorderOptions = {};
+      // 2. Direct MediaRecorder on hardware stream (100% reliable bytes, no WebAudio starvation)
+      let mimeType = '';
       if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-        recorderOptions = { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 128000 };
+        mimeType = 'audio/webm;codecs=opus';
       } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-        recorderOptions = { mimeType: 'audio/webm', audioBitsPerSecond: 128000 };
+        mimeType = 'audio/webm';
       }
 
-      this.mediaRecorder = new MediaRecorder(boostedStream, recorderOptions);
+      this.mediaRecorder = new MediaRecorder(this.stream, mimeType ? { mimeType } : {});
       this.mediaRecorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
           this.audioChunks.push(e.data);
@@ -171,15 +140,18 @@ class SpeechRecognitionManager {
       this.mediaRecorder.onstop = async () => {
         if (this.transcriptionReceived) return;
 
-        const blob = new Blob(this.audioChunks, { type: recorderOptions.mimeType || 'audio/webm' });
+        if (this.audioChunks.length === 0) {
+          if (this.silenceTimeoutCallback) this.silenceTimeoutCallback();
+          return;
+        }
+
+        const blob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
         console.log(`[STT] MediaRecorder stopped. Size: ${blob.size} bytes, hasSpoken: ${this.hasSpoken}, chunks: ${this.audioChunks.length}`);
 
-        // Gate-bypass: upload any sufficiently sized recording to Whisper
-        // and let the server-side hallucination filter decide
-        if (blob.size >= 500) {
+        if (blob.size >= 1000) {
           await this.sendForTranscription(blob);
         } else {
-          console.log(`[STT] Buffer too small (${blob.size} bytes), aborting upload`);
+          console.log(`[STT] Buffer below speech threshold (${blob.size} bytes), aborting upload`);
           if (this.silenceTimeoutCallback) {
             this.silenceTimeoutCallback();
           }
@@ -187,14 +159,30 @@ class SpeechRecognitionManager {
       };
 
       this.mediaRecorder.start(100);
+      this.listening = true;
 
-      // 4. Start native Web Speech API in parallel for instant 0-latency results
+      // 3. Web Audio analyser strictly for passive VAD (Voice Activity Detection) & Visualizer
+      if (!this.audioContext || this.audioContext.state === 'closed') {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (this.audioContext.state === 'suspended') {
+        try { await this.audioContext.resume(); } catch(e){}
+      }
+
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = this.FFT_SIZE;
+      this.analyser.smoothingTimeConstant = 0.3;
+
+      this.microphone = this.audioContext.createMediaStreamSource(this.stream);
+      this.microphone.connect(this.analyser);
+
+      // 4. Start Native Web Speech API in parallel
       if (this.nativeRecognition) {
         try {
           this.nativeRecognition.start();
           console.log('[STT] Native WebSpeech started');
         } catch (e) {
-          // Already active or busy — MediaRecorder fallback handles it
+          // Fallback to MediaRecorder + Whisper
         }
       }
 
@@ -220,19 +208,23 @@ class SpeechRecognitionManager {
     this.checkSilenceInterval = setInterval(() => {
       if (!this.analyser) return;
       this.analyser.getByteFrequencyData(dataArray);
+      let sum = 0;
       let maxVol = 0;
       for (let i = 0; i < dataArray.length; i++) {
+        sum += dataArray[i];
         if (dataArray[i] > maxVol) maxVol = dataArray[i];
       }
+      const avgVol = sum / dataArray.length;
       if (this.volumeCallback) this.volumeCallback(maxVol);
 
-      if (maxVol > this.SILENCE_THRESHOLD) {
+      // VAD Speech Activity: either peak volume > 10 or average frequency energy > 3
+      if (maxVol > 10 || avgVol > 3) {
         this.hasSpoken = true;
         silenceStart = Date.now();
       } else {
         const now = Date.now();
-        // End of speech: 2s silence after user spoke (gives time for natural pauses)
-        if (this.hasSpoken && (now - silenceStart > 2000)) {
+        // End of speech: 1.8s silence after user spoke
+        if (this.hasSpoken && (now - silenceStart > 1800)) {
           this.stopListening();
         }
         // No speech at all for 7s → silence timeout
@@ -261,7 +253,7 @@ class SpeechRecognitionManager {
 
     if (this.volumeCallback) this.volumeCallback(0);
 
-    // If native recognition captured interim text before stop was called, use it
+    // If native recognition captured interim text before stop was called, use it immediately
     if (!this.transcriptionReceived && this.latestInterimText && !this.isHallucination(this.latestInterimText)) {
       const captured = this.latestInterimText.trim();
       this.transcriptionReceived = true;

@@ -233,24 +233,45 @@ async def chat(request: ChatRequest):
 import tempfile
 from groq import Groq
 
+WHISPER_HALLUCINATIONS = {
+    'thank you', 'thank you.', 'thanks', 'thanks.', 'thank you very much.',
+    'thank you so much.', 'thank you for watching.', 'thanks for watching.',
+    'subtitles by', 'you', 'bye', 'goodbye', 'please subscribe', 'subscribe',
+    'mbc', 'sous-titres', 'watching', 'the end', 'amara.org', 'thank you very much',
+    'thank you so much', 'thank you for watching', 'thanks for watching'
+}
+
 @app.post("/api/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...)):
     if not Config.GROQ_API_KEY:
         raise HTTPException(status_code=500, detail="Groq API key not configured")
     
+    file_bytes = await audio.read()
+    if len(file_bytes) < 1000:
+        return {"text": ""}
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
-        shutil.copyfileobj(audio.file, temp_audio)
+        temp_audio.write(file_bytes)
         temp_audio_path = temp_audio.name
 
     try:
         client = Groq(api_key=Config.GROQ_API_KEY)
         with open(temp_audio_path, "rb") as file:
             transcription = client.audio.transcriptions.create(
-                file=(audio.filename, file.read()),
+                file=(audio.filename or "recording.webm", file.read()),
                 model="whisper-large-v3-turbo",
+                prompt="University library assistant: search books, find shelf racks, authors, book titles, library catalog, floor navigation.",
+                temperature=0.0,
+                language="en",
                 response_format="json",
             )
-        return {"text": transcription.text}
+        
+        raw_text = (transcription.text or "").strip()
+        normalized = raw_text.lower().strip(".!,? ")
+        if normalized in WHISPER_HALLUCINATIONS or len(normalized) < 2:
+            return {"text": ""}
+
+        return {"text": raw_text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
