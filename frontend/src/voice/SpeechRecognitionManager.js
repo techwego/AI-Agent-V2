@@ -84,15 +84,13 @@ class SpeechRecognitionManager {
       };
 
       this.mediaRecorder.onstop = async () => {
-        // ALWAYS send audio to Whisper if we have chunks — match v6.0.0
-        // The Realtek mic volume is too low for AnalyserNode frequency detection
-        // but MediaRecorder still captures real audio that Whisper CAN transcribe
-        if (this.audioChunks.length > 0) {
+        // Only send to Whisper if speech was actually detected
+        if (this.audioChunks.length > 0 && this.hasSpoken) {
           const audioBlob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
           console.log(`[STT] MediaRecorder stopped. Size: ${audioBlob.size} bytes, hasSpoken: ${this.hasSpoken}, chunks: ${this.audioChunks.length}`);
           await this.sendForTranscription(audioBlob);
         } else {
-          console.log('[STT] MediaRecorder stopped with 0 chunks');
+          console.log(`[STT] MediaRecorder stopped. No speech detected (hasSpoken: false). Dropped ${this.audioChunks.length} chunks.`);
           if (this.silenceTimeoutCallback) {
             this.silenceTimeoutCallback();
           }

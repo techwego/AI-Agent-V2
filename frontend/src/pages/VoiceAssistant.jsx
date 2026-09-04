@@ -99,10 +99,17 @@ const VoiceAssistant = () => {
 
   useEffect(() => {
     sttManager.onTranscription((text) => {
-      if (text && text.trim()) {
+      const normalized = (text || '').toLowerCase().trim().replace(/[.,!?]/g, "");
+      const hallucinations = [
+        "thank you", "thanks", "thank you very much", "thank you so much",
+        "thanks for watching", "thank you for watching", "subtitles by", "you"
+      ];
+
+      if (text && text.trim() && !hallucinations.includes(normalized)) {
         handleVoiceInput(text.trim());
       } else {
         stateManager.setState(State.IDLE);
+        // Silently reset — this means the mic captured silence and Whisper hallucinated
       }
     });
 
