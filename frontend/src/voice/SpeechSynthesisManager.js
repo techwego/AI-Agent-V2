@@ -178,6 +178,12 @@ class SpeechSynthesisManager {
     }
   }
 
+  startStream() {
+    this.cancel();
+    this.isStreaming = true;
+    this.onAllFinished = null;
+  }
+
   enqueue(sentence) {
     const clean = this.stripMarkdown(sentence);
     if (!clean) return;
@@ -187,11 +193,24 @@ class SpeechSynthesisManager {
     }
   }
 
+  endStream(onEnd) {
+    this.isStreaming = false;
+    this.onAllFinished = onEnd;
+    if (!this.speaking && this.queue.length === 0) {
+      if (this.onAllFinished) {
+        const cb = this.onAllFinished;
+        this.onAllFinished = null;
+        cb();
+      }
+    }
+  }
+
   async processQueue() {
     if (this.queue.length === 0) {
       this.isProcessingQueue = false;
       this.speaking = false;
-      if (this.onAllFinished) {
+      // Do not prematurely fire onAllFinished while the LLM is still streaming tokens
+      if (!this.isStreaming && this.onAllFinished) {
         const cb = this.onAllFinished;
         this.onAllFinished = null;
         cb();
@@ -210,6 +229,7 @@ class SpeechSynthesisManager {
 
   speak(text, onEnd) {
     this.cancel();
+    this.isStreaming = false;
     this.onAllFinished = onEnd;
 
     const cleanText = this.stripMarkdown(text);
@@ -233,6 +253,7 @@ class SpeechSynthesisManager {
     this.queue = [];
     this.isProcessingQueue = false;
     this.speaking = false;
+    this.isStreaming = false;
     this.onAllFinished = null;
 
     if (this.audioElement) {

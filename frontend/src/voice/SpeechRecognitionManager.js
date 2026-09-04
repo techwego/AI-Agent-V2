@@ -17,6 +17,7 @@ class SpeechRecognitionManager {
     this.errorCallback = null;
     this.volumeCallback = null;
     this.nativeRecognition = null;
+    this.latestInterimText = '';
 
     this.initNativeRecognition();
   }
@@ -26,7 +27,7 @@ class SpeechRecognitionManager {
     if (SpeechRecognition) {
       try {
         this.nativeRecognition = new SpeechRecognition();
-        this.nativeRecognition.continuous = false;
+        this.nativeRecognition.continuous = true;
         this.nativeRecognition.interimResults = true;
         this.nativeRecognition.lang = 'en-US';
 
@@ -44,12 +45,16 @@ class SpeechRecognitionManager {
 
           if (finalText.trim()) {
             this.transcriptionReceived = true;
+            this.latestInterimText = '';
             this.audioChunks = []; // Skip server upload since native transcribed it
             if (this.transcriptionCallback) {
               this.transcriptionCallback(finalText.trim());
             }
-          } else if (interimText.trim() && this.interimCallback) {
-            this.interimCallback(interimText.trim());
+          } else if (interimText.trim()) {
+            this.latestInterimText = interimText.trim();
+            if (this.interimCallback) {
+              this.interimCallback(this.latestInterimText);
+            }
           }
         };
 
@@ -82,6 +87,7 @@ class SpeechRecognitionManager {
   async startListening() {
     if (this.listening) return;
     this.transcriptionReceived = false;
+    this.latestInterimText = '';
     this.audioChunks = [];
 
     try {
@@ -114,8 +120,8 @@ class SpeechRecognitionManager {
         if (e.data && e.data.size > 0) this.audioChunks.push(e.data); 
       };
       this.mediaRecorder.onstop = async () => {
-        // If native recognition didn't already transcribe, send audio to backend
-        if (!this.transcriptionReceived && this.audioChunks.length > 0 && this.hasSpoken) {
+        // If native recognition didn't already transcribe, send audio to backend Whisper
+        if (!this.transcriptionReceived && this.audioChunks.length > 0) {
           const blob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
           await this.sendForTranscription(blob);
         }
@@ -134,7 +140,7 @@ class SpeechRecognitionManager {
       this.startSilenceDetection();
       this.maxListeningTimer = setTimeout(() => { 
         if (this.listening) this.stopListening(); 
-      }, 15000);
+      }, 20000);
 
     } catch (err) {
       console.error('Microphone access error:', err);
@@ -162,12 +168,12 @@ class SpeechRecognitionManager {
         silenceStart = Date.now();
       } else {
         const now = Date.now();
-        // End of speech detected after 2000ms silence
-        if (this.hasSpoken && (now - silenceStart > 2000)) {
+        // End of speech detected after 2500ms silence
+        if (this.hasSpoken && (now - silenceStart > 2500)) {
           this.stopListening();
         } 
-        // Complete silence for 5s timeout
-        else if (!this.hasSpoken && (now - initialSilenceStart > 5000)) {
+        // Complete silence for 8s timeout
+        else if (!this.hasSpoken && (now - initialSilenceStart > 8000)) {
           this.stopListening();
           if (this.silenceTimeoutCallback) {
             this.silenceTimeoutCallback();
@@ -190,6 +196,28 @@ class SpeechRecognitionManager {
       this.maxListeningTimer = null;
     }
     
+    if (this.volumeCallback) this.volumeCallback(0);
+
+    // If native speech recognition provided interim text, but hadn't finalized before stop was triggered:
+    if (!this.transcriptionReceived && this.latestInterimText && this.latestInterimText.trim()) {
+      const captured = this.latestInterimText.trim();
+      this.transcriptionReceived = true;
+      this.latestInterimText = '';
+      this.audioChunks = [];
+
+      if (this.nativeRecognition) {
+        try { this.nativeRecognition.stop(); } catch(e){}
+      }
+      if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+        try { this.mediaRecorder.stop(); } catch(e){}
+      }
+
+      if (this.transcriptionCallback) {
+        this.transcriptionCallback(captured);
+      }
+      return;
+    }
+
     if (this.nativeRecognition) {
       try { this.nativeRecognition.stop(); } catch(e){}
     }
@@ -197,13 +225,10 @@ class SpeechRecognitionManager {
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       try { this.mediaRecorder.stop(); } catch(e){}
     }
-
-    // Don't suspend audioContext — we reuse it for the continuous conversational loop
-
-    if (this.volumeCallback) this.volumeCallback(0);
   }
 
   forceReset() {
+    this.latestInterimText = '';
     this.stopListening();
     this.audioChunks = [];
     this.hasSpoken = false;

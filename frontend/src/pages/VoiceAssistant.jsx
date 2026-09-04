@@ -65,6 +65,7 @@ const VoiceAssistant = () => {
 
   const wayfindRef = useRef(null);
   const inputRef = useRef(null);
+  const streamVoiceRef = useRef(null);
 
   const switchMode = useCallback((mode) => {
     setInteractionMode(mode);
@@ -90,10 +91,11 @@ const VoiceAssistant = () => {
 
   useEffect(() => {
     chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages, voiceMessages, activeTab, interactionMode]);
+  }, [chatMessages, voiceMessages, interimText, conversationState, activeTab, interactionMode]);
 
   useEffect(() => {
     sttManager.onTranscription((text) => {
+      setInterimText('');
       if (text && text.trim()) {
         handleVoiceInput(text.trim());
       } else {
@@ -112,6 +114,7 @@ const VoiceAssistant = () => {
     });
 
     sttManager.onError((errorMsg) => {
+      setInterimText('');
       stateManager.setState(State.IDLE);
       showToast(errorMsg, 'error');
     });
@@ -174,8 +177,11 @@ const VoiceAssistant = () => {
       return; 
     }
     if (currentState === State.LISTENING) { 
+      // User clicked to stop recording — let transcription flow handle the result
+      stateManager.setState(State.PROCESSING);
       sttManager.stopListening(); 
-      stateManager.setState(State.IDLE); 
+      // The onTranscription callback will fire with the captured text
+      // If no speech was detected, onSilenceTimeout or empty transcription will reset to IDLE
       return; 
     }
     if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) return;
@@ -197,9 +203,8 @@ const VoiceAssistant = () => {
 
       stateManager.setState(State.INTRODUCING);
       ttsManager.speak(welcomeText, () => {
-        // After intro, automatically start listening for the user's first question
-        stateManager.setState(State.LISTENING);
-        sttManager.startListening();
+        // After self-introduction, return to IDLE so the user can click to speak
+        stateManager.setState(State.IDLE);
       });
       return;
     }
@@ -210,13 +215,16 @@ const VoiceAssistant = () => {
   // -------------------------------------------------------------
   // VOICE-ONLY INPUT HANDLER (ONLY MUTATES voiceMessages)
   // -------------------------------------------------------------
-  const handleVoiceInput = useCallback(async (text) => {
+  const handleVoiceInput = useCallback((text) => {
+    setInterimText('');
     stateManager.setState(State.PROCESSING);
     const history = [...voiceMessagesRef.current];
     setVoiceMessages(prev => [...prev, { role: 'user', content: text, timestamp: Date.now() }]);
     setTimeout(() => {
       stateManager.setState(State.RETRIEVING);
-      streamVoiceAIResponse(text, history);
+      if (streamVoiceRef.current) {
+        streamVoiceRef.current(text, history);
+      }
     }, 0);
   }, []);
 
@@ -248,12 +256,7 @@ const VoiceAssistant = () => {
 
       setVoiceMessages(prev => [...prev, { role: 'assistant', content: '', timestamp: Date.now() }]);
 
-      ttsManager.cancel();
-      ttsManager.onAllFinished = () => {
-        // Continuous conversational loop
-        stateManager.setState(State.LISTENING);
-        sttManager.startListening();
-      };
+      ttsManager.startStream();
 
       while (!done) {
         const { value, done: readerDone } = await reader.read();
@@ -290,6 +293,11 @@ const VoiceAssistant = () => {
         stateManager.setState(State.SPEAKING);
         ttsManager.enqueue(cleanRemaining);
       }
+
+      // When full speech playback is complete, return to IDLE
+      ttsManager.endStream(() => {
+        stateManager.setState(State.IDLE);
+      });
 
       // Parse indoor navigation route tags
       const routeMatch = fullResponse.match(/<ROUTE_FROM:(.*?)_TO:(.*?)>/i);
@@ -354,6 +362,9 @@ const VoiceAssistant = () => {
       stateManager.reset();
     }
   }, [showToast]);
+
+  // Keep ref in sync so handleVoiceInput always calls the latest version
+  streamVoiceRef.current = streamVoiceAIResponse;
 
   // -------------------------------------------------------------
   // CHAT-ONLY INPUT HANDLER (ONLY MUTATES chatMessages)
@@ -593,6 +604,28 @@ const VoiceAssistant = () => {
                     </div>
                   </div>
                 ))}
+                {interimText && (
+                  <div className="flex w-full justify-end animate-pulse">
+                    <div className="px-4 py-3 rounded-2xl max-w-[90%] shadow-sm bg-blue-500/10 text-blue-800 border border-blue-200/80 italic flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping shrink-0" />
+                      <span>{interimText}</span>
+                    </div>
+                  </div>
+                )}
+                {(conversationState === State.PROCESSING || conversationState === State.RETRIEVING) && (
+                  <div className="flex w-full justify-start animate-fade-in">
+                    <div className="px-4 py-3 rounded-2xl max-w-[90%] shadow-sm bg-slate-100/80 text-slate-600 border border-slate-200 flex items-center gap-2">
+                      <div className="flex space-x-1 items-center">
+                        <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce"></div>
+                      </div>
+                      <span className="text-xs font-semibold text-slate-500">
+                        {conversationState === State.RETRIEVING ? 'Searching library catalog...' : 'Processing your request...'}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div ref={chatMessagesEndRef} />
               </div>
             </div>
