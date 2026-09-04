@@ -99,17 +99,10 @@ const VoiceAssistant = () => {
 
   useEffect(() => {
     sttManager.onTranscription((text) => {
-      const normalized = (text || '').toLowerCase().trim().replace(/[.,!?]/g, "");
-      const hallucinations = [
-        "thank you", "thanks", "thank you very much", "thank you so much",
-        "thanks for watching", "thank you for watching", "subtitles by", "you"
-      ];
-
-      if (text && text.trim() && !hallucinations.includes(normalized)) {
+      if (text && text.trim()) {
         handleVoiceInput(text.trim());
       } else {
         stateManager.setState(State.IDLE);
-        // Silently reset without annoying the user with a popup
       }
     });
 
