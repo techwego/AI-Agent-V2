@@ -11,8 +11,8 @@ class SpeechRecognitionManager {
     this.maxListeningTimer = null;
     this.hasSpoken = false;
     this.transcriptionReceived = false;
-    this.SILENCE_THRESHOLD = 15;
-    this.SPEECH_THRESHOLD = 22;
+    this.SILENCE_THRESHOLD = 5;
+    this.SPEECH_THRESHOLD = 10;
     this.FFT_SIZE = 512;
     this.transcriptionCallback = null;
     this.errorCallback = null;
@@ -102,35 +102,57 @@ class SpeechRecognitionManager {
     this.audioChunks = [];
 
     try {
-      if (!this.stream || !this.stream.active) {
+      const hasLiveTrack = this.stream && this.stream.getAudioTracks().some(t => t.readyState === 'live' && t.enabled);
+      if (!this.stream || !hasLiveTrack) {
         this.stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: false,
+            autoGainControl: true
+          } 
         });
+        this.microphone = null;
       }
       
       if (!this.audioContext || this.audioContext.state === 'closed') {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.analyser = null;
+        this.microphone = null;
+        this.silentGain = null;
+      }
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+
+      if (!this.analyser) {
         this.analyser = this.audioContext.createAnalyser();
         this.analyser.fftSize = this.FFT_SIZE;
-        this.microphone = this.audioContext.createMediaStreamSource(this.stream);
+        this.analyser.smoothingTimeConstant = 0.3;
+      }
+      
+      if (!this.silentGain) {
+        this.silentGain = this.audioContext.createGain();
+        this.silentGain.gain.value = 0; // Silent sink to force Chrome audio processing
+        this.analyser.connect(this.silentGain);
+        this.silentGain.connect(this.audioContext.destination);
+      }
 
-        // Boost microphone gain by 2.0x so audio to Whisper is sufficiently amplified & uncorrupted
+      if (!this.microphone) {
+        this.microphone = this.audioContext.createMediaStreamSource(this.stream);
+        // Boost microphone gain by 2.0x so audio to Whisper is sufficiently amplified
         this.gainNode = this.audioContext.createGain();
         this.gainNode.gain.value = 2.0;
-
         this.destination = this.audioContext.createMediaStreamDestination();
 
         this.microphone.connect(this.gainNode);
         this.gainNode.connect(this.analyser);
         this.gainNode.connect(this.destination);
-      } else if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
       }
 
       this.listening = true;
       this.hasSpoken = false;
 
-      // 1. Start parallel MediaRecorder using amplified destination stream for reliable Whisper backend fallback
+      // 1. Direct hardware MediaRecorder for robust Whisper fallback
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
         ? 'audio/webm;codecs=opus' 
         : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : undefined);
@@ -141,10 +163,10 @@ class SpeechRecognitionManager {
         if (e.data && e.data.size > 0) this.audioChunks.push(e.data); 
       };
       this.mediaRecorder.onstop = async () => {
-        // Only send to Whisper if speech was actually detected and audio is not empty/silent
+        // Only send to Whisper if audio is not completely empty
         if (!this.transcriptionReceived && this.audioChunks.length > 0) {
           const blob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
-          if (this.hasSpoken && blob.size >= 3500) {
+          if (blob.size >= 300) {
             await this.sendForTranscription(blob);
           } else {
             console.log(`[STT] Silence/empty frame suppressed (size: ${blob.size}, hasSpoken: ${this.hasSpoken})`);

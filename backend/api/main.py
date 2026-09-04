@@ -265,10 +265,10 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         temp_audio_path = temp_audio.name
 
     try:
-        # Check audio file size to discard empty audio frames
+        # Only discard files smaller than 300 bytes (which indicates completely empty WebM headers with zero frames)
         file_size = os.path.getsize(temp_audio_path)
-        if file_size < 3500:
-            print(f"[STT] Discarded near-empty audio frame ({file_size} bytes)")
+        if file_size < 300:
+            print(f"[STT] Discarded empty audio container ({file_size} bytes)")
             return {"text": ""}
 
         client = Groq(api_key=Config.GROQ_API_KEY)
