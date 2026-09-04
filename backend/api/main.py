@@ -278,7 +278,7 @@ async def transcribe_audio(audio: UploadFile = File(...)):
                 model="whisper-large-v3-turbo",
                 language="en",
                 temperature=0.0,
-                prompt="Anna University Library Assistant query asking for book titles, authors, rack numbers, shelves, categories, departments, availability.",
+                prompt="Harry Potter, Machine Learning, Python, Database, Algorithms, Engineering, Rack C6, Floor 1, Floor 2, Central Library.",
                 response_format="json",
             )
         

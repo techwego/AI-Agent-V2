@@ -33,6 +33,7 @@ class GroqEngine(LLMEngine):
                         ],
                         stream=True,
                         temperature=0.3,
+                        max_tokens=350,
                     )
                     break
                 except Exception as conn_err:
@@ -119,6 +120,7 @@ class GroqEngine(LLMEngine):
                 "messages": [{"role": "user", "content": prompt}],
                 "stream": False,
                 "temperature": 0.1,
+                "max_tokens": 300,
             }
             if json_mode:
                 kwargs["response_format"] = {"type": "json_object"}
