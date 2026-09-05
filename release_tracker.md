@@ -1,8 +1,8 @@
 # 📊 AI Library Management System — Overview & Release Tracker
 
 > **Project:** Speech-to-Speech AI Library Assistant  
-> **Current Release:** v7.14.2 · Branch `main`  
-> **Date Generated:** 2026-09-05 15:10 IST  
+> **Current Release:** v7.15.0 · Branch `main`  
+> **Date Generated:** 2026-09-05 15:22 IST  
 > **Developer:** Arun P · TechWeGo
 
 ---
@@ -267,31 +267,34 @@ sequenceDiagram
 
 ---
 
-### 🔖 Release Notes — v7.14.2
+### 🔖 Release Notes — v7.15.0
 
 **Branch:** `main`  
-**Commit:** `409858a`  
-**Date:** 2026-09-05 15:10 IST
+**Commit:** `6c49625`  
+**Date:** 2026-09-05 15:22 IST
 
-#### Idempotent State Machine & Clean Speech Lifecycle
-- **fix(state-machine):** Refactored `ConversationStateManager.js` to allow idempotent same-state transitions (`this.currentState === newState` returns `true` immediately as a safe no-op), eliminating spurious console warnings like `Invalid state transition from PROCESSING to PROCESSING`.
-- **fix(transition-matrix):** Expanded `VALID_TRANSITIONS` table to handle all real-world asynchronous voice pipeline scenarios (e.g., direct generation, interrupts, and rapid speech turnaround).
+#### Enterprise 3D Animated AI Assistant Avatar & Voice Orb Upgrade
+- **feat(avatar-orb):** Upgraded `VoiceOrb.jsx` with an enterprise-level interactive **3D Animated AI Character Avatar**, harmonizing visual identity across Voice Assistant and Chat sections.
+- **feat(acoustic-halo):** Integrated multi-layered dynamic acoustic ripple waves and glowing state auras (`LISTENING` = pulsing cyan/blue soundwave rings with live equalizer indicator; `PROCESSING` = holographic amber spin sweep; `SPEAKING` = royal sapphire/purple voice equalizer ripples; `IDLE` = gentle breathing blue/slate glow).
+- **feat(interactive-pill):** Added floating glassmorphic interactive status trigger pill (`Tap to Speak`, `Listening...`, `Thinking...`, `Speaking...`) with tactile feedback and keyboard accessibility (Enter / Space).
+- **feat(performance):** Zero WebGL memory overhead, fluid 60 FPS animation, responsive scaling across mobile, tablet, and desktop viewports.
 
 #### Files Impacted
-- `frontend/src/voice/ConversationStateManager.js` — Idempotent same-state check, enriched transition graph
+- `frontend/src/components/VoiceOrb.jsx` — 3D animated character avatar, dynamic acoustic ripple rings, interactive glass control badge
 
 ---
 
 ### 📋 Deployment Checklist
 
-- [x] All modules compiled (`npm run build` ✅ built in 7.21s)
+- [x] All modules compiled (`npm run build` ✅ built in 7.88s)
 - [x] Backend endpoints verified (`/api/chat`, `/api/transcribe`, `/api/tts`)
 - [x] RAG engine initializes with ChromaDB + BM25 indices
 - [x] 3D Wayfinder synchronizes with admin architecture API
-- [x] Voice state lifecycle verified with 0 invalid transition warnings
+- [x] 3D Avatar Mic Orb verified across IDLE, LISTENING, PROCESSING, and SPEAKING states
 - [x] Full mobile, tablet, and desktop responsiveness verified
 - [x] Zero logic modifications confirmed
-- [x] Deployed and production-ready in **v7.14.2** (`409858a`)
+- [x] Deployed and production-ready in **v7.15.0** (`6c49625`)
+
 
 
 
