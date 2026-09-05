@@ -150,7 +150,7 @@ const VoiceAssistant = () => {
       else if (e.code === 'Escape') { 
         e.preventDefault(); 
         if (isMapFullscreen) {
-          setIsMapFullscreen(false);
+          handleCloseFullscreenMap();
         } else {
           handleInterrupt();
         }
@@ -319,7 +319,6 @@ const VoiceAssistant = () => {
         if (to && !['A', 'start_node', 'Y', 'unknown', 'B', 'X'].includes(to)) {
           setRouteFrom(from);
           setRouteTo(to);
-          setActiveTab('map');
           setIsMapFullscreen(true);
           showToast(`Opening Navigation to Rack ${to}`, 'success');
         }
@@ -330,7 +329,6 @@ const VoiceAssistant = () => {
           if (to && !['A', 'start_node', 'Y', 'unknown', 'B', 'X'].includes(to)) {
             setRouteFrom('entrance');
             setRouteTo(to);
-            setActiveTab('map');
             setIsMapFullscreen(true);
             showToast(`Opening Navigation to Rack ${to}`, 'success');
           }
@@ -420,7 +418,6 @@ const VoiceAssistant = () => {
         if (to && !['A', 'start_node', 'Y', 'unknown', 'B', 'X'].includes(to)) {
           setRouteFrom(from);
           setRouteTo(to);
-          setActiveTab('map');
           setIsMapFullscreen(true);
           showToast(`Opening Navigation to Rack ${to}`, 'success');
         }
@@ -431,7 +428,6 @@ const VoiceAssistant = () => {
           if (to && !['A', 'start_node', 'Y', 'unknown', 'B', 'X'].includes(to)) {
             setRouteFrom('entrance');
             setRouteTo(to);
-            setActiveTab('map');
             setIsMapFullscreen(true);
             showToast(`Opening Navigation to Rack ${to}`, 'success');
           }
@@ -460,6 +456,9 @@ const VoiceAssistant = () => {
 
   const handleCloseFullscreenMap = () => {
     setIsMapFullscreen(false);
+    if (interactionMode === 'chat') {
+      setActiveTab('chat');
+    }
   };
 
   return (
@@ -625,7 +624,7 @@ const VoiceAssistant = () => {
             {/* Action Chips */}
             <div className="flex items-center justify-center flex-wrap gap-3 shrink-0 pb-1">
               <button
-                onClick={() => { setActiveTab('map'); setIsMapFullscreen(true); }}
+                onClick={() => setIsMapFullscreen(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 hover:bg-blue-50 border border-slate-200/90 hover:border-blue-300 text-xs font-bold text-slate-700 hover:text-blue-700 shadow-xs transition-all active:scale-[0.97] interactive-card"
               >
                 <Compass size={14} className="text-blue-600" />
@@ -678,7 +677,7 @@ const VoiceAssistant = () => {
                   <span>Catalog</span>
                 </button>
                 <button
-                  onClick={() => { setActiveTab('map'); setIsMapFullscreen(true); }}
+                  onClick={() => setIsMapFullscreen(true)}
                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 tab-pill"
                 >
                   <Map size={12} />
@@ -753,7 +752,6 @@ const VoiceAssistant = () => {
               <div className={`absolute inset-0 flex flex-col p-3 sm:p-4 ${activeTab !== 'search' ? 'hidden' : 'flex'}`}>
                 <BookSearch onShowOnMap={(rack) => {
                   setRouteTo(rack);
-                  setActiveTab('map');
                   setIsMapFullscreen(true);
                   showToast(`Locating Rack ${rack} in 3D Map`, 'success');
                 }} />

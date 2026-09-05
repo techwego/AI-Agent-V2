@@ -750,8 +750,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     dashTex.repeat.set(totalLen * 2, 1);
     
     // Lightweight, highly visible route tube with animated dashes
-    const tubeGeo = new THREE.TubeGeometry(curve, Math.min(96, Math.max(32, result.path.length * 8)), 0.16, 6, false);
-    const tubeMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, map: dashTex, transparent: true, opacity: 0.92, depthTest: false });
+    const tubeGeo = new THREE.TubeGeometry(curve, Math.min(128, Math.max(48, result.path.length * 10)), 0.22, 8, false);
+    const tubeMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, map: dashTex, transparent: true, opacity: 0.95, depthTest: false });
     const routeTube = new THREE.Mesh(tubeGeo, tubeMat);
     routeTube.geometry.setDrawRange(0, Infinity);
     routeTube.renderOrder = 999;
@@ -759,26 +759,26 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     routeObjsRef.current.tube = routeTube;
     routeObjsRef.current.dashTex = dashTex;
 
-    // Outer glow tube for visibility
-    const glowGeo = new THREE.TubeGeometry(curve, Math.min(96, Math.max(32, result.path.length * 8)), 0.32, 6, false);
-    const glowMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, transparent: true, opacity: 0.18, depthTest: false });
+    // Outer glow tube for crisp visibility from all angles
+    const glowGeo = new THREE.TubeGeometry(curve, Math.min(128, Math.max(48, result.path.length * 10)), 0.44, 8, false);
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.25, depthTest: false });
     const glowTube = new THREE.Mesh(glowGeo, glowMat);
     glowTube.geometry.setDrawRange(0, Infinity);
     glowTube.renderOrder = 998;
     scene.add(glowTube);
     routeObjsRef.current.glow = glowTube;
 
-    // Comet (optimized to 4 trailing spheres)
+    // Comet (flowing energy pulse along the path)
     const cometGroup = new THREE.Group();
-    const headMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false }); // small white ball
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), headMat);
+    const headMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16), headMat);
     head.renderOrder = 1000;
     cometGroup.add(head);
     const trail = [];
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 5; i++) {
       const m = new THREE.Mesh(
-        new THREE.SphereGeometry(0.26 - i * 0.04, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 - i * 0.1, depthTest: false })
+        new THREE.SphereGeometry(0.32 - i * 0.04, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.6 - i * 0.1, depthTest: false })
       );
       m.renderOrder = 1000 - i;
       cometGroup.add(m);
@@ -810,8 +810,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       beaconGroup.add(ring);
     }
     
-    const diamondGeo = new THREE.OctahedronGeometry(0.35, 0);
-    const diamondMat = new THREE.MeshBasicMaterial({ color: 0xff6655, transparent: true, opacity: 0.85 });
+    const diamondGeo = new THREE.OctahedronGeometry(0.4, 0);
+    const diamondMat = new THREE.MeshBasicMaterial({ color: 0xff6655, transparent: true, opacity: 0.9 });
     const diamond = new THREE.Mesh(diamondGeo, diamondMat);
     diamond.position.y = 5.2;
     beaconGroup.add(diamond);
@@ -820,10 +820,10 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     billboardCanvas.width = 256;
     billboardCanvas.height = 64;
     const ctx = billboardCanvas.getContext('2d');
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
     ctx.beginPath(); ctx.roundRect(0,0,256,64, 8); ctx.fill();
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 24px sans-serif';
+    ctx.font = 'bold 22px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(`${displayName} · ${Math.round(result.distance)}m`, 128, 32);
@@ -831,7 +831,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const tex = new THREE.CanvasTexture(billboardCanvas);
     const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
     const billboard = new THREE.Sprite(mat);
-    billboard.scale.set(3, 0.75, 1);
+    billboard.scale.set(3.2, 0.8, 1);
     billboard.position.y = 6.0;
     beaconGroup.add(billboard);
     
@@ -847,17 +847,17 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       }
     }
 
-    const endPos = new THREE.Vector3(destNode.x, destNode.y + 2, destNode.z);
-    const midIdx = Math.floor(pts.length / 2);
-    const midPt = pts[midIdx] || endPos;
-    const routeCenter = new THREE.Vector3().addVectors(midPt, endPos).multiplyScalar(0.5);
-    const routeSpan = Math.max(8, new THREE.Vector3().subVectors(pts[0], endPos).length());
-    const targetRadius = Math.min(50, Math.max(12, routeSpan * 1.6));
+    // Elevated 3D Overview framing: Frame entire route from start to destination
+    const startPos = new THREE.Vector3(pts[0].x, pts[0].y + 1.5, pts[0].z);
+    const endPos = new THREE.Vector3(destNode.x, destNode.y + 1.5, destNode.z);
+    const routeCenter = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
+    const routeSpan = Math.max(12, startPos.distanceTo(endPos));
+    const targetRadius = Math.min(65, Math.max(22, routeSpan * 1.5));
     flyToRef.current = { target: routeCenter, radius: targetRadius, progress: 0 };
     
     const startT = clock.getElapsedTime();
-    const speed = 9;
-    const duration = Math.max(1.8, totalLen / speed);
+    const speed = 7;
+    const duration = Math.max(2.2, totalLen / speed);
     
     function animate() {
       const bT = clock.getElapsedTime() - startT;
@@ -874,39 +874,34 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       diamond.position.y = 5.2 + Math.sin(bT * 2) * 0.3;
       pillarMat.opacity = 0.25 + Math.sin(bT * 3) * 0.15;
       
-      // Route tube is now drawn entirely at once to guarantee visibility
+      // Animated flowing dashes
       if (routeObjsRef.current.dashTex) {
-        routeObjsRef.current.dashTex.offset.x -= 0.025; // Animate dashes moving forward
+        routeObjsRef.current.dashTex.offset.x -= 0.025;
       }
 
-      const cometT = Math.min(1, bT / duration);
-      const currentPoint = curve.getPointAt(Math.min(0.999, cometT));
+      // Continuous loop of flowing energy pulse along the entire path
+      const cometT = (bT % duration) / duration;
+      const currentPoint = curve.getPointAt(Math.min(0.999, Math.max(0.001, cometT)));
       
-      if (cometT >= 1) {
-          cometGroup.visible = false;
-      } else {
-          cometGroup.visible = true;
-          cometGroup.position.copy(currentPoint);
-          trailPts.unshift(currentPoint.clone());
-          if (trailPts.length > 60) trailPts.pop();
-          trail.forEach((m, i) => {
-            const idx = Math.min(trailPts.length - 1, (i + 1) * 4);
-            if (trailPts[idx]) m.position.copy(trailPts[idx]).sub(currentPoint);
-          });
-      }
+      cometGroup.visible = true;
+      cometGroup.position.copy(currentPoint);
+      trailPts.unshift(currentPoint.clone());
+      if (trailPts.length > 50) trailPts.pop();
+      trail.forEach((m, i) => {
+        const idx = Math.min(trailPts.length - 1, (i + 1) * 3);
+        if (trailPts[idx]) m.position.copy(trailPts[idx]).sub(currentPoint);
+      });
 
-      // Camera fly-to animation (only in orbit mode)
+      // Smooth camera overview framing in orbit mode
       if (cameraModeRef.current !== 'walk') {
         const fly = flyToRef.current;
         if (fly && fly.progress < 1) {
-          fly.progress = Math.min(1, fly.progress + 0.012);
-          const ease = 1 - Math.pow(1 - fly.progress, 3); // ease-out cubic
+          fly.progress = Math.min(1, fly.progress + 0.015);
+          const ease = 1 - Math.pow(1 - fly.progress, 3);
           if (orbitRef.current && orbitRef.current.target) {
-              orbitRef.current.target.lerp(fly.target, ease * 0.04);
-              orbitRef.current.radius += (fly.radius - orbitRef.current.radius) * ease * 0.04;
+              orbitRef.current.target.lerp(fly.target, ease * 0.05);
+              orbitRef.current.radius += (fly.radius - orbitRef.current.radius) * ease * 0.05;
           }
-        } else if (orbitRef.current && orbitRef.current.target) {
-          orbitRef.current.target.lerp(currentPoint, 0.015);
         }
         updateCamera();
       }
@@ -915,10 +910,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     }
     animate();
     
-    // Automatically start the virtual walkthrough!
-    setTimeout(() => {
-      handleSetCameraMode('walk');
-    }, 400); // Small delay to let the map zoom slightly before diving in
+    // Default to clean Orbit 3D Overview mode (user can click Walk in toolbar if desired)
+    handleSetCameraMode('orbit');
     
     if (onRouteComplete) onRouteComplete(destCode, steps);
   }, [clearRoute, onRouteComplete, graphData, handleSetCameraMode]);
