@@ -1,8 +1,8 @@
 # 📊 AI Library Management System — Overview & Release Tracker
 
 > **Project:** Speech-to-Speech AI Library Assistant  
-> **Current Release:** v7.13.0 · Branch `main`  
-> **Date Generated:** 2026-09-05 12:58 IST  
+> **Current Release:** v7.14.0 · Branch `main`  
+> **Date Generated:** 2026-09-05 14:55 IST  
 > **Developer:** Arun P · TechWeGo
 
 ---
@@ -267,39 +267,33 @@ sequenceDiagram
 
 ---
 
-### 🔖 Release Notes — v7.7.1
+### 🔖 Release Notes — v7.14.0
 
 **Branch:** `main`  
-**Commit:** `9ee11c0`  
-**Date:** 2026-09-04 16:09 IST
+**Commit:** `2691b53`  
+**Date:** 2026-09-05 14:55 IST
 
-#### Enterprise White & Blue Theme Overhaul
-- **feat(ui):** Implemented enterprise-level **White and Blue theme** across all screens (Authentication, Dashboard, Voice Assistant, and Catalog).
-- **feat(bg):** Created a clean **3D Wireframe Books & Knowledge Mesh** canvas background (`AnimatedBackground.jsx`) with floating 3D book volumes, geometric knowledge crystals, soft blue ambient gradients, and Page Visibility API performance pauses (60 FPS).
-- **feat(auth):** Restyled **Authentication Screen** (`LoginPage.jsx`) as an enterprise white glassmorphic digital library pass with blue accents, graduation cap header, and subtle shadow elevations.
-- **feat(orb):** Upgraded **3D Voice Orb** (`VoiceOrb.jsx`) with a vibrant royal blue / sapphire glassy core, specular highlights, and acoustic soundwave rings optimized for light backgrounds.
-- **feat(chat):** Styled **VoiceAssistant** and **ChatBubble** with crisp white cards, vibrant blue user messages, soft slate borders, and clean typography.
-- **feat(catalog):** Enhanced **BookSearch** with 3D miniature perspective book spine icons, emerald availability badges, and one-click topic filter pills.
+#### 360° Wayfinder Orbit Freedom & Full-Stack Responsive UI
+- **fix(wayfinder):** Fixed camera lock during route display in `LibraryWayfinder.jsx`. Immediate `flyToRef.current = null` on pointer interaction (`pointerdown`, `pointermove`, `wheel`, `pointercancel`) ensures the user has immediate, unconstrained 360° azimuthal rotation and vertical pitch elevation.
+- **fix(camera):** Removed duplicate `updateCamera()` loop in `drawRoute().animate()` so background path glow & dash pulse animations do not override user orbit rotation.
+- **feat(responsive):** Upgraded `LoginPage.jsx` and `VoiceAssistant.jsx` to be 100% responsive across mobile (320px–480px), tablet (768px–1024px), and desktop (1280px+).
+- **feat(mobile-map):** Optimized wayfinder toolbar, floor switchers, turn-by-turn instruction card, and Quick AI chat overlay for seamless mobile touch interaction.
 
 #### Files Impacted
-- `frontend/src/index.css` — Enterprise White & Blue design tokens, glass cards, aisle grid
-- `frontend/src/components/AnimatedBackground.jsx` — 3D wireframe books & soft blue glow canvas
-- `frontend/src/pages/LoginPage.jsx` — Enterprise White & Blue digital library ID pass
-- `frontend/src/components/VoiceOrb.jsx` — Royal blue / sapphire glassy orb with cyan/indigo rings
-- `frontend/src/pages/VoiceAssistant.jsx` — Clean white workspace, frosted transcript container
-- `frontend/src/components/BookSearch.jsx` — 3D spine cards & emerald/blue badges on white surface
-- `frontend/src/components/ChatBubble.jsx` — Crisp white & blue bubbles
-- `frontend/src/components/StatusIndicator.jsx` — Light pill badges with glowing dots
-- `frontend/src/components/UniversityHeader.jsx` — Clean white & blue header
+- `frontend/src/components/LibraryWayfinder.jsx` — 360° orbit rotation unlock, pointer capture, animated tube & dash pulse
+- `frontend/src/pages/LoginPage.jsx` — Responsive grid for feature pills and mobile glassmorphism
+- `frontend/src/pages/VoiceAssistant.jsx` — Responsive layout, voice feed bounds, and map modal
 
 ---
 
 ### 📋 Deployment Checklist
 
-- [x] All modules compiled (`npm run build` ✅ built in 9.48s)
+- [x] All modules compiled (`npm run build` ✅ built in 9.26s)
 - [x] Backend endpoints verified (`/api/chat`, `/api/transcribe`, `/api/tts`)
 - [x] RAG engine initializes with ChromaDB + BM25 indices
 - [x] 3D Wayfinder synchronizes with admin architecture API
-- [x] Voice pipeline: Mic → STT → LLM → DB → TTS → Speaker
+- [x] 360-degree free orbit rotation operational during path visualization
+- [x] Full mobile, tablet, and desktop responsiveness verified
 - [x] Zero logic modifications confirmed
-- [x] Deployed and production-ready in **v7.7.1** (`9ee11c0`)
+- [x] Deployed and production-ready in **v7.14.0** (`2691b53`)
+
