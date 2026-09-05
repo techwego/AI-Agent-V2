@@ -5,7 +5,7 @@ import { login } from '../api/client';
 import { 
   Lock, User, ArrowRight, BookOpen, Shield, GraduationCap, 
   BookMarked, MapPin, Search, KeyRound, Sparkles, ExternalLink,
-  Mic, Compass, Megaphone, Cpu, Radio, ShieldCheck, Layers, Award
+  Mic, Compass, Megaphone, Cpu, Radio, ShieldCheck, Layers, Award, CheckCircle2
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 
@@ -48,10 +48,10 @@ const LoginPage = () => {
       {/* 3D Animated Background */}
       <AnimatedBackground />
 
-      {/* Floating Shimmering Glitter Stars & Bokeh Light Orbs */}
+      {/* Floating Shimmering Glitter Stars & Bokeh Sparkles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[8%] left-[15%] text-amber-400 opacity-70 animate-pulse duration-1000">
-          <Sparkles size={22} />
+        <div className="absolute top-[8%] left-[12%] text-amber-400 opacity-70 animate-pulse duration-1000">
+          <Sparkles size={24} />
         </div>
         <div className="absolute top-[18%] right-[14%] text-blue-400 opacity-80 animate-bounce duration-700">
           <Sparkles size={18} />
@@ -59,14 +59,14 @@ const LoginPage = () => {
         <div className="absolute bottom-[22%] left-[10%] text-indigo-400 opacity-65 animate-pulse duration-1000">
           <Sparkles size={26} />
         </div>
-        <div className="absolute bottom-[15%] right-[18%] text-amber-300 opacity-75 animate-bounce duration-1000">
-          <Sparkles size={20} />
+        <div className="absolute bottom-[14%] right-[16%] text-amber-300 opacity-75 animate-bounce duration-1000">
+          <Sparkles size={22} />
         </div>
-        <div className="absolute top-[45%] left-[6%] text-sky-400 opacity-60 animate-pulse duration-700">
+        <div className="absolute top-[48%] left-[5%] text-sky-400 opacity-60 animate-pulse duration-700">
           <Sparkles size={16} />
         </div>
-        <div className="absolute top-[55%] right-[8%] text-violet-400 opacity-70 animate-pulse duration-1000">
-          <Sparkles size={24} />
+        <div className="absolute top-[52%] right-[6%] text-violet-400 opacity-70 animate-pulse duration-1000">
+          <Sparkles size={22} />
         </div>
       </div>
 
@@ -84,7 +84,7 @@ const LoginPage = () => {
           {/* Top Brand Header */}
           <div className="relative z-10">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-600/30 text-white ring-4 ring-white shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-600/30 text-white ring-4 ring-white shrink-0 transform hover:scale-105 transition-transform">
                 <GraduationCap size={26} />
               </div>
               <div>
@@ -103,38 +103,38 @@ const LoginPage = () => {
             </div>
           </div>
 
-          {/* Center Infographic: Node Architecture Map */}
-          <div className="relative z-10 my-8 sm:my-10 flex items-center justify-center">
+          {/* Center Infographic: Node Architecture Map with Floating Physics */}
+          <div className="relative z-10 my-8 sm:my-10 flex flex-col items-center justify-center min-h-[220px]">
             
             {/* SVG Constellation Connection Lines */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40">
-              <line x1="20%" y1="25%" x2="50%" y2="50%" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4 4" />
-              <line x1="80%" y1="25%" x2="50%" y2="50%" stroke="#6366f1" strokeWidth="1.5" strokeDasharray="4 4" />
-              <line x1="20%" y1="75%" x2="50%" y2="50%" stroke="#06b6d4" strokeWidth="1.5" strokeDasharray="4 4" />
-              <line x1="80%" y1="75%" x2="50%" y2="50%" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="4 4" />
+            <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-35">
+              <line x1="25%" y1="20%" x2="50%" y2="50%" stroke="#3b82f6" strokeWidth="2" strokeDasharray="5 5" className="animate-pulse" />
+              <line x1="75%" y1="20%" x2="50%" y2="50%" stroke="#6366f1" strokeWidth="2" strokeDasharray="5 5" className="animate-pulse" />
+              <line x1="25%" y1="80%" x2="50%" y2="50%" stroke="#06b6d4" strokeWidth="2" strokeDasharray="5 5" className="animate-pulse" />
+              <line x1="75%" y1="80%" x2="50%" y2="50%" stroke="#8b5cf6" strokeWidth="2" strokeDasharray="5 5" className="animate-pulse" />
             </svg>
 
             {/* Central Intelligence Core Node */}
-            <div className="relative flex flex-col items-center justify-center my-4">
-              {/* Outer Energy Pulse Ring */}
-              <div className="absolute w-36 h-36 rounded-full border border-blue-400/30 animate-ping opacity-30 pointer-events-none" />
-              <div className="absolute w-28 h-28 rounded-full border border-indigo-400/40 animate-pulse pointer-events-none" />
+            <div className="relative flex flex-col items-center justify-center my-4 z-20">
+              {/* Outer Energy Pulse Rings */}
+              <div className="absolute w-36 h-36 rounded-full border-2 border-blue-400/30 animate-ping opacity-30 pointer-events-none" />
+              <div className="absolute w-28 h-28 rounded-full border border-indigo-400/50 animate-pulse pointer-events-none" />
               
-              {/* Center Core Button */}
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 flex flex-col items-center justify-center text-white shadow-xl shadow-blue-600/35 ring-4 ring-white z-20 transform hover:scale-105 transition-transform">
-                <Cpu size={28} className="animate-pulse" />
+              {/* Center Core Hub */}
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 flex flex-col items-center justify-center text-white shadow-xl shadow-blue-600/40 ring-4 ring-white transform hover:scale-110 transition-all cursor-pointer">
+                <Cpu size={28} className="animate-spin duration-3000" />
                 <span className="text-[9px] font-mono font-bold tracking-wider mt-0.5">AI CORE</span>
               </div>
             </div>
 
-            {/* Surrounding Feature Pill Nodes (Grid Layout for responsiveness) */}
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+            {/* Surrounding 4 Feature Pill Nodes */}
+            <div className="w-full flex flex-col justify-between gap-6 pointer-events-none z-30">
               
               {/* Top Row Nodes */}
-              <div className="flex justify-between items-center w-full">
-                <div className="pointer-events-auto bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-2 transform hover:-translate-y-0.5 transition-transform">
-                  <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                    <BookMarked size={15} />
+              <div className="flex justify-between items-center w-full gap-2">
+                <div className="pointer-events-auto bg-white/95 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-2.5 transform hover:-translate-y-1 hover:shadow-lg hover:border-blue-300 transition-all cursor-default">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-xs">
+                    <BookMarked size={16} />
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-800 block leading-tight">Catalog RAG Search</span>
@@ -142,9 +142,9 @@ const LoginPage = () => {
                   </div>
                 </div>
 
-                <div className="pointer-events-auto bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-2 transform hover:-translate-y-0.5 transition-transform">
-                  <div className="w-7 h-7 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                    <Mic size={15} />
+                <div className="pointer-events-auto bg-white/95 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-2.5 transform hover:-translate-y-1 hover:shadow-lg hover:border-indigo-300 transition-all cursor-default">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 shadow-xs">
+                    <Mic size={16} />
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-800 block leading-tight">Real-Time Voice AI</span>
@@ -154,10 +154,10 @@ const LoginPage = () => {
               </div>
 
               {/* Bottom Row Nodes */}
-              <div className="flex justify-between items-center w-full">
-                <div className="pointer-events-auto bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-2 transform hover:-translate-y-0.5 transition-transform">
-                  <div className="w-7 h-7 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0">
-                    <Compass size={15} />
+              <div className="flex justify-between items-center w-full gap-2">
+                <div className="pointer-events-auto bg-white/95 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-2.5 transform hover:-translate-y-1 hover:shadow-lg hover:border-cyan-300 transition-all cursor-default">
+                  <div className="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0 shadow-xs">
+                    <Compass size={16} />
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-800 block leading-tight">3D Shelf Wayfinder</span>
@@ -165,9 +165,9 @@ const LoginPage = () => {
                   </div>
                 </div>
 
-                <div className="pointer-events-auto bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-2 transform hover:-translate-y-0.5 transition-transform">
-                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                    <Megaphone size={15} />
+                <div className="pointer-events-auto bg-white/95 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-2.5 transform hover:-translate-y-1 hover:shadow-lg hover:border-purple-300 transition-all cursor-default">
+                  <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 shadow-xs">
+                    <Megaphone size={16} />
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-800 block leading-tight">Campus Circulars</span>
@@ -182,7 +182,7 @@ const LoginPage = () => {
 
           {/* Bottom Trust & Origin Badge */}
           <div className="relative z-10 pt-4 border-t border-blue-200/60">
-            <div className="bg-white/85 backdrop-blur-md p-3.5 rounded-2xl border border-blue-200/70 shadow-xs flex items-center justify-between gap-3">
+            <div className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-blue-200/70 shadow-xs flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
                   <Award size={16} />

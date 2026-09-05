@@ -216,28 +216,7 @@ const VoiceAssistant = () => {
       return;
     }
     
-    // 4. Initial greeting for Voice Mode on first click
-    if (!hasIntroducedRef.current && currentState === State.IDLE) {
-      hasIntroducedRef.current = true;
-
-      const hour = new Date().getHours();
-      let greeting = 'Good evening';
-      if (hour < 12) greeting = 'Good morning';
-      else if (hour < 17) greeting = 'Good afternoon';
-      
-      const welcomeText = `${greeting}! I am Sam, your AI Library Assistant. Which book or rack are you looking for today?`;
-      
-      setVoiceMessages([{ role: 'assistant', content: welcomeText, timestamp: Date.now() }]);
-
-      stateManager.setState(State.INTRODUCING);
-      ttsManager.speak(welcomeText, () => {
-        if (stateManager.getState() === State.INTRODUCING) {
-          stateManager.setState(State.IDLE);
-        }
-      });
-      return;
-    }
-
+    // 4. Start listening immediately on orb click
     startListening();
   }, [handleInterrupt, startListening]);
 
@@ -583,24 +562,6 @@ const VoiceAssistant = () => {
                     state={conversationState} 
                     transcript={voiceMessages[voiceMessages.length - 1]?.content || ''} 
                   />
-                </div>
-
-                {/* Quick Voice Prompt Chips */}
-                <div className="flex items-center justify-center flex-wrap gap-2 mt-4 max-w-md">
-                  {[
-                    "What are today's circulars?",
-                    "Where is Python Programming?",
-                    "Is tomorrow a holiday?",
-                    "Show me the path to Rack B1"
-                  ].map((chip, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleVoiceInput(chip)}
-                      className="px-3 py-1.5 rounded-full bg-white/90 hover:bg-blue-50 border border-slate-200/80 hover:border-blue-300 text-[11px] font-semibold text-slate-600 hover:text-blue-700 shadow-2xs transition-all active:scale-95 cursor-pointer"
-                    >
-                      "{chip}"
-                    </button>
-                  ))}
                 </div>
               </div>
 

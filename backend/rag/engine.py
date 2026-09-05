@@ -1199,18 +1199,40 @@ class LibraryRAG:
             if len(context) > 12000:
                 context = context[:12000] + "\n...[CONTENT TRUNCATED DUE TO SIZE LIMITS]..."
 
+            # Real-Time Time of Day & Current Greeting
+            from datetime import datetime
+            current_dt = datetime.now()
+            current_hour = current_dt.hour
+            if 5 <= current_hour < 12:
+                time_of_day = "Morning"
+                appropriate_greeting = "Good morning"
+            elif 12 <= current_hour < 17:
+                time_of_day = "Afternoon"
+                appropriate_greeting = "Good afternoon"
+            elif 17 <= current_hour < 22:
+                time_of_day = "Evening"
+                appropriate_greeting = "Good evening"
+            else:
+                time_of_day = "Night"
+                appropriate_greeting = "Hello"
+                
+            current_time_str = current_dt.strftime("%I:%M %p, %A, %B %d, %Y")
+
             circular_instruction = ""
             if active_circulars_text:
                 circular_instruction = f"\nTODAY'S ACTIVE CAMPUS CIRCULARS & NOTICES (Valid 24h):\n{active_circulars_text}\n- When students ask about circulars, college events, leave notices, exams, or holidays, answer authoritatively and accurately using these active circulars.\n"
 
             system_prompt = (
                 f"You are Sam, the executive AI Library Assistant for {library_name}. "
+                f"Current Real-Time Clock: {current_time_str} ({time_of_day}). "
+                f"Active Real-Time Greeting: '{appropriate_greeting}'. ALWAYS match the actual current time of day when greeting or responding to greetings. Never use 'Good morning' in the afternoon/evening or 'Good evening' in the morning. "
                 f"Library Opening Hours: {opening_hours}. "
                 f"Library Policies & Rules: {library_policies}. "
                 f"Live Library Collection: {total_books_count} unique book titles with {total_physical_copies} total physical copies. "
                 f"{circular_instruction}"
                 "You MUST answer strictly and accurately based ONLY on the retrieved context records from the live library catalog and campus circular database below. Never guess, fabricate, or assume details. "
                 "\nRESPONSE STYLE & ENTERPRISE STANDARDS:\n"
+                f"- For Greetings / Small Talk (e.g. 'hi', 'hello', 'morning', 'hey'): Greet politely using '{appropriate_greeting}! How may I assist you with library books, shelf wayfinding, or campus circulars today?'.\n"
                 "- Tone: Highly articulate, professional, warm, concise, and helpful.\n"
                 "- For Campus Circulars & Events: Provide the title, event date, category, and summary clearly.\n"
                 "- For Book Inquiries: Clearly present the Title, Author, Rack number, Floor, and Availability (e.g., '2 copies available out of 3'). If there is a brief summary or department, include it concisely.\n"
