@@ -10,12 +10,12 @@ export const State = {
 
 const VALID_TRANSITIONS = {
   [State.IDLE]: [State.INTRODUCING, State.LISTENING, State.PROCESSING, State.RETRIEVING, State.GENERATING, State.SPEAKING],
-  [State.INTRODUCING]: [State.IDLE, State.LISTENING],
-  [State.LISTENING]: [State.PROCESSING, State.IDLE],
-  [State.PROCESSING]: [State.RETRIEVING, State.IDLE],
-  [State.RETRIEVING]: [State.GENERATING, State.IDLE],
-  [State.GENERATING]: [State.SPEAKING, State.IDLE],
-  [State.SPEAKING]: [State.IDLE, State.LISTENING]
+  [State.INTRODUCING]: [State.IDLE, State.LISTENING, State.PROCESSING],
+  [State.LISTENING]: [State.PROCESSING, State.RETRIEVING, State.GENERATING, State.SPEAKING, State.IDLE],
+  [State.PROCESSING]: [State.RETRIEVING, State.GENERATING, State.SPEAKING, State.LISTENING, State.IDLE],
+  [State.RETRIEVING]: [State.GENERATING, State.SPEAKING, State.PROCESSING, State.LISTENING, State.IDLE],
+  [State.GENERATING]: [State.SPEAKING, State.PROCESSING, State.LISTENING, State.IDLE],
+  [State.SPEAKING]: [State.IDLE, State.LISTENING, State.PROCESSING]
 };
 
 const STATUS_TEXTS = {
@@ -39,12 +39,17 @@ class ConversationStateManager {
   }
 
   canTransitionTo(newState) {
-    if (newState === State.IDLE) return true; // Emergency reset
+    if (this.currentState === newState) return true; // Transitioning to same state is always valid
+    if (newState === State.IDLE) return true; // Emergency reset is always valid
     const allowed = VALID_TRANSITIONS[this.currentState] || [];
     return allowed.includes(newState);
   }
 
   setState(newState) {
+    if (this.currentState === newState) {
+      return true; // Idempotent no-op
+    }
+
     if (!this.canTransitionTo(newState)) {
       console.warn(`Invalid state transition from ${this.currentState} to ${newState}`);
       return false;
