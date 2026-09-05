@@ -26,10 +26,8 @@ const InteractiveVideoAvatar = ({
       setIsWebRTCConnected(false);
       return;
     }
-
     let isMounted = true;
     const videoEl = videoRef.current;
-
     const connectWebRTCStream = async () => {
       try {
         if (videoEl && webrtcStreamUrl instanceof MediaStream) {
@@ -39,89 +37,72 @@ const InteractiveVideoAvatar = ({
         }
       } catch (err) {
         console.warn('[VideoAvatar] WebRTC stream fallback active:', err);
-        if (isMounted) {
-          setStreamError(true);
-          setIsWebRTCConnected(false);
-        }
+        if (isMounted) { setStreamError(true); setIsWebRTCConnected(false); }
       }
     };
-
     connectWebRTCStream();
-
-    return () => {
-      isMounted = false;
-      if (videoEl) {
-        videoEl.srcObject = null;
-      }
-    };
+    return () => { isMounted = false; if (videoEl) videoEl.srcObject = null; };
   }, [webrtcStreamUrl, streamError]);
 
   return (
     <div className="relative flex flex-col items-center justify-center select-none py-1">
-      
-      {/* ========================================================================= */}
-      {/* 1. DYNAMIC AUDIO-REACTIVE 3D ACOUSTIC RIPPLE WAVES */}
-      {/* ========================================================================= */}
+
+      {/* ═══ Outer Atmospheric Ripple Waves ═══ */}
       {isListening && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-56 h-56 sm:w-72 sm:h-72 rounded-full border-2 border-cyan-400/50 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
-          <div className="absolute w-64 h-64 sm:w-80 sm:h-80 rounded-full border border-blue-400/30 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite_0.4s]" />
-          <div className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full border border-sky-300/20 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite_0.8s]" />
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+          <div className="w-56 h-56 sm:w-72 sm:h-72 rounded-full border-2 border-cyan-400/40 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
+          <div className="absolute w-64 h-64 sm:w-80 sm:h-80 rounded-full border border-cyan-300/25 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite_0.4s]" />
+          <div className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full border border-sky-200/15 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite_0.8s]" />
         </div>
       )}
 
       {isSpeaking && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-56 h-56 sm:w-72 sm:h-72 rounded-full border-2 border-indigo-400/40 animate-[pulse_1.6s_ease-in-out_infinite]" />
-          <div className="absolute w-68 h-68 sm:w-88 sm:h-88 rounded-full border border-purple-400/25 animate-[pulse_2s_ease-in-out_infinite_0.3s]" />
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+          <div className="w-56 h-56 sm:w-72 sm:h-72 rounded-full border-2 border-violet-400/35 animate-[pulse_1.6s_ease-in-out_infinite]" />
+          <div className="absolute w-64 h-64 sm:w-80 sm:h-80 rounded-full border border-purple-300/20 animate-[pulse_2s_ease-in-out_infinite_0.3s]" />
         </div>
       )}
 
       {isProcessing && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-60 h-60 sm:w-76 sm:h-76 rounded-full border border-dashed border-amber-400/40 animate-[spin_8s_linear_infinite]" />
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+          <div className="w-60 h-60 sm:w-76 sm:h-76 rounded-full border border-dashed border-amber-400/35 animate-[spin_6s_linear_infinite]" />
+          <div className="absolute w-52 h-52 sm:w-68 sm:h-68 rounded-full border border-dashed border-amber-300/20 animate-[spin_10s_linear_infinite_reverse]" />
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* 2. MAIN 3D AVATAR & INTERACTIVE ORB CONTAINER */}
-      {/* ========================================================================= */}
+      {/* ═══ Main Interactive Orb Container ═══ */}
       <div 
         onClick={onClick}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
-        className="relative group cursor-pointer active:scale-95 transition-all duration-300 flex flex-col items-center justify-center focus:outline-none"
+        className="relative group cursor-pointer active:scale-[0.96] transition-transform duration-200 flex flex-col items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 rounded-full"
         role="button"
         tabIndex={0}
         aria-label={isListening ? 'Stop listening' : isSpeaking ? 'Interrupt speech' : 'Activate voice assistant'}
       >
-        {/* Ambient Glow Backlight */}
-        <div className={`absolute -inset-4 sm:-inset-6 rounded-full blur-3xl transition-all duration-700 pointer-events-none ${
+        {/* Ambient Glow Halo */}
+        <div className={`absolute -inset-6 sm:-inset-8 rounded-full blur-3xl transition-all duration-700 pointer-events-none ${
           isListening 
-            ? 'bg-gradient-to-tr from-cyan-500/40 via-blue-500/35 to-teal-400/30 scale-125' 
+            ? 'bg-gradient-to-br from-cyan-500/45 via-teal-400/35 to-blue-500/30 scale-125' 
             : isSpeaking 
-              ? 'bg-gradient-to-tr from-indigo-500/40 via-purple-500/35 to-violet-400/30 scale-120' 
+              ? 'bg-gradient-to-br from-violet-500/45 via-purple-400/35 to-indigo-500/30 scale-[1.2]' 
               : isProcessing 
-                ? 'bg-gradient-to-tr from-amber-500/35 via-orange-500/30 to-yellow-400/25 scale-115' 
-                : 'bg-gradient-to-tr from-blue-500/20 via-indigo-500/15 to-sky-400/20 group-hover:from-blue-500/35 group-hover:to-indigo-500/30 group-hover:scale-110'
+                ? 'bg-gradient-to-br from-amber-500/40 via-orange-400/30 to-yellow-400/25 scale-[1.15]' 
+                : 'bg-gradient-to-br from-blue-500/25 via-indigo-400/15 to-sky-400/20 group-hover:from-blue-500/40 group-hover:to-indigo-500/35 group-hover:scale-110'
         }`} />
 
-        {/* 3D Glassmorphic Outer Pod */}
-        <div className={`relative w-48 h-48 sm:w-60 sm:h-60 rounded-full flex items-center justify-center transition-all duration-500 backdrop-blur-xl border ${
+        {/* 3D Orb Frame */}
+        <div className={`relative w-52 h-52 sm:w-64 sm:h-64 rounded-full flex items-center justify-center transition-all duration-500 ${
           isListening 
-            ? 'bg-gradient-to-b from-cyan-950/40 to-slate-900/60 border-cyan-300/80 shadow-2xl shadow-cyan-500/25 ring-4 ring-cyan-400/20' 
+            ? 'shadow-[0_0_60px_8px_rgba(6,182,212,0.3)] ring-2 ring-cyan-400/30' 
             : isSpeaking 
-              ? 'bg-gradient-to-b from-indigo-950/40 to-slate-900/60 border-indigo-300/80 shadow-2xl shadow-indigo-500/25 ring-4 ring-indigo-400/20' 
+              ? 'shadow-[0_0_60px_8px_rgba(139,92,246,0.3)] ring-2 ring-violet-400/30' 
               : isProcessing 
-                ? 'bg-gradient-to-b from-amber-950/40 to-slate-900/60 border-amber-300/80 shadow-2xl shadow-amber-500/25 ring-4 ring-amber-400/20' 
-                : 'bg-gradient-to-b from-slate-900/50 to-slate-950/70 border-slate-700/80 shadow-xl shadow-blue-900/20 group-hover:border-blue-400 group-hover:shadow-2xl group-hover:shadow-blue-500/30'
+                ? 'shadow-[0_0_50px_6px_rgba(245,158,11,0.25)] ring-2 ring-amber-400/25' 
+                : 'shadow-[0_0_40px_4px_rgba(59,130,246,0.15)] group-hover:shadow-[0_0_60px_8px_rgba(59,130,246,0.3)] ring-1 ring-white/10 group-hover:ring-blue-400/30'
         }`}>
-          
-          {/* Specular Inner Glass Highlights */}
-          <div className="absolute inset-1 rounded-full border border-white/20 pointer-events-none z-20" />
-          <div className="absolute top-1 left-6 right-6 h-10 rounded-full bg-gradient-to-b from-white/30 to-transparent pointer-events-none z-20" />
 
-          {/* WebRTC Video Stream Player (Simli / HeyGen / Tavus) OR Three.js 3D Digital Human */}
-          <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center relative z-10">
+          {/* Three.js 3D WebGL Orb */}
+          <div className="w-full h-full rounded-full overflow-hidden relative z-10">
             {isWebRTCConnected ? (
               <video 
                 ref={videoRef}
@@ -143,33 +124,32 @@ const InteractiveVideoAvatar = ({
 
         </div>
 
-        {/* Real-Time Status Interactive Control Badge (Positioned Outside Pod - Never Clipped) */}
-        <div className="relative -mt-3.5 z-30 transition-all duration-300 group-hover:scale-105">
+        {/* Status Badge (Outside Pod — Never Clipped) */}
+        <div className="relative -mt-3 z-30 transition-all duration-300 group-hover:scale-105">
           {isListening ? (
-            <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-red-500 to-rose-600 text-white text-xs font-bold shadow-lg shadow-red-500/30 border border-white/40 animate-pulse">
-              <Radio size={13} className="animate-spin text-white" />
-              <span className="tracking-wide">Listening...</span>
+            <div className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-gradient-to-r from-red-500 to-rose-600 text-white text-xs font-bold shadow-lg shadow-red-500/30 border border-white/30 animate-pulse">
+              <Radio size={13} className="animate-spin" />
+              <span className="tracking-wider">Listening…</span>
             </div>
           ) : isProcessing ? (
-            <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-lg shadow-amber-500/30 border border-white/40">
-              <Loader2 size={13} className="animate-spin text-white" />
-              <span className="tracking-wide">Thinking...</span>
+            <div className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-lg shadow-amber-500/30 border border-white/30">
+              <Loader2 size={13} className="animate-spin" />
+              <span className="tracking-wider">Thinking…</span>
             </div>
           ) : isSpeaking ? (
-            <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold shadow-lg shadow-indigo-500/30 border border-white/40">
-              <Volume2 size={13} className="animate-bounce text-white" />
-              <span className="tracking-wide">Speaking...</span>
+            <div className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 text-white text-xs font-bold shadow-lg shadow-violet-500/30 border border-white/30">
+              <Volume2 size={13} className="animate-bounce" />
+              <span className="tracking-wider">Speaking…</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white text-xs font-bold shadow-lg shadow-blue-600/30 border border-white/40 group-hover:from-blue-700 group-hover:to-violet-700">
-              <Mic size={13} className="text-white" />
-              <span className="tracking-wide">Tap to Speak</span>
+            <div className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white text-xs font-bold shadow-lg shadow-blue-600/30 border border-white/30 group-hover:from-blue-700 group-hover:to-violet-700 group-hover:shadow-blue-500/40">
+              <Mic size={13} />
+              <span className="tracking-wider">Tap to Speak</span>
             </div>
           )}
         </div>
 
       </div>
-
     </div>
   );
 };
