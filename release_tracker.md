@@ -1,8 +1,8 @@
 # 📊 AI Library Management System — Overview & Release Tracker
 
 > **Project:** Speech-to-Speech AI Library Assistant  
-> **Current Release:** v7.14.1 · Branch `main`  
-> **Date Generated:** 2026-09-05 15:05 IST  
+> **Current Release:** v7.14.2 · Branch `main`  
+> **Date Generated:** 2026-09-05 15:10 IST  
 > **Developer:** Arun P · TechWeGo
 
 ---
@@ -267,31 +267,31 @@ sequenceDiagram
 
 ---
 
-### 🔖 Release Notes — v7.14.1
+### 🔖 Release Notes — v7.14.2
 
 **Branch:** `main`  
-**Commit:** `6a4ad10`  
-**Date:** 2026-09-05 15:05 IST
+**Commit:** `409858a`  
+**Date:** 2026-09-05 15:10 IST
 
-#### 3D Wayfinder Clean Orbit Preservation
-- **fix(orbit-center):** Maintained the exact building center pivot point `(0, 4, 0)` with standard overview radius `46` during route visualization in `LibraryWayfinder.jsx`.
-- **fix(rotation-wobble):** Removed offset target displacements and duplicate camera resets in `handleSetCameraMode('orbit')` and `drawRoute()`, ensuring 360° horizontal rotation and vertical tilt orbit identically in both normal map view and route path display.
-- **fix(zoom):** Smooth zoom in/out with mouse wheel and multi-touch pinch centered on the library model.
+#### Idempotent State Machine & Clean Speech Lifecycle
+- **fix(state-machine):** Refactored `ConversationStateManager.js` to allow idempotent same-state transitions (`this.currentState === newState` returns `true` immediately as a safe no-op), eliminating spurious console warnings like `Invalid state transition from PROCESSING to PROCESSING`.
+- **fix(transition-matrix):** Expanded `VALID_TRANSITIONS` table to handle all real-world asynchronous voice pipeline scenarios (e.g., direct generation, interrupts, and rapid speech turnaround).
 
 #### Files Impacted
-- `frontend/src/components/LibraryWayfinder.jsx` — Clean orbit pivot preservation, handleSetCameraMode overhaul, and zoom smoothing
+- `frontend/src/voice/ConversationStateManager.js` — Idempotent same-state check, enriched transition graph
 
 ---
 
 ### 📋 Deployment Checklist
 
-- [x] All modules compiled (`npm run build` ✅ built in 7.78s)
+- [x] All modules compiled (`npm run build` ✅ built in 7.21s)
 - [x] Backend endpoints verified (`/api/chat`, `/api/transcribe`, `/api/tts`)
 - [x] RAG engine initializes with ChromaDB + BM25 indices
 - [x] 3D Wayfinder synchronizes with admin architecture API
-- [x] Zoom in, zoom out, and 360° rotation operate identically in normal map view and path view
+- [x] Voice state lifecycle verified with 0 invalid transition warnings
 - [x] Full mobile, tablet, and desktop responsiveness verified
 - [x] Zero logic modifications confirmed
-- [x] Deployed and production-ready in **v7.14.1** (`6a4ad10`)
+- [x] Deployed and production-ready in **v7.14.2** (`409858a`)
+
 
 
