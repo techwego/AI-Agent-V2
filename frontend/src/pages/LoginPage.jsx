@@ -180,21 +180,61 @@ const LoginPage = () => {
 
           </div>
 
-          {/* Bottom Trust & Origin Badge */}
+          {/* Bottom Trust & Origin Badge (Matching Reference Design) */}
           <div className="relative z-10 pt-4 border-t border-blue-200/60">
-            <div className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-blue-200/70 shadow-xs flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
-                  <Award size={16} />
+            <div className="bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center justify-between gap-3">
+              
+              {/* Left: Make In India Stylized Lion Icon */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-8 flex items-center justify-center shrink-0">
+                  <svg viewBox="0 0 100 60" className="w-10 h-7 text-slate-900 fill-current">
+                    {/* Make in India Lion silhouette */}
+                    <path d="M10,35 Q15,25 25,28 Q30,15 45,18 Q55,10 65,15 Q75,12 85,20 Q95,25 90,35 Q85,45 75,42 Q65,48 55,44 Q45,50 35,46 Q25,48 15,42 Z" opacity="0.9" />
+                    <circle cx="82" cy="22" r="2" fill="#fff" />
+                    <path d="M15,42 L12,55 L18,55 L22,46 M35,46 L33,56 L39,56 L43,48 M65,44 L63,56 L69,56 L73,45 M85,38 L88,52 L94,52 L91,40" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
+                    <path d="M28,28 Q35,22 45,26 M50,22 Q60,18 70,24 M35,35 Q45,30 55,36" stroke="#fff" strokeWidth="1.2" fill="none" opacity="0.6" />
+                  </svg>
                 </div>
+
+                {/* Middle Text: Proudly Built by Techwego */}
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-extrabold text-slate-800">Proudly Built by Techwego</span>
-                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700">CHENNAI 🇮🇳</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 tracking-tight">
+                      Proudly Built by <a href="https://techwego.com/" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">Techwego</a>
+                    </span>
+                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/80 uppercase flex items-center gap-1">
+                      CHENNAI <span>🇮🇳</span>
+                    </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 font-medium">Engineered with Passion for World-Class Education & Research</p>
+                  <p className="text-[11px] text-slate-500 font-medium tracking-tight">
+                    Engineered with Passion for World-Class Education & Research
+                  </p>
                 </div>
               </div>
+
+              {/* Right: India Map Tricolor Silhouette */}
+              <div className="shrink-0 flex items-center justify-center pl-2">
+                <svg viewBox="0 0 40 48" className="w-7 h-9 drop-shadow-xs">
+                  {/* Stylized India map outline with saffron, white, green tricolor bands */}
+                  <defs>
+                    <linearGradient id="indiaTricolor" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#ff9933" />
+                      <stop offset="45%" stopColor="#ffffff" />
+                      <stop offset="55%" stopColor="#ffffff" />
+                      <stop offset="100%" stopColor="#138808" />
+                    </linearGradient>
+                  </defs>
+                  <path 
+                    d="M18,2 Q22,4 24,8 Q28,10 26,14 Q32,16 34,22 Q38,26 32,30 Q30,34 26,36 Q22,44 20,46 Q18,44 14,36 Q10,34 8,30 Q2,26 6,22 Q8,16 14,14 Q12,10 16,8 Z" 
+                    fill="url(#indiaTricolor)" 
+                    stroke="#cbd5e1" 
+                    strokeWidth="1" 
+                  />
+                  {/* Ashoka Chakra navy dot */}
+                  <circle cx="20" cy="24" r="2.2" fill="#000080" />
+                </svg>
+              </div>
+
             </div>
           </div>
 
