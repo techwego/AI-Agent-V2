@@ -9,6 +9,18 @@ class SpeechSynthesisManager {
     this.selectedVoiceName = localStorage.getItem('preferred_voice') || 'en-IN-Neerja';
     
     this.initVoices();
+    this.lipSyncListeners = new Set();
+  }
+
+  subscribeLipSync(callback) {
+    this.lipSyncListeners.add(callback);
+    return () => this.lipSyncListeners.delete(callback);
+  }
+
+  emitLipSyncEvent(event) {
+    this.lipSyncListeners.forEach(cb => {
+      try { cb(event); } catch (e) { console.error('LipSync listener error:', e); }
+    });
   }
 
   initVoices() {
@@ -156,8 +168,25 @@ class SpeechSynthesisManager {
       const finish = () => {
         if (!isFinished) {
           isFinished = true;
+          this.emitLipSyncEvent({ type: 'stop', text: cleanText });
           if (onEnd) onEnd();
         }
+      };
+
+      utterance.onstart = () => {
+        this.emitLipSyncEvent({ type: 'start', text: cleanText });
+      };
+
+      utterance.onboundary = (event) => {
+        const charIndex = event.charIndex || 0;
+        const word = cleanText.substring(charIndex).split(/\s+/)[0] || '';
+        this.emitLipSyncEvent({
+          type: 'boundary',
+          charIndex,
+          word,
+          charLength: event.charLength || word.length,
+          elapsedTime: event.elapsedTime || 0
+        });
       };
 
       utterance.onend = finish;
@@ -170,6 +199,7 @@ class SpeechSynthesisManager {
       window.speechSynthesis.speak(utterance);
     } catch (err) {
       console.error('Web Speech exception:', err);
+      this.emitLipSyncEvent({ type: 'stop', text: cleanText });
       if (onEnd) onEnd();
     }
   }
@@ -187,6 +217,7 @@ class SpeechSynthesisManager {
     if (this.queue.length === 0) {
       this.isProcessingQueue = false;
       this.speaking = false;
+      this.emitLipSyncEvent({ type: 'stop' });
       if (this.onAllFinished) {
         const cb = this.onAllFinished;
         this.onAllFinished = null;
@@ -230,6 +261,7 @@ class SpeechSynthesisManager {
     this.isProcessingQueue = false;
     this.speaking = false;
     this.onAllFinished = null;
+    this.emitLipSyncEvent({ type: 'stop' });
 
     if (this.audioElement) {
       this.audioElement.pause();

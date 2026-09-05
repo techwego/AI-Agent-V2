@@ -7,7 +7,7 @@ import {
   GraduationCap, Volume2, BookOpen, Clock, HelpCircle, Layers, Radio
 } from 'lucide-react';
 import LibraryWayfinder from '../components/LibraryWayfinder';
-import VoiceOrb from '../components/VoiceOrb';
+import InteractiveVideoAvatar from '../components/InteractiveVideoAvatar';
 import StatusIndicator from '../components/StatusIndicator';
 import ChatBubble from '../components/ChatBubble';
 import BookSearch from '../components/BookSearch';
@@ -562,9 +562,9 @@ const VoiceAssistant = () => {
               </p>
             </div>
 
-            {/* 3D Voice Orb + Status (Centered) */}
+            {/* Enterprise Interactive AI Video Avatar + Real-Time Lip-Sync */}
             <div className="flex flex-col items-center justify-center relative w-full my-auto py-2">
-              <VoiceOrb state={conversationState} onClick={handleOrbClick} />
+              <InteractiveVideoAvatar state={conversationState} onClick={handleOrbClick} />
               
               <div className="mt-4 w-full flex flex-col items-center">
                 <StatusIndicator 
