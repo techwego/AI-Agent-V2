@@ -3,8 +3,8 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { login } from '../api/client';
 import { 
-  Lock, User, ArrowRight, BookOpen, Sparkles, Shield, GraduationCap, 
-  Mic, Compass, Zap, KeyRound, CheckCircle2, QrCode
+  Lock, User, ArrowRight, BookOpen, Shield, GraduationCap, 
+  BookMarked, MapPin, Search, KeyRound
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 
@@ -42,77 +42,59 @@ const LoginPage = () => {
   };
 
   const featurePills = [
-    { icon: Mic, label: 'Voice AI Research', desc: 'Zero-latency speech assistant', color: 'text-blue-600' },
-    { icon: Compass, label: '3D Campus Wayfinder', desc: 'Interactive visual shelf navigation', color: 'text-indigo-600' },
-    { icon: Zap, label: 'Groq RAG Intelligence', desc: 'Instant catalog and author lookup', color: 'text-sky-600' },
+    { icon: BookMarked, label: 'Smart Book Finder', color: 'text-blue-600' },
+    { icon: MapPin, label: 'Shelf Navigator', color: 'text-indigo-600' },
+    { icon: Search, label: 'Instant Catalog Search', color: 'text-sky-600' },
   ];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between relative overflow-x-hidden font-sans selection:bg-blue-100 selection:text-blue-900">
       
-      {/* 3D Knowledge Constellation Background */}
+      {/* 3D Premium Library Background */}
       <AnimatedBackground />
 
-      {/* Top Navbar */}
-      <header className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-blue-600/25 text-white ring-2 ring-white shrink-0">
+      {/* Centered Top Header — University Name */}
+      <header className="relative z-10 w-full py-5">
+        <div className="flex items-center justify-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-600/25 text-white ring-2 ring-white shrink-0">
             <GraduationCap size={22} />
           </div>
-          <div>
-            <h1 className="text-sm sm:text-base font-extrabold text-slate-900 leading-tight tracking-tight flex items-center gap-2">
+          <div className="text-center">
+            <h1 className="text-base sm:text-lg font-extrabold text-slate-900 leading-tight tracking-tight">
               Anna University
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+              <span className="ml-2 text-[10px] font-mono px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-semibold align-middle">
                 CENTRAL LIBRARY
               </span>
             </h1>
             <p className="text-[11px] text-slate-500 font-medium">Digital Knowledge & Campus Intelligence Hub</p>
           </div>
         </div>
-
-        <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50/90 px-3.5 py-1.5 rounded-full border border-emerald-200 shadow-sm backdrop-blur-md">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-beacon-green" />
-          <span>System Online · Groq RAG Active</span>
-        </div>
       </header>
 
       {/* Main Container */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-4 sm:py-6 max-w-xl mx-auto w-full">
         
-        {/* Enterprise White Glassmorphic Digital Library Card */}
-        <div className="w-full bg-white/95 backdrop-blur-xl rounded-3xl border border-slate-200/90 shadow-2xl shadow-blue-600/5 p-6 sm:p-8 transition-all relative overflow-hidden">
-          
-          {/* Card Accent Top Banner / Microchip Header */}
-          <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-5 rounded bg-gradient-to-tr from-amber-400 to-amber-200 border border-amber-300 flex items-center justify-center shadow-xs">
-                <div className="w-3 h-2 border border-amber-700/30 rounded-xs" />
-              </div>
-              <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-semibold">
-                DIGITAL ARCHIVAL PASS · 2026
-              </span>
-            </div>
-            <div className="flex items-center gap-1 text-slate-400">
-              <QrCode size={16} className="text-slate-500" />
-              <span className="text-[10px] font-mono">ID: AU-LIB-AI</span>
-            </div>
+        {/* Welcome Title — Above the card */}
+        <div className="text-center mb-5">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 text-blue-600 mb-3 shadow-lg shadow-blue-500/10 ring-4 ring-blue-50/50">
+            <BookOpen size={26} />
           </div>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            Welcome to Library AI
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+            Sign in to access 3D navigation & voice research assistant
+          </p>
+        </div>
 
-          {/* Header */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 text-blue-600 mb-3 shadow-md shadow-blue-500/10 ring-4 ring-blue-50/50">
-              <BookOpen size={26} />
-            </div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-              Welcome to Library AI
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-              Sign in to access 3D navigation & voice research assistant
-            </p>
-          </div>
+        {/* Enterprise Glassmorphic Login Card */}
+        <div className="w-full bg-white/90 backdrop-blur-2xl rounded-3xl border border-slate-200/80 shadow-2xl shadow-blue-900/8 p-6 sm:p-8 transition-all relative overflow-hidden">
+          
+          {/* Decorative top accent line */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 rounded-t-3xl" />
 
           {/* Role Switcher */}
-          <div className="flex p-1 bg-slate-100/90 backdrop-blur-sm rounded-2xl mb-5 border border-slate-200/70 shadow-xs">
+          <div className="flex p-1 bg-slate-100/90 backdrop-blur-sm rounded-2xl mb-5 border border-slate-200/70 shadow-xs mt-1">
             <button
               type="button"
               onClick={() => setRole('user')}
@@ -206,7 +188,7 @@ const LoginPage = () => {
 
         </div>
 
-        {/* Feature Highlights on portrait viewports */}
+        {/* Feature Highlights */}
         <div className="w-full mt-4 sm:mt-5 px-1">
           <div className="grid grid-cols-3 gap-3 w-full">
             {featurePills.map((f, i) => (

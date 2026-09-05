@@ -77,16 +77,16 @@ const AnimatedBackground = () => {
       { cover: 0x1e40af, spine: 0x93c5fd }, // Royal blue + sky
     ];
 
-    const bookCount = 14;
+    const bookCount = 12;
     const booksGroup = new THREE.Group();
     const bookMaterials = []; // track for cleanup
 
     for (let i = 0; i < bookCount; i++) {
       const palette = bookColors[i % bookColors.length];
 
-      const w = 10 + Math.random() * 8;   // width
-      const h = 14 + Math.random() * 10;  // height
-      const d = 2.5 + Math.random() * 3;  // depth (thickness)
+      const w = 8 + Math.random() * 6;    // width (slightly smaller)
+      const h = 12 + Math.random() * 8;   // height
+      const d = 2 + Math.random() * 2.5;  // depth (thickness)
 
       const bookGeo = new THREE.BoxGeometry(w, h, d);
 
@@ -97,14 +97,14 @@ const AnimatedBackground = () => {
         roughness: 0.85,
         metalness: 0.02,
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.35,
       });
       const spineMat = new THREE.MeshStandardMaterial({
         color: palette.spine,
         roughness: 0.6,
         metalness: 0.05,
         transparent: true,
-        opacity: 0.65,
+        opacity: 0.45,
       });
       const materials = [spineMat, coverMat, coverMat, coverMat, coverMat, coverMat];
       bookMaterials.push(coverMat, spineMat);
@@ -113,24 +113,24 @@ const AnimatedBackground = () => {
       book.castShadow = true;
       book.receiveShadow = true;
 
-      // Distribute in a wide field
+      // Distribute in a wide field — pushed further back
       book.position.set(
-        (Math.random() - 0.5) * 500,
-        (Math.random() - 0.5) * 350,
-        -30 + (Math.random() - 0.5) * 180
+        (Math.random() - 0.5) * 550,
+        (Math.random() - 0.5) * 380,
+        -80 + (Math.random() - 0.5) * 160
       );
       book.rotation.set(
-        (Math.random() - 0.5) * 0.4,
+        (Math.random() - 0.5) * 0.3,
         Math.random() * Math.PI * 2,
-        (Math.random() - 0.5) * 0.25
+        (Math.random() - 0.5) * 0.2
       );
 
       book.userData = {
-        floatSpeed: (0.15 + Math.random() * 0.25) * motionScale,
-        floatAmplitude: 3 + Math.random() * 4,
+        floatSpeed: (0.1 + Math.random() * 0.18) * motionScale,
+        floatAmplitude: 2.5 + Math.random() * 3,
         floatOffset: Math.random() * Math.PI * 2,
-        rotSpeedY: (0.003 + Math.random() * 0.005) * motionScale,
-        rotSpeedX: (0.001 + Math.random() * 0.002) * motionScale,
+        rotSpeedY: (0.002 + Math.random() * 0.003) * motionScale,
+        rotSpeedX: (0.0005 + Math.random() * 0.001) * motionScale,
         baseY: book.position.y,
       };
 
