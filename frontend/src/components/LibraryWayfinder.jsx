@@ -499,9 +499,23 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   const walkProgressRef = useRef(0);
   const routeCurveRef = useRef(null);
 
+  const updateCamera = useCallback(() => {
+    const orbit = orbitRef.current;
+    const camera = cameraRef.current;
+    if (!camera) return;
+    const sp = orbit.radius * Math.sin(orbit.phi);
+    camera.position.set(
+      orbit.target.x + sp * Math.sin(orbit.theta),
+      orbit.target.y + orbit.radius * Math.cos(orbit.phi),
+      orbit.target.z + sp * Math.cos(orbit.theta)
+    );
+    camera.lookAt(orbit.target);
+  }, []);
+
   const handleSetCameraMode = useCallback((m) => {
      cameraModeRef.current = m;
      setCameraMode(m);
+     flyToRef.current = null;
      if (m === 'walk') {
         walkProgressRef.current = 0;
         dragRef.current.yaw = 0;
@@ -512,12 +526,14 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         }
      } else {
         if (cameraRef.current) {
-            orbitRef.current.target.copy(cameraRef.current.position);
-            orbitRef.current.radius = 15;
-            flyToRef.current = null;
+            orbitRef.current.target.set(0, 4, 0);
+            orbitRef.current.radius = 46;
+            orbitRef.current.theta = Math.PI * 0.28;
+            orbitRef.current.phi = 1.02;
+            updateCamera();
         }
      }
-  }, []);
+  }, [updateCamera]);
 
   useEffect(() => {
     if (overrideConfig) {
@@ -554,19 +570,6 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       updateCamera();
     }
   }));
-
-  const updateCamera = useCallback(() => {
-    const orbit = orbitRef.current;
-    const camera = cameraRef.current;
-    if (!camera) return;
-    const sp = orbit.radius * Math.sin(orbit.phi);
-    camera.position.set(
-      orbit.target.x + sp * Math.sin(orbit.theta),
-      orbit.target.y + orbit.radius * Math.cos(orbit.phi),
-      orbit.target.z + sp * Math.cos(orbit.theta)
-    );
-    camera.lookAt(orbit.target);
-  }, []);
 
   const handleFloorChange = useCallback((floorStr) => {
     const targetFloor = parseInt(floorStr, 10);
@@ -847,13 +850,11 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       }
     }
 
-    // Elevated 3D Overview framing: Frame entire route from start to destination
-    const startPos = new THREE.Vector3(pts[0].x, pts[0].y + 1.5, pts[0].z);
-    const endPos = new THREE.Vector3(destNode.x, destNode.y + 1.5, destNode.z);
-    const routeCenter = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
-    const routeSpan = Math.max(12, startPos.distanceTo(endPos));
-    const targetRadius = Math.min(65, Math.max(22, routeSpan * 1.5));
-    flyToRef.current = { target: routeCenter, radius: targetRadius, progress: 0 };
+    // Keep standard 3D Overview orbit centered cleanly on library (0, 4, 0)
+    flyToRef.current = null;
+    if (cameraModeRef.current === 'walk') {
+      handleSetCameraMode('orbit');
+    }
     
     const startT = clock.getElapsedTime();
     const speed = 7;
@@ -895,9 +896,6 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       routeObjsRef.current.animId = requestAnimationFrame(animate);
     }
     animate();
-    
-    // Default to clean Orbit 3D Overview mode (user can click Walk in toolbar if desired)
-    handleSetCameraMode('orbit');
     
     if (onRouteComplete) onRouteComplete(destCode, steps);
   }, [clearRoute, onRouteComplete, graphData, handleSetCameraMode]);
