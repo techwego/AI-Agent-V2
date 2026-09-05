@@ -71,7 +71,7 @@ gantt
 
 | Version | Commit | Date | Time | Module | Commit Message / Summary | Status |
 |---------|--------|------|------|--------|--------------------------|--------|
-| **v7.23.0** | `Pending` | 2026-09-05 | 18:22 IST | Voice UI / Login | fix: remove quick prompt chips, real-time dynamic greeting calculation, and polish enterprise animated login architecture | ✅ Ready |
+| **v7.23.0** | `d928105` | 2026-09-05 | 18:22 IST | Voice UI / Login | fix: remove quick prompt chips, real-time dynamic greeting calculation, and polish enterprise animated login architecture | ✅ Deployed |
 | v7.22.0 | `5170ee1` | 2026-09-05 | 18:04 IST | UI / Login | feat: redesign login page with split architecture infographic, central AI core node, feature constellation pills, and responsive vertical/horizontal layout | ✅ Deployed |
 | v7.21.0 | `069f680` | 2026-09-05 | 17:56 IST | Admin Circulars / UI | feat: campus circulars & leave notices ingestion with 24h auto-expiry and ChromaDB embedding, proactive voice agent retrieval, responsive widescreen dual-panel layout, and Techwego branding fix | ✅ Deployed |
 | v7.20.0 | `0656693` | 2026-09-05 | 17:30 IST | UI / Login / Orb | feat: login glitter sparkles, centered credentials layout, official Techwego website link, remove 3D books from background, and clean enterprise crystal voice orb | ✅ Deployed |
