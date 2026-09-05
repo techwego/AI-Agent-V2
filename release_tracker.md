@@ -1,8 +1,8 @@
 # 📊 AI Library Management System — Overview & Release Tracker
 
 > **Project:** Speech-to-Speech AI Library Assistant  
-> **Current Release:** v7.14.0 · Branch `main`  
-> **Date Generated:** 2026-09-05 14:55 IST  
+> **Current Release:** v7.14.1 · Branch `main`  
+> **Date Generated:** 2026-09-05 15:05 IST  
 > **Developer:** Arun P · TechWeGo
 
 ---
@@ -267,33 +267,31 @@ sequenceDiagram
 
 ---
 
-### 🔖 Release Notes — v7.14.0
+### 🔖 Release Notes — v7.14.1
 
 **Branch:** `main`  
-**Commit:** `2691b53`  
-**Date:** 2026-09-05 14:55 IST
+**Commit:** `6a4ad10`  
+**Date:** 2026-09-05 15:05 IST
 
-#### 360° Wayfinder Orbit Freedom & Full-Stack Responsive UI
-- **fix(wayfinder):** Fixed camera lock during route display in `LibraryWayfinder.jsx`. Immediate `flyToRef.current = null` on pointer interaction (`pointerdown`, `pointermove`, `wheel`, `pointercancel`) ensures the user has immediate, unconstrained 360° azimuthal rotation and vertical pitch elevation.
-- **fix(camera):** Removed duplicate `updateCamera()` loop in `drawRoute().animate()` so background path glow & dash pulse animations do not override user orbit rotation.
-- **feat(responsive):** Upgraded `LoginPage.jsx` and `VoiceAssistant.jsx` to be 100% responsive across mobile (320px–480px), tablet (768px–1024px), and desktop (1280px+).
-- **feat(mobile-map):** Optimized wayfinder toolbar, floor switchers, turn-by-turn instruction card, and Quick AI chat overlay for seamless mobile touch interaction.
+#### 3D Wayfinder Clean Orbit Preservation
+- **fix(orbit-center):** Maintained the exact building center pivot point `(0, 4, 0)` with standard overview radius `46` during route visualization in `LibraryWayfinder.jsx`.
+- **fix(rotation-wobble):** Removed offset target displacements and duplicate camera resets in `handleSetCameraMode('orbit')` and `drawRoute()`, ensuring 360° horizontal rotation and vertical tilt orbit identically in both normal map view and route path display.
+- **fix(zoom):** Smooth zoom in/out with mouse wheel and multi-touch pinch centered on the library model.
 
 #### Files Impacted
-- `frontend/src/components/LibraryWayfinder.jsx` — 360° orbit rotation unlock, pointer capture, animated tube & dash pulse
-- `frontend/src/pages/LoginPage.jsx` — Responsive grid for feature pills and mobile glassmorphism
-- `frontend/src/pages/VoiceAssistant.jsx` — Responsive layout, voice feed bounds, and map modal
+- `frontend/src/components/LibraryWayfinder.jsx` — Clean orbit pivot preservation, handleSetCameraMode overhaul, and zoom smoothing
 
 ---
 
 ### 📋 Deployment Checklist
 
-- [x] All modules compiled (`npm run build` ✅ built in 9.26s)
+- [x] All modules compiled (`npm run build` ✅ built in 7.78s)
 - [x] Backend endpoints verified (`/api/chat`, `/api/transcribe`, `/api/tts`)
 - [x] RAG engine initializes with ChromaDB + BM25 indices
 - [x] 3D Wayfinder synchronizes with admin architecture API
-- [x] 360-degree free orbit rotation operational during path visualization
+- [x] Zoom in, zoom out, and 360° rotation operate identically in normal map view and path view
 - [x] Full mobile, tablet, and desktop responsiveness verified
 - [x] Zero logic modifications confirmed
-- [x] Deployed and production-ready in **v7.14.0** (`2691b53`)
+- [x] Deployed and production-ready in **v7.14.1** (`6a4ad10`)
+
 
