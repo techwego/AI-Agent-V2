@@ -489,7 +489,7 @@ const VoiceAssistant = () => {
           <div className="flex items-center bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/70 shadow-xs shrink-0">
             <button 
               onClick={() => switchMode('voice')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold tab-pill ${
                 interactionMode === 'voice' 
                   ? 'bg-blue-600 text-white shadow-xs' 
                   : 'text-slate-500 hover:text-slate-800'
@@ -499,7 +499,7 @@ const VoiceAssistant = () => {
             </button>
             <button 
               onClick={() => switchMode('chat')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold tab-pill ${
                 interactionMode === 'chat' 
                   ? 'bg-indigo-600 text-white shadow-xs' 
                   : 'text-slate-500 hover:text-slate-800'
@@ -519,7 +519,7 @@ const VoiceAssistant = () => {
             </div>
             <button 
               onClick={handleLogout} 
-              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-200" 
+              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-95 border border-transparent hover:border-red-200" 
               title="Logout"
             >
               <LogOut size={14} />
@@ -536,7 +536,7 @@ const VoiceAssistant = () => {
         
         {/* ── VOICE MODE ── */}
         {interactionMode === 'voice' && (
-          <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full gap-4 overflow-y-auto custom-scrollbar">
+          <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full gap-4 overflow-y-auto custom-scrollbar animate-page-enter">
             
             {/* Title Header */}
             <div className="flex flex-col items-center text-center gap-1 shrink-0 pt-1">
@@ -553,35 +553,51 @@ const VoiceAssistant = () => {
             </div>
 
             {/* 3D Voice Orb + Status (Centered) */}
-            <div className="flex-1 flex flex-col items-center justify-center w-full min-h-[290px]">
+            <div className="flex flex-col items-center justify-center relative w-full my-auto py-2">
               <VoiceOrb state={conversationState} onClick={handleOrbClick} />
-              <div className="mt-3 z-10">
-                <StatusIndicator state={conversationState} />
+              
+              <div className="mt-3 w-full flex flex-col items-center">
+                <StatusIndicator 
+                  state={conversationState} 
+                  transcript={voiceMessages[voiceMessages.length - 1]?.content || ''} 
+                />
               </div>
             </div>
 
-            {/* Live Scrolling Speech Transcript Feed */}
-            <div className="w-full rounded-3xl p-4 sm:p-5 shrink-0 border border-slate-200/90 bg-white/95 backdrop-blur-xl shadow-xl shadow-blue-500/5 flex flex-col min-h-[210px] max-h-[280px] mb-2">
-              <div className="flex items-center justify-between mb-3 shrink-0 pb-2 border-b border-slate-100">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-2 font-mono">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse" />
-                  Live Transcript Stream
+            {/* Live Conversation Voice Transcript Feed */}
+            <div className="w-full bg-white/80 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-xs p-3 max-h-[140px] flex flex-col shrink-0">
+              <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
+                <div className="flex items-center gap-1.5">
+                  <Volume2 size={13} className="text-blue-600" />
+                  <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider font-mono">
+                    Voice Feed
+                  </span>
+                </div>
+                <span className="text-[9px] text-slate-400 font-mono font-medium">
+                  {conversationState}
                 </span>
-                <span className="text-[10px] font-mono text-slate-400 font-semibold">VOICE ACTIVE</span>
               </div>
               
-              <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar text-sm sm:text-base font-medium">
-                {voiceMessages.filter(m => m.role !== 'system').length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-slate-400 text-xs italic">
-                    Tap the microphone orb above to begin speaking...
-                  </div>
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                {voiceMessages.length === 0 ? (
+                  <p className="text-[11px] text-slate-400 italic text-center py-2">
+                    Click the orb to start speaking...
+                  </p>
                 ) : (
-                  voiceMessages.filter(m => m.role !== 'system').map((msg, idx) => (
-                    <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-[fadeInScale_0.2s_ease-out]`}>
-                      <div className={`px-4 py-2.5 rounded-2xl max-w-[90%] shadow-xs text-xs sm:text-sm ${
+                  voiceMessages.map((msg, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`text-xs flex items-start gap-1.5 ${
+                        msg.role === 'user' ? 'text-blue-700 font-bold' : 'text-slate-800 font-medium'
+                      }`}
+                    >
+                      <span className="text-[10px] uppercase tracking-wider font-mono text-slate-400 shrink-0 select-none mt-0.5">
+                        {msg.role === 'user' ? 'You:' : 'Sam:'}
+                      </span>
+                      <div className={`flex-1 break-words rounded-lg px-2 py-1 ${
                         msg.role === 'user' 
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border border-blue-500/50 rounded-br-xs' 
-                          : 'bg-slate-50 text-slate-800 border border-slate-200 rounded-bl-xs'
+                          ? 'bg-blue-50/80 border border-blue-100 text-blue-800' 
+                          : 'bg-slate-50/80 border border-slate-100 text-slate-800'
                       }`}>
                         {msg.interim && (
                           <span className="inline-block w-1.5 h-3 mr-1 bg-amber-400 animate-pulse align-middle" />
@@ -618,7 +634,7 @@ const VoiceAssistant = () => {
 
         {/* -------------------- CHAT MODE -------------------- */}
         {interactionMode === 'chat' && (
-          <div className="flex-1 flex flex-col bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xl shadow-blue-500/5 overflow-hidden animate-[fadeInScale_0.2s_ease-out]">
+          <div className="flex-1 flex flex-col bg-white/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xl shadow-blue-500/5 overflow-hidden animate-page-enter">
             
             {/* Chat Header Tabs */}
             <div className="px-3 sm:px-5 py-2.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
@@ -630,7 +646,7 @@ const VoiceAssistant = () => {
               <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200/70 shadow-xs">
                 <button
                   onClick={() => setActiveTab('chat')}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold tab-pill ${
                     activeTab === 'chat' 
                       ? 'bg-blue-600 text-white shadow-xs' 
                       : 'text-slate-600 hover:text-slate-900'
@@ -641,7 +657,7 @@ const VoiceAssistant = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab('search')}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold tab-pill ${
                     activeTab === 'search' 
                       ? 'bg-indigo-600 text-white shadow-xs' 
                       : 'text-slate-600 hover:text-slate-900'
@@ -652,7 +668,7 @@ const VoiceAssistant = () => {
                 </button>
                 <button
                   onClick={() => { setActiveTab('map'); setIsMapFullscreen(true); }}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 tab-pill"
                 >
                   <Map size={12} />
                   <span>3D Map</span>

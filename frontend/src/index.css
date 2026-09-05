@@ -181,11 +181,41 @@ body {
 }
 
 .animate-fade-in-scale {
-  animation: fadeInScale 0.35s var(--ease-out) forwards;
+  animation: fadeInScale 0.3s var(--ease-out) forwards;
 }
 
 .animate-slide-up {
-  animation: slideUpFade 0.4s var(--ease-out) forwards;
+  animation: slideUpFade 0.35s var(--ease-out) forwards;
+}
+
+.animate-page-enter {
+  animation: pageEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tabSwitch {
+  0% {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-tab-switch {
+  animation: tabSwitch 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-beacon-green {
@@ -214,7 +244,7 @@ body {
   transform: translateY(-1.5px);
 }
 .interactive-button:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 .interactive-button::after {
@@ -235,6 +265,14 @@ body {
 }
 .interactive-button:hover::after {
   animation: shimmer-sweep 1s ease-in-out;
+}
+
+/* Pill / Tab Smooth Switch Transition */
+.tab-pill {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tab-pill:active {
+  transform: scale(0.96);
 }
 
 /* Custom Clean Light Blue Scrollbar */
