@@ -170,6 +170,7 @@ const VoiceAssistant = () => {
 
   const handleInterrupt = useCallback(() => {
     ttsManager.cancel();
+    sttManager.cancelTranscription();
     sttManager.stopListening();
     stateManager.reset();
   }, []);
@@ -182,22 +183,31 @@ const VoiceAssistant = () => {
 
   const handleOrbClick = useCallback(() => {
     const currentState = stateManager.getState();
+    
+    // 1. If speaking or introducing: instant interrupt -> IDLE
     if (currentState === State.SPEAKING || currentState === State.INTRODUCING) { 
       handleInterrupt(); 
       return; 
     }
+    
+    // 2. If listening: immediate visual feedback with zero lag
     if (currentState === State.LISTENING) { 
-      // Don't force IDLE here — sttManager.stopListening() will fire the
-      // transcriptionCallback (sync if interim text exists, async if Whisper
-      // upload is needed). That callback calls handleVoiceInput which sets
-      // PROCESSING → RETRIEVING → GENERATING → SPEAKING.
-      // If no speech was captured at all, silenceTimeoutCallback resets to IDLE.
+      if (sttManager.hasSpoken) {
+        stateManager.setState(State.PROCESSING);
+      } else {
+        stateManager.setState(State.IDLE);
+      }
       sttManager.stopListening(); 
       return; 
     }
-    if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) return;
     
-    // Initial greeting for Voice Mode
+    // 3. If processing/retrieving/generating: clicking orb cancels and resets to IDLE
+    if (currentState === State.PROCESSING || currentState === State.RETRIEVING || currentState === State.GENERATING) {
+      handleInterrupt();
+      return;
+    }
+    
+    // 4. Initial greeting for Voice Mode on first click
     if (!hasIntroducedRef.current && currentState === State.IDLE) {
       hasIntroducedRef.current = true;
 
@@ -464,6 +474,7 @@ const VoiceAssistant = () => {
       <header className="bg-white/90 backdrop-blur-2xl border-b border-slate-200/80 px-3 sm:px-6 py-2.5 z-20 shrink-0 shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           
+          {/* University Brand */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-blue-600/20 text-white ring-2 ring-white shrink-0">
               <GraduationCap size={18} />
@@ -485,27 +496,27 @@ const VoiceAssistant = () => {
             </span>
           </div>
 
-          {/* Mode Switcher */}
-          <div className="flex items-center bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/70 shadow-xs shrink-0">
+          {/* Mode Switcher (Centered & Refined) */}
+          <div className="flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 shadow-xs shrink-0 ring-2 ring-blue-600/5">
             <button 
               onClick={() => switchMode('voice')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold tab-pill ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold tab-pill ${
                 interactionMode === 'voice' 
-                  ? 'bg-blue-600 text-white shadow-xs' 
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
-              <Mic size={12} /> <span>Voice</span>
+              <Mic size={13} /> <span>Voice</span>
             </button>
             <button 
               onClick={() => switchMode('chat')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold tab-pill ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold tab-pill ${
                 interactionMode === 'chat' 
-                  ? 'bg-indigo-600 text-white shadow-xs' 
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/20' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
-              <MessageSquare size={12} /> <span>Chat</span>
+              <MessageSquare size={13} /> <span>Chat</span>
             </button>
           </div>
 
@@ -536,19 +547,19 @@ const VoiceAssistant = () => {
         
         {/* ── VOICE MODE ── */}
         {interactionMode === 'voice' && (
-          <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full gap-4 overflow-y-auto custom-scrollbar animate-page-enter">
+          <div className="flex-1 flex flex-col items-center justify-between max-w-xl mx-auto w-full h-full py-1 custom-scrollbar animate-page-enter">
             
             {/* Title Header */}
-            <div className="flex flex-col items-center text-center gap-1 shrink-0 pt-1">
+            <div className="flex flex-col items-center text-center gap-1 shrink-0 pt-2">
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-blue-200/80 text-blue-700 text-[11px] font-bold shadow-xs backdrop-blur-md">
                 <Sparkles size={11} className="text-amber-500" />
                 <span>Sam · AI Library Assistant</span>
               </div>
-              <h2 className="text-base sm:text-xl font-extrabold text-slate-900 tracking-tight leading-tight">
+              <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
                 How can I assist you today?
               </h2>
-              <p className="text-[11px] text-slate-500 font-medium">
-                Tap the orb to speak or ask for 3D rack directions
+              <p className="text-xs text-slate-500 font-medium">
+                Tap the microphone orb to speak or ask for shelf directions
               </p>
             </div>
 
@@ -556,7 +567,7 @@ const VoiceAssistant = () => {
             <div className="flex flex-col items-center justify-center relative w-full my-auto py-2">
               <VoiceOrb state={conversationState} onClick={handleOrbClick} />
               
-              <div className="mt-3 w-full flex flex-col items-center">
+              <div className="mt-4 w-full flex flex-col items-center">
                 <StatusIndicator 
                   state={conversationState} 
                   transcript={voiceMessages[voiceMessages.length - 1]?.content || ''} 
@@ -565,39 +576,39 @@ const VoiceAssistant = () => {
             </div>
 
             {/* Live Conversation Voice Transcript Feed */}
-            <div className="w-full bg-white/80 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-xs p-3 max-h-[140px] flex flex-col shrink-0">
-              <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
-                <div className="flex items-center gap-1.5">
-                  <Volume2 size={13} className="text-blue-600" />
-                  <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider font-mono">
-                    Voice Feed
+            <div className="w-full bg-white/90 backdrop-blur-2xl rounded-2xl border border-slate-200/90 shadow-xl shadow-blue-600/5 p-3.5 max-h-[170px] flex flex-col shrink-0 mb-2">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Volume2 size={14} className="text-blue-600" />
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider font-mono">
+                    Live Voice Feed
                   </span>
                 </div>
-                <span className="text-[9px] text-slate-400 font-mono font-medium">
+                <span className="text-[10px] text-slate-400 font-mono font-semibold px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100">
                   {conversationState}
                 </span>
               </div>
               
               <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                 {voiceMessages.length === 0 ? (
-                  <p className="text-[11px] text-slate-400 italic text-center py-2">
-                    Click the orb to start speaking...
+                  <p className="text-xs text-slate-400 italic text-center py-3">
+                    Click the orb above to start speaking...
                   </p>
                 ) : (
                   voiceMessages.map((msg, idx) => (
                     <div 
                       key={idx} 
-                      className={`text-xs flex items-start gap-1.5 ${
+                      className={`text-xs flex items-start gap-2 ${
                         msg.role === 'user' ? 'text-blue-700 font-bold' : 'text-slate-800 font-medium'
                       }`}
                     >
-                      <span className="text-[10px] uppercase tracking-wider font-mono text-slate-400 shrink-0 select-none mt-0.5">
+                      <span className="text-[10px] uppercase tracking-wider font-mono text-slate-400 shrink-0 select-none mt-0.5 font-bold">
                         {msg.role === 'user' ? 'You:' : 'Sam:'}
                       </span>
-                      <div className={`flex-1 break-words rounded-lg px-2 py-1 ${
+                      <div className={`flex-1 break-words rounded-xl px-3 py-1.5 leading-relaxed ${
                         msg.role === 'user' 
-                          ? 'bg-blue-50/80 border border-blue-100 text-blue-800' 
-                          : 'bg-slate-50/80 border border-slate-100 text-slate-800'
+                          ? 'bg-blue-50/90 border border-blue-100 text-blue-900 font-semibold' 
+                          : 'bg-slate-50/90 border border-slate-100 text-slate-800'
                       }`}>
                         {msg.interim && (
                           <span className="inline-block w-1.5 h-3 mr-1 bg-amber-400 animate-pulse align-middle" />
@@ -612,20 +623,20 @@ const VoiceAssistant = () => {
             </div>
 
             {/* Action Chips */}
-            <div className="flex items-center justify-center flex-wrap gap-3 shrink-0 pb-2">
+            <div className="flex items-center justify-center flex-wrap gap-3 shrink-0 pb-1">
               <button
                 onClick={() => { setActiveTab('map'); setIsMapFullscreen(true); }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/90 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-xs font-bold text-slate-700 hover:text-blue-700 shadow-xs transition-all active:scale-[0.97] interactive-card"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 hover:bg-blue-50 border border-slate-200/90 hover:border-blue-300 text-xs font-bold text-slate-700 hover:text-blue-700 shadow-xs transition-all active:scale-[0.97] interactive-card"
               >
                 <Compass size={14} className="text-blue-600" />
-                <span>3D Wayfinder</span>
+                <span>3D Campus Wayfinder</span>
               </button>
               <button
                 onClick={() => switchMode('chat')}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/90 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-xs font-bold text-slate-700 hover:text-indigo-700 shadow-xs transition-all active:scale-[0.97] interactive-card"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 hover:bg-indigo-50 border border-slate-200/90 hover:border-indigo-300 text-xs font-bold text-slate-700 hover:text-indigo-700 shadow-xs transition-all active:scale-[0.97] interactive-card"
               >
                 <MessageSquare size={14} className="text-indigo-600" />
-                <span>Text Chat</span>
+                <span>Switch to Text Chat</span>
               </button>
             </div>
 

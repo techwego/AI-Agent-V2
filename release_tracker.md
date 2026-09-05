@@ -1,8 +1,8 @@
 # 📊 AI Library Management System — Overview & Release Tracker
 
 > **Project:** Speech-to-Speech AI Library Assistant  
-> **Current Release:** v7.11.0 · Branch `main`  
-> **Date Generated:** 2026-09-05 11:34 IST  
+> **Current Release:** v7.12.0 · Branch `main`  
+> **Date Generated:** 2026-09-05 12:07 IST  
 > **Developer:** Arun P · TechWeGo
 
 ---
@@ -82,7 +82,8 @@ gantt
 | **v7.6.6** | `a60f04c` | 2026-08-29 | 15:35 IST | Voice UI | fix: map voiceMessages instead of chatMessages in Voice Mode transcript, fix scroll ref | ✅ Stable |
 | v7.6.5 | `4ac0b98` | 2026-08-29 | 14:07 IST | Chat UI | feat: add dotlottie animation for empty chat state, update UI | ✅ Deployed |
 | v7.6.4 | `f91bb0e` | 2026-08-29 | 10:34 IST | Chat UI | feat: increase chat text size, add 3D particle background, ensure robust AI latency handling | ✅ Deployed |
-| **v7.11.0** | `41e54ec` | 2026-09-05 | 11:34 IST | App-Wide UI | feat: enterprise-wide 3D background integration (Admin, Profile, Login, Voice Assistant), silky page/route entrance transitions, smooth pill tab & button physics without lag | ✅ Deployed |
+| **v7.12.0** | `TBD` | 2026-09-05 | 12:07 IST | Voice / Layout | feat: executive response quality with strict live DB catalog grounding, zero-lag mic orb stop with AbortController, and polished Voice Mode alignment | ✅ Deployed |
+| v7.11.0 | `41e54ec` | 2026-09-05 | 11:34 IST | App-Wide UI | feat: enterprise-wide 3D background integration (Admin, Profile, Login, Voice Assistant), silky page/route entrance transitions, smooth pill tab & button physics without lag | ✅ Deployed |
 | v7.10.0 | `18a17e7` | 2026-09-05 | 10:22 IST | UI/3D | feat: premium 3D animated library background — solid low-poly books, translucent paper sheets, dust motes, real lighting with shadows, enhanced parallax | ✅ Deployed |
 | v7.9.1 | `7d8213d` | 2026-09-04 | 19:17 IST | Chat UI | fix: restore dotlottie center animation when chat is completely empty | ✅ Deployed |
 | v7.9.0 | `35c5633` | 2026-09-04 | 19:09 IST | Frontend | feat(ui): restore one-time hardcoded intro on first orb click, and intercept first chat 'hi' to use the same intro without LLM calls | ✅ Deployed |

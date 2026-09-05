@@ -31,6 +31,7 @@ class SpeechRecognitionManager {
     this.volumeCallback = null;
     this.silenceTimeoutCallback = null;
     this.interimCallback = null;
+    this.currentAbortController = null;
   }
 
   onTranscription(cb) { this.transcriptionCallback = cb; }
@@ -191,7 +192,15 @@ class SpeechRecognitionManager {
     }
   }
 
+  cancelTranscription() {
+    if (this.currentAbortController) {
+      try { this.currentAbortController.abort(); } catch(e){}
+      this.currentAbortController = null;
+    }
+  }
+
   forceReset() {
+    this.cancelTranscription();
     this.stopListening();
     this.audioChunks = [];
     this.hasSpoken = false;
@@ -199,6 +208,9 @@ class SpeechRecognitionManager {
 
   async sendForTranscription(blob) {
     try {
+      this.cancelTranscription();
+      this.currentAbortController = new AbortController();
+
       const formData = new FormData();
       formData.append('audio', blob, 'recording.webm');
 
@@ -211,8 +223,11 @@ class SpeechRecognitionManager {
       const response = await fetch(`${API_ROOT}/transcribe`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-        body: formData
+        body: formData,
+        signal: this.currentAbortController.signal
       });
+
+      this.currentAbortController = null;
 
       if (!response.ok) {
         throw new Error(`Transcription failed: ${response.status}`);
@@ -227,6 +242,10 @@ class SpeechRecognitionManager {
         this.transcriptionCallback(text);
       }
     } catch (err) {
+      if (err.name === 'AbortError') {
+        console.log('[STT] Transcription request aborted.');
+        return;
+      }
       console.error('[STT] Transcription API error:', err);
       if (this.errorCallback) {
         this.errorCallback('Failed to transcribe audio. Please try speaking again.');
