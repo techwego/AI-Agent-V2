@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import LibraryWayfinder from '../components/LibraryWayfinder';
 import InteractiveVideoAvatar from '../components/InteractiveVideoAvatar';
-import StatusIndicator from '../components/StatusIndicator';
 import ChatBubble from '../components/ChatBubble';
 import BookSearch from '../components/BookSearch';
 import AnimatedBackground from '../components/AnimatedBackground';
@@ -553,16 +552,9 @@ const VoiceAssistant = () => {
             {/* Main Widescreen Dual-Wing Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 my-auto items-center">
               
-              {/* Left Wing / Orb Core (7 Cols on desktop) */}
+              {/* Left Wing / Orb Core (6 Cols on desktop) */}
               <div className="lg:col-span-6 flex flex-col items-center justify-center relative py-2">
                 <InteractiveVideoAvatar state={conversationState} onClick={handleOrbClick} />
-                
-                <div className="mt-3 w-full flex flex-col items-center">
-                  <StatusIndicator 
-                    state={conversationState} 
-                    transcript={voiceMessages[voiceMessages.length - 1]?.content || ''} 
-                  />
-                </div>
               </div>
 
               {/* Right Wing / Live Transcripts & Active Circulars (6 Cols on desktop) */}
