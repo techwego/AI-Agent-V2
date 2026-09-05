@@ -17,7 +17,8 @@ import {
   Sparkles,
   ArrowUpRight,
   Menu,
-  X
+  X,
+  Megaphone
 } from 'lucide-react';
 
 const AdminLayout = () => {
@@ -33,6 +34,7 @@ const AdminLayout = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Campus Circulars', path: '/admin/circulars', icon: Megaphone },
     { name: 'Architecture', path: '/admin/architecture', icon: Layers },
     { name: 'Books Management', path: '/admin/books', icon: BookOpen },
     { name: 'Upload Dataset', path: '/admin/upload', icon: UploadCloud },

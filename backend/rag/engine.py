@@ -1132,16 +1132,18 @@ class LibraryRAG:
                 
             print(f"Final retrieved chunks: {len(top_chunks)} in {time.time() - t_embed:.3f}s")
 
-            # Fetch Global Library Settings & Collection Statistics
+            # Fetch Global Library Settings, Collection Statistics & Active Campus Circulars (24h)
             library_name = "the University Library"
             opening_hours = ""
             library_policies = ""
             total_books_count = 0
             total_physical_copies = 0
+            active_circulars_text = ""
             try:
                 from backend.database.db import SessionLocal
-                from backend.database.models import LibraryConfig, Book
+                from backend.database.models import LibraryConfig, Book, Circular
                 from sqlalchemy import func
+                from datetime import datetime
                 db = SessionLocal()
                 config = db.query(LibraryConfig).first()
                 if config:
@@ -1150,18 +1152,37 @@ class LibraryRAG:
                     library_policies = config.library_policies or ""
                 total_books_count = db.query(Book).count()
                 total_physical_copies = db.query(func.sum(Book.copies)).scalar() or total_books_count
+                
+                # Fetch active (unexpired) circulars for today
+                now = datetime.utcnow()
+                active_circs = db.query(Circular).filter(
+                    Circular.is_active == True,
+                    Circular.expires_at > now
+                ).order_by(Circular.created_at.desc()).all()
+                
+                if active_circs:
+                    circ_lines = []
+                    for ac in active_circs:
+                        c_date = f" (Event/Notice Date: {ac.event_date})" if ac.event_date else ""
+                        circ_lines.append(f"• [{ac.category.upper()}] {ac.title}{c_date}: {ac.content}")
+                    active_circulars_text = "\n".join(circ_lines)
                 db.close()
             except Exception as e:
-                print(f"Failed to load LibraryConfig/Stats for prompt: {e}")
+                print(f"Failed to load LibraryConfig/Stats/Circulars for prompt: {e}")
 
             # If user is asking a general collection/count question, provide collection summary as context
             clean_lower = clean_input.lower()
             general_count_phrases = ["how many books", "total books", "all books", "collection size", "number of books", "books do we have", "books we have", "books available in library", "books in the library"]
+            is_circular_question = any(w in clean_lower for w in ["circular", "circulars", "notice", "notices", "event", "events", "holiday", "leave", "announcement", "announcements", "today update", "college news"])
+            
             if any(p in clean_lower for p in general_count_phrases):
                 context_blocks = [f"Library Collection Summary: {library_name} currently has {total_books_count} unique book titles with a total of {total_physical_copies} physical copies available across all sections and floors."]
                 context = "\n\n".join(context_blocks)
             else:
                 context_blocks = []
+                if active_circulars_text:
+                    context_blocks.append(f"[OFFICIAL CAMPUS CIRCULARS & NOTICES (ACTIVE TODAY)]\n{active_circulars_text}")
+                    
                 for chunk in top_chunks:
                     meta = chunk.get("metadata", {})
                     source = meta.get("source", "Library Database")
@@ -1178,14 +1199,20 @@ class LibraryRAG:
             if len(context) > 12000:
                 context = context[:12000] + "\n...[CONTENT TRUNCATED DUE TO SIZE LIMITS]..."
 
+            circular_instruction = ""
+            if active_circulars_text:
+                circular_instruction = f"\nTODAY'S ACTIVE CAMPUS CIRCULARS & NOTICES (Valid 24h):\n{active_circulars_text}\n- When students ask about circulars, college events, leave notices, exams, or holidays, answer authoritatively and accurately using these active circulars.\n"
+
             system_prompt = (
                 f"You are Sam, the executive AI Library Assistant for {library_name}. "
                 f"Library Opening Hours: {opening_hours}. "
                 f"Library Policies & Rules: {library_policies}. "
                 f"Live Library Collection: {total_books_count} unique book titles with {total_physical_copies} total physical copies. "
-                "You MUST answer strictly and accurately based ONLY on the retrieved context records from the live library catalog database below. Never guess, fabricate, or assume book metadata. "
+                f"{circular_instruction}"
+                "You MUST answer strictly and accurately based ONLY on the retrieved context records from the live library catalog and campus circular database below. Never guess, fabricate, or assume details. "
                 "\nRESPONSE STYLE & ENTERPRISE STANDARDS:\n"
                 "- Tone: Highly articulate, professional, warm, concise, and helpful.\n"
+                "- For Campus Circulars & Events: Provide the title, event date, category, and summary clearly.\n"
                 "- For Book Inquiries: Clearly present the Title, Author, Rack number, Floor, and Availability (e.g., '2 copies available out of 3'). If there is a brief summary or department, include it concisely.\n"
                 "- If multiple book titles match the query: List them clearly with bullet points showing their respective authors, racks, and availability.\n"
                 "- For General Library Inquiries (timings, policies, book counts, membership): Answer authoritatively using the official policies and collection statistics above.\n"

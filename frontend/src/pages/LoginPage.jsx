@@ -243,7 +243,7 @@ const LoginPage = () => {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 font-extrabold hover:underline transition-colors"
         >
-          <span>TECHWEGO</span>
+          <span>Techwego</span>
           <ExternalLink size={10} className="text-blue-500" />
         </a>
         <span className="text-slate-300">·</span>

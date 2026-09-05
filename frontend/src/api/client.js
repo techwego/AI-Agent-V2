@@ -89,4 +89,14 @@ export const unblockUser = (id) => api.put(`/admin/users/${id}/unblock`);
 export const getArchitecture = () => api.get('/admin/architecture');
 export const updateArchitecture = (data) => api.post('/admin/architecture', data);
 
+// Circulars & Announcements
+export const uploadCircular = (formData) => api.post('/admin/circulars/upload', formData, {
+  headers: { 'Content-Type': 'multipart/form-data' }
+});
+export const getAdminCirculars = () => api.get('/admin/circulars');
+export const deleteCircular = (id) => api.delete(`/admin/circulars/${id}`);
+export const purgeExpiredCirculars = () => api.post('/admin/circulars/purge-expired');
+export const getActiveCirculars = () => api.get('/circulars/active');
+
 export default api;
+

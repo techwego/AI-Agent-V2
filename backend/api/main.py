@@ -38,6 +38,7 @@ from backend.api.admin_routes import router as admin_router
 from backend.api.upload_routes import router as upload_router
 from backend.api.book_routes import router as book_router
 from backend.api.analytics_routes import router as analytics_router
+from backend.api.circular_routes import router as circular_router
 from backend.auth.auth_middleware import require_auth, require_admin
 
 app = FastAPI()
@@ -85,6 +86,7 @@ app.include_router(admin_router)
 app.include_router(upload_router)
 app.include_router(book_router)
 app.include_router(analytics_router)
+app.include_router(circular_router)
 
 def init_rag_bg():
     def watchdog():

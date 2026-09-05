@@ -125,3 +125,19 @@ class LibraryConfig(Base):
     voice_preset = Column(String, default="en-US-AriaNeural")
     
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Circular(Base):
+    __tablename__ = "circulars"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    content = Column(Text)
+    category = Column(String, default="General", index=True) # Leave, Event, Exam, Notice, Holiday, General
+    event_date = Column(String, nullable=True) # e.g. "2026-09-06" or "Tomorrow"
+    source_filename = Column(String, nullable=True)
+    chunk_count = Column(Integer, default=1)
+    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, index=True) # Automatically expires after 24h by default
+    is_active = Column(Boolean, default=True, index=True)
+

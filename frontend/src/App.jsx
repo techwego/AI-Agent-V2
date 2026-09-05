@@ -8,6 +8,7 @@ import Profile from './pages/user/Profile';
 
 import AdminLayout from './components/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
+import Circulars from './pages/admin/Circulars';
 import Books from './pages/admin/Books';
 import Upload from './pages/admin/Upload';
 import Departments from './pages/admin/Departments';
@@ -107,6 +108,7 @@ const App = () => {
         }>
           <Route index element={<Navigate to="dashboard" />} />
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="circulars" element={<Circulars />} />
           <Route path="books" element={<Books />} />
           <Route path="upload" element={<Upload />} />
           <Route path="departments" element={<Departments />} />

@@ -4,7 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   LogOut, User, Send, Sparkles, Search, Mic, Map, X, MessageSquare, 
   Compass, Navigation, ArrowRight, CornerDownRight, 
-  GraduationCap, Volume2, BookOpen, Clock, HelpCircle, Layers, Radio
+  GraduationCap, Volume2, BookOpen, Clock, HelpCircle, Layers, Radio,
+  Megaphone, Bell, Calendar, Tag, ChevronRight
 } from 'lucide-react';
 import LibraryWayfinder from '../components/LibraryWayfinder';
 import InteractiveVideoAvatar from '../components/InteractiveVideoAvatar';
@@ -13,7 +14,7 @@ import ChatBubble from '../components/ChatBubble';
 import BookSearch from '../components/BookSearch';
 import AnimatedBackground from '../components/AnimatedBackground';
 import { useToast } from '../components/Toast';
-import { sendChat, getArchitecture } from '../api/client';
+import { sendChat, getArchitecture, getActiveCirculars } from '../api/client';
 
 import stateManager, { State } from '../voice/ConversationStateManager';
 import ttsManager from '../voice/SpeechSynthesisManager';
@@ -47,6 +48,7 @@ const VoiceAssistant = () => {
   const [activeFloor, setActiveFloor] = useState('both');
   const [totalFloors, setTotalFloors] = useState(2);
   const [routeSteps, setRouteSteps] = useState([]);
+  const [activeCirculars, setActiveCirculars] = useState([]);
   
   const chatMessagesEndRef = useRef(null);
   const voiceMessagesRef = useRef(voiceMessages);
@@ -80,6 +82,13 @@ const VoiceAssistant = () => {
       }
     }).catch(err => {
       console.warn('Could not sync architecture voice preset:', err);
+    });
+
+    // Fetch today's active campus circulars
+    getActiveCirculars().then(res => {
+      setActiveCirculars(res.data || []);
+    }).catch(err => {
+      console.warn('Could not load active circulars:', err);
     });
 
     return unsubscribe;
@@ -542,99 +551,157 @@ const VoiceAssistant = () => {
       {/* ========================================================================= */}
       {/* 2. MAIN CENTER AREA: Dedicated Voice or Chat Assistant */}
       {/* ========================================================================= */}
-      <main className="flex-1 flex overflow-hidden relative max-w-5xl w-full mx-auto px-3 sm:px-4 py-2 z-10">
+      <main className="flex-1 flex overflow-hidden relative max-w-7xl w-full mx-auto px-3 sm:px-6 py-2 sm:py-3 z-10">
         
-        {/* ── VOICE MODE ── */}
+        {/* ── VOICE MODE (Responsive Widescreen Dashboard) ── */}
         {interactionMode === 'voice' && (
-          <div className="flex-1 flex flex-col items-center justify-between max-w-xl mx-auto w-full h-full py-1 custom-scrollbar animate-page-enter">
+          <div className="flex-1 flex flex-col justify-between w-full h-full overflow-y-auto custom-scrollbar animate-page-enter">
             
-            {/* Title Header */}
-            <div className="flex flex-col items-center text-center gap-1 shrink-0 pt-2">
+            {/* Top Title Banner */}
+            <div className="flex flex-col items-center text-center gap-1 shrink-0 pt-1 pb-2">
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-blue-200/80 text-blue-700 text-[11px] font-bold shadow-xs backdrop-blur-md">
                 <Sparkles size={11} className="text-amber-500" />
-                <span>Sam · AI Library Assistant</span>
+                <span>Sam · AI Library & Campus Intelligence Assistant</span>
               </div>
-              <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
                 How can I assist you today?
               </h2>
-              <p className="text-xs text-slate-500 font-medium">
-                Tap the microphone orb to speak or ask for shelf directions
+              <p className="text-xs text-slate-500 font-medium max-w-md">
+                Tap the microphone orb to speak, ask for campus circulars, or request 3D shelf directions
               </p>
             </div>
 
-            {/* Enterprise Interactive AI Video Avatar + Real-Time Lip-Sync */}
-            <div className="flex flex-col items-center justify-center relative w-full my-auto py-2">
-              <InteractiveVideoAvatar state={conversationState} onClick={handleOrbClick} />
+            {/* Main Widescreen Dual-Wing Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 my-auto items-center">
               
-              <div className="mt-4 w-full flex flex-col items-center">
-                <StatusIndicator 
-                  state={conversationState} 
-                  transcript={voiceMessages[voiceMessages.length - 1]?.content || ''} 
-                />
-              </div>
-            </div>
-
-            {/* Live Conversation Voice Transcript Feed */}
-            <div className="w-full bg-white/90 backdrop-blur-2xl rounded-2xl border border-slate-200/90 shadow-xl shadow-blue-600/5 p-3.5 max-h-[170px] flex flex-col shrink-0 mb-2">
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Volume2 size={14} className="text-blue-600" />
-                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider font-mono">
-                    Live Voice Feed
-                  </span>
+              {/* Left Wing / Orb Core (7 Cols on desktop) */}
+              <div className="lg:col-span-6 flex flex-col items-center justify-center relative py-2">
+                <InteractiveVideoAvatar state={conversationState} onClick={handleOrbClick} />
+                
+                <div className="mt-3 w-full flex flex-col items-center">
+                  <StatusIndicator 
+                    state={conversationState} 
+                    transcript={voiceMessages[voiceMessages.length - 1]?.content || ''} 
+                  />
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono font-semibold px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100">
-                  {conversationState}
-                </span>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                {voiceMessages.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic text-center py-3">
-                    Click the orb above to start speaking...
-                  </p>
-                ) : (
-                  voiceMessages.map((msg, idx) => (
-                    <div 
-                      key={idx} 
-                      className={`text-xs flex items-start gap-2 ${
-                        msg.role === 'user' ? 'text-blue-700 font-bold' : 'text-slate-800 font-medium'
-                      }`}
+
+                {/* Quick Voice Prompt Chips */}
+                <div className="flex items-center justify-center flex-wrap gap-2 mt-4 max-w-md">
+                  {[
+                    "What are today's circulars?",
+                    "Where is Python Programming?",
+                    "Is tomorrow a holiday?",
+                    "Show me the path to Rack B1"
+                  ].map((chip, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleVoiceInput(chip)}
+                      className="px-3 py-1.5 rounded-full bg-white/90 hover:bg-blue-50 border border-slate-200/80 hover:border-blue-300 text-[11px] font-semibold text-slate-600 hover:text-blue-700 shadow-2xs transition-all active:scale-95 cursor-pointer"
                     >
-                      <span className="text-[10px] uppercase tracking-wider font-mono text-slate-400 shrink-0 select-none mt-0.5 font-bold">
-                        {msg.role === 'user' ? 'You:' : 'Sam:'}
-                      </span>
-                      <div className={`flex-1 break-words rounded-xl px-3 py-1.5 leading-relaxed ${
-                        msg.role === 'user' 
-                          ? 'bg-blue-50/90 border border-blue-100 text-blue-900 font-semibold' 
-                          : 'bg-slate-50/90 border border-slate-100 text-slate-800'
-                      }`}>
-                        {msg.interim && (
-                          <span className="inline-block w-1.5 h-3 mr-1 bg-amber-400 animate-pulse align-middle" />
-                        )}
-                        {msg.content}
-                      </div>
-                    </div>
-                  ))
-                )}
-                <div ref={chatMessagesEndRef} />
+                      "{chip}"
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {/* Right Wing / Live Transcripts & Active Circulars (6 Cols on desktop) */}
+              <div className="lg:col-span-6 flex flex-col gap-3 w-full max-h-[380px] lg:max-h-[440px]">
+                
+                {/* Live Conversation Voice Transcript Feed */}
+                <div className="w-full bg-white/95 backdrop-blur-2xl rounded-2xl border border-slate-200/90 shadow-xl shadow-blue-600/5 p-4 flex flex-col flex-1 min-h-[160px] overflow-hidden">
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <Volume2 size={15} className="text-blue-600" />
+                      <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider font-mono">
+                        Live Voice Conversation
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono font-semibold px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100">
+                      {conversationState}
+                    </span>
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                    {voiceMessages.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full py-4 text-slate-400 text-center">
+                        <Mic size={22} className="text-blue-400 mb-1 opacity-70 animate-pulse" />
+                        <p className="text-xs font-medium">Click the orb on the left to start speaking...</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Sam will listen and respond live in real-time.</p>
+                      </div>
+                    ) : (
+                      voiceMessages.map((msg, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`text-xs flex items-start gap-2 ${
+                            msg.role === 'user' ? 'text-blue-700 font-bold' : 'text-slate-800 font-medium'
+                          }`}
+                        >
+                          <span className="text-[10px] uppercase tracking-wider font-mono text-slate-400 shrink-0 select-none mt-0.5 font-bold">
+                            {msg.role === 'user' ? 'You:' : 'Sam:'}
+                          </span>
+                          <div className={`flex-1 break-words rounded-xl px-3 py-1.5 leading-relaxed ${
+                            msg.role === 'user' 
+                              ? 'bg-blue-50/90 border border-blue-100 text-blue-900 font-semibold' 
+                              : 'bg-slate-50/90 border border-slate-100 text-slate-800'
+                          }`}>
+                            {msg.interim && (
+                              <span className="inline-block w-1.5 h-3 mr-1 bg-amber-400 animate-pulse align-middle" />
+                            )}
+                            {msg.content}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    <div ref={chatMessagesEndRef} />
+                  </div>
+                </div>
+
+                {/* Today's Active Campus Notices & Circulars Mini-Card */}
+                {activeCirculars.length > 0 && (
+                  <div className="w-full bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-white backdrop-blur-xl rounded-2xl border border-blue-200/80 p-3 shadow-xs shrink-0">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5 text-blue-800 font-bold text-xs">
+                        <Megaphone size={14} className="text-blue-600 animate-bounce" />
+                        <span>Today's Campus Circulars ({activeCirculars.length})</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-bold">
+                        24h Live
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 max-h-[85px] overflow-y-auto custom-scrollbar pr-1">
+                      {activeCirculars.map((ac) => (
+                        <div key={ac.id} className="text-[11px] bg-white/90 p-2 rounded-xl border border-blue-100/80 flex items-start justify-between gap-2">
+                          <div>
+                            <span className="font-bold text-slate-800">{ac.title}</span>
+                            <p className="text-slate-600 text-[10px] line-clamp-1 mt-0.5">{ac.content}</p>
+                          </div>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 shrink-0 uppercase font-mono">
+                            {ac.category}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
             </div>
 
-            {/* Action Chips */}
-            <div className="flex items-center justify-center flex-wrap gap-3 shrink-0 pb-1">
+            {/* Bottom Action Bar */}
+            <div className="flex items-center justify-center flex-wrap gap-3 shrink-0 pt-2 pb-1">
               <button
                 onClick={() => setIsMapFullscreen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 hover:bg-blue-50 border border-slate-200/90 hover:border-blue-300 text-xs font-bold text-slate-700 hover:text-blue-700 shadow-xs transition-all active:scale-[0.97] interactive-card"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/95 hover:bg-blue-50 border border-slate-200/90 hover:border-blue-300 text-xs font-bold text-slate-700 hover:text-blue-700 shadow-xs transition-all active:scale-[0.97] cursor-pointer"
               >
-                <Compass size={14} className="text-blue-600" />
+                <Compass size={15} className="text-blue-600" />
                 <span>3D Campus Wayfinder</span>
               </button>
               <button
                 onClick={() => switchMode('chat')}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 hover:bg-indigo-50 border border-slate-200/90 hover:border-indigo-300 text-xs font-bold text-slate-700 hover:text-indigo-700 shadow-xs transition-all active:scale-[0.97] interactive-card"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/95 hover:bg-indigo-50 border border-slate-200/90 hover:border-indigo-300 text-xs font-bold text-slate-700 hover:text-indigo-700 shadow-xs transition-all active:scale-[0.97] cursor-pointer"
               >
-                <MessageSquare size={14} className="text-indigo-600" />
+                <MessageSquare size={15} className="text-indigo-600" />
                 <span>Switch to Text Chat</span>
               </button>
             </div>
@@ -909,8 +976,18 @@ const VoiceAssistant = () => {
       {/* 4. BOTTOM FOOTER */}
       {/* ========================================================================= */}
       <footer className="bg-white/90 backdrop-blur-md border-t border-slate-200/80 py-1.5 px-4 text-center shrink-0 z-20">
-        <p className="text-[10px] text-slate-400 font-medium font-mono">
-          ANNA UNIVERSITY CENTRAL LIBRARY AI SYSTEM <span className="mx-1 text-slate-300">|</span> POWERED BY <strong className="text-slate-600 font-extrabold">TECHWEGO</strong>
+        <p className="text-[10px] text-slate-500 font-medium font-mono flex items-center justify-center gap-1.5">
+          <span>ANNA UNIVERSITY CENTRAL LIBRARY AI SYSTEM</span>
+          <span className="text-slate-300">|</span>
+          <span>POWERED BY</span>
+          <a 
+            href="https://techwego.com/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-700 font-extrabold hover:underline"
+          >
+            Techwego
+          </a>
         </p>
       </footer>
 
