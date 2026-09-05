@@ -78,121 +78,209 @@ const LoginPage = () => {
         {/* ========================================================================= */}
         <div className="lg:col-span-7 bg-gradient-to-br from-blue-50/90 via-indigo-50/50 to-sky-50/70 p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative border-b lg:border-b-0 lg:border-r border-blue-100/90 overflow-hidden">
           
-          {/* Subtle Ambient Radial Glow inside Left Panel */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-blue-400/15 rounded-full blur-3xl pointer-events-none" />
+          {/* Ambient Stardust & Glowing Constellation Particles */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute top-[12%] left-[8%] text-amber-400 opacity-80 animate-pulse duration-1000">
+              <Sparkles size={20} />
+            </div>
+            <div className="absolute top-[35%] right-[10%] text-blue-400 opacity-70 animate-bounce duration-1000">
+              <Sparkles size={16} />
+            </div>
+            <div className="absolute bottom-[25%] left-[12%] text-indigo-400 opacity-75 animate-pulse duration-700">
+              <Sparkles size={22} />
+            </div>
+            <div className="absolute bottom-[10%] right-[14%] text-cyan-400 opacity-60 animate-bounce duration-1000">
+              <Sparkles size={18} />
+            </div>
+            {/* Glowing 3D Radial Aura */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-tr from-blue-400/20 via-indigo-400/15 to-purple-400/20 rounded-full blur-3xl pointer-events-none" />
+          </div>
 
-          {/* Top Brand Header */}
-          <div className="relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-600/30 text-white ring-4 ring-white shrink-0 transform hover:scale-105 transition-transform">
-                <GraduationCap size={26} />
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight tracking-tight">
-                  Anna University Central Library
-                </h1>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-blue-100/80 text-blue-800 font-bold border border-blue-200/70">
-                    NEXT-GEN CAMPUS INTELLIGENCE
-                  </span>
-                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-indigo-100/80 text-indigo-800 font-bold border border-indigo-200/70">
-                    VOICE AI & 3D WAYFINDING
-                  </span>
-                </div>
-              </div>
+          {/* Top Brand Header (Centered as Requested) */}
+          <div className="relative z-10 flex flex-col items-center text-center mb-2">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-xl shadow-blue-600/30 text-white ring-4 ring-white shrink-0 transform hover:scale-105 hover:rotate-3 transition-all duration-300 mb-2.5">
+              <GraduationCap size={28} />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight tracking-tight">
+              Anna University Central Library
+            </h1>
+            <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+              <span className="text-[10px] font-mono px-3 py-1 rounded-full bg-blue-100/90 text-blue-800 font-bold border border-blue-200/80 shadow-xs flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
+                NEXT-GEN CAMPUS INTELLIGENCE
+              </span>
+              <span className="text-[10px] font-mono px-3 py-1 rounded-full bg-indigo-100/90 text-indigo-800 font-bold border border-indigo-200/80 shadow-xs flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
+                VOICE AI & 3D WAYFINDING
+              </span>
             </div>
           </div>
 
-          {/* Center Infographic: Node Architecture Map with Floating Physics */}
-          <div className="relative z-10 my-8 sm:my-10 flex flex-col items-center justify-center min-h-[220px]">
+          {/* Center Infographic: 3D Connected Architecture Mesh with Laser Energy Streams */}
+          <div className="relative z-10 my-4 sm:my-6 flex flex-col items-center justify-center min-h-[260px]">
             
-            {/* SVG Constellation Connection Lines */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-35">
-              <line x1="25%" y1="20%" x2="50%" y2="50%" stroke="#3b82f6" strokeWidth="2" strokeDasharray="5 5" className="animate-pulse" />
-              <line x1="75%" y1="20%" x2="50%" y2="50%" stroke="#6366f1" strokeWidth="2" strokeDasharray="5 5" className="animate-pulse" />
-              <line x1="25%" y1="80%" x2="50%" y2="50%" stroke="#06b6d4" strokeWidth="2" strokeDasharray="5 5" className="animate-pulse" />
-              <line x1="75%" y1="80%" x2="50%" y2="50%" stroke="#8b5cf6" strokeWidth="2" strokeDasharray="5 5" className="animate-pulse" />
+            {/* SVG Constellation & Animated Laser Paths */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 400 240" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="laserBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#6366f1" stopOpacity="0.3" />
+                </linearGradient>
+                <linearGradient id="laserCyan" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.3" />
+                </linearGradient>
+                <linearGradient id="laserPurple" x1="100%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#6366f1" stopOpacity="0.3" />
+                </linearGradient>
+                <filter id="glowLaser" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="2" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+
+              {/* Glowing Constellation Connection Lines */}
+              <path d="M 80,45 Q 140,75 200,90" stroke="url(#laserBlue)" strokeWidth="2" fill="none" strokeDasharray="6 4" className="animate-pulse" />
+              <path d="M 320,45 Q 260,75 200,90" stroke="url(#laserBlue)" strokeWidth="2" fill="none" strokeDasharray="6 4" className="animate-pulse" />
+              <path d="M 80,195 Q 140,145 200,120" stroke="url(#laserCyan)" strokeWidth="2" fill="none" strokeDasharray="6 4" className="animate-pulse" />
+              <path d="M 320,195 Q 260,145 200,120" stroke="url(#laserPurple)" strokeWidth="2" fill="none" strokeDasharray="6 4" className="animate-pulse" />
+
+              {/* Animated Floating Stardust Photons along paths */}
+              <circle cx="140" cy="68" r="3" fill="#60a5fa" filter="url(#glowLaser)" className="animate-ping" />
+              <circle cx="260" cy="68" r="3" fill="#818cf8" filter="url(#glowLaser)" className="animate-ping" />
+              <circle cx="140" cy="158" r="3" fill="#22d3ee" filter="url(#glowLaser)" className="animate-ping" />
+              <circle cx="260" cy="158" r="3" fill="#c084fc" filter="url(#glowLaser)" className="animate-ping" />
             </svg>
 
-            {/* Central Intelligence Core Node */}
-            <div className="relative flex flex-col items-center justify-center my-4 z-20">
-              {/* Outer Energy Pulse Rings */}
-              <div className="absolute w-36 h-36 rounded-full border-2 border-blue-400/30 animate-ping opacity-30 pointer-events-none" />
-              <div className="absolute w-28 h-28 rounded-full border border-indigo-400/50 animate-pulse pointer-events-none" />
+            {/* Central Intelligence Core Hub */}
+            <div className="relative flex flex-col items-center justify-center my-3 z-20">
+              {/* Outer 3D Orbital Energy Rings */}
+              <div className="absolute w-36 h-36 rounded-full border border-blue-400/30 animate-spin duration-3000 pointer-events-none" />
+              <div className="absolute w-28 h-28 rounded-full border-2 border-indigo-400/40 animate-ping opacity-25 pointer-events-none" />
               
-              {/* Center Core Hub */}
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 flex flex-col items-center justify-center text-white shadow-xl shadow-blue-600/40 ring-4 ring-white transform hover:scale-110 transition-all cursor-pointer">
-                <Cpu size={28} className="animate-spin duration-3000" />
-                <span className="text-[9px] font-mono font-bold tracking-wider mt-0.5">AI CORE</span>
+              {/* Center Core Glassmorphic Hub */}
+              <div className="relative group cursor-pointer">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 flex flex-col items-center justify-center text-white shadow-2xl shadow-blue-600/50 ring-4 ring-white transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <Cpu size={28} className="animate-pulse" />
+                  <span className="text-[9px] font-mono font-black tracking-widest mt-0.5 text-blue-100">AI CORE</span>
+                </div>
+                {/* Active Live Dot */}
+                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center shadow-md">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                </div>
               </div>
             </div>
 
-            {/* Surrounding 4 Feature Pill Nodes */}
-            <div className="w-full flex flex-col justify-between gap-6 pointer-events-none z-30">
+            {/* Surrounding 4 Upgraded Feature Cards */}
+            <div className="w-full flex flex-col justify-between gap-4 pointer-events-none z-30">
               
-              {/* Top Row Nodes */}
-              <div className="flex justify-between items-center w-full gap-2">
-                <div className="pointer-events-auto bg-white/95 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-2.5 transform hover:-translate-y-1 hover:shadow-lg hover:border-blue-300 transition-all cursor-default">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-xs">
-                    <BookMarked size={16} />
+              {/* Top Row Cards */}
+              <div className="flex justify-between items-center w-full gap-2 sm:gap-4">
+                
+                {/* 1. Catalog RAG Search */}
+                <div className="pointer-events-auto flex-1 max-w-[48%] bg-white/95 backdrop-blur-xl p-3 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-3 transform hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-xl hover:border-blue-400 transition-all duration-300 cursor-default group">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/80 text-blue-600 flex items-center justify-center shrink-0 shadow-xs group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <BookMarked size={18} />
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 block leading-tight">Catalog RAG Search</span>
-                    <span className="text-[10px] text-slate-400 font-medium">Instant Live Availability</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-xs font-bold text-slate-800 truncate block">Catalog RAG</span>
+                      <span className="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200/60 shrink-0">
+                        24.8k
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium block truncate">Hybrid BM25 + Vector</span>
                   </div>
                 </div>
 
-                <div className="pointer-events-auto bg-white/95 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-2.5 transform hover:-translate-y-1 hover:shadow-lg hover:border-indigo-300 transition-all cursor-default">
-                  <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 shadow-xs">
-                    <Mic size={16} />
+                {/* 2. Real-Time Voice AI */}
+                <div className="pointer-events-auto flex-1 max-w-[48%] bg-white/95 backdrop-blur-xl p-3 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-3 transform hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-xl hover:border-indigo-400 transition-all duration-300 cursor-default group">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0 shadow-xs group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                    <Mic size={18} />
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 block leading-tight">Real-Time Voice AI</span>
-                    <span className="text-[10px] text-slate-400 font-medium">Whisper & Neural TTS</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-xs font-bold text-slate-800 truncate block">Voice AI</span>
+                      <span className="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/60 shrink-0">
+                        &lt;120ms
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium block truncate">Whisper & Neural TTS</span>
                   </div>
                 </div>
+
               </div>
 
-              {/* Bottom Row Nodes */}
-              <div className="flex justify-between items-center w-full gap-2">
-                <div className="pointer-events-auto bg-white/95 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-2.5 transform hover:-translate-y-1 hover:shadow-lg hover:border-cyan-300 transition-all cursor-default">
-                  <div className="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0 shadow-xs">
-                    <Compass size={16} />
+              {/* Bottom Row Cards */}
+              <div className="flex justify-between items-center w-full gap-2 sm:gap-4">
+                
+                {/* 3. 3D Shelf Wayfinder */}
+                <div className="pointer-events-auto flex-1 max-w-[48%] bg-white/95 backdrop-blur-xl p-3 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-3 transform hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-xl hover:border-cyan-400 transition-all duration-300 cursor-default group">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-50 to-cyan-100/80 text-cyan-600 flex items-center justify-center shrink-0 shadow-xs group-hover:bg-cyan-600 group-hover:text-white transition-colors">
+                    <Compass size={18} />
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 block leading-tight">3D Shelf Wayfinder</span>
-                    <span className="text-[10px] text-slate-400 font-medium">360° Multi-Floor Nav</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-xs font-bold text-slate-800 truncate block">3D Wayfinder</span>
+                      <span className="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-50 text-cyan-700 border border-cyan-200/60 shrink-0">
+                        360°
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium block truncate">Floor & Shelf Route</span>
                   </div>
                 </div>
 
-                <div className="pointer-events-auto bg-white/95 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-2.5 transform hover:-translate-y-1 hover:shadow-lg hover:border-purple-300 transition-all cursor-default">
-                  <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 shadow-xs">
-                    <Megaphone size={16} />
+                {/* 4. Campus Circulars */}
+                <div className="pointer-events-auto flex-1 max-w-[48%] bg-white/95 backdrop-blur-xl p-3 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center gap-3 transform hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-xl hover:border-purple-400 transition-all duration-300 cursor-default group">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100/80 text-purple-600 flex items-center justify-center shrink-0 shadow-xs group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                    <Megaphone size={18} />
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 block leading-tight">Campus Circulars</span>
-                    <span className="text-[10px] text-slate-400 font-medium">24h Live Notices & Leave</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-xs font-bold text-slate-800 truncate block">Campus Notice</span>
+                      <span className="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200/60 shrink-0">
+                        24H LIVE
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium block truncate">Events & Auto-Purge</span>
                   </div>
                 </div>
+
               </div>
 
             </div>
 
           </div>
 
-          {/* Bottom Trust & Origin Badge (Matching Reference Design) */}
-          <div className="relative z-10 pt-4 border-t border-blue-200/60">
+          {/* Bottom Trust & Origin Badge (With Precise Make In India Lion & Accurate India Map SVGs) */}
+          <div className="relative z-10 pt-3 border-t border-blue-200/60">
             <div className="bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-200/90 shadow-md shadow-blue-900/5 flex items-center justify-between gap-3">
               
               {/* Left: Make In India Stylized Lion Icon */}
               <div className="flex items-center gap-3">
-                <div className="w-10 h-8 flex items-center justify-center shrink-0">
-                  <svg viewBox="0 0 100 60" className="w-10 h-7 text-slate-900 fill-current">
-                    {/* Make in India Lion silhouette */}
-                    <path d="M10,35 Q15,25 25,28 Q30,15 45,18 Q55,10 65,15 Q75,12 85,20 Q95,25 90,35 Q85,45 75,42 Q65,48 55,44 Q45,50 35,46 Q25,48 15,42 Z" opacity="0.9" />
-                    <circle cx="82" cy="22" r="2" fill="#fff" />
-                    <path d="M15,42 L12,55 L18,55 L22,46 M35,46 L33,56 L39,56 L43,48 M65,44 L63,56 L69,56 L73,45 M85,38 L88,52 L94,52 L91,40" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
-                    <path d="M28,28 Q35,22 45,26 M50,22 Q60,18 70,24 M35,35 Q45,30 55,36" stroke="#fff" strokeWidth="1.2" fill="none" opacity="0.6" />
+                <div className="w-12 h-9 flex items-center justify-center shrink-0">
+                  <svg viewBox="0 0 100 60" className="w-12 h-8 text-slate-900 fill-current" preserveAspectRatio="xMidYMid meet">
+                    {/* Make in India Mechanical Lion Silhouette */}
+                    <path d="M 52,18 C 50,14 45,10 40,11 C 36,9 31,10 27,13 C 23,11 18,13 15,17 C 12,15 8,18 7,22 C 5,26 6,31 9,34 C 7,37 8,42 11,44 C 14,47 19,46 22,48 C 24,51 28,52 32,50 C 35,52 40,51 43,48 C 47,48 51,45 53,41 C 56,41 59,38 60,34 C 62,30 61,25 58,22 C 58,19 55,18 52,18 Z" opacity="0.95" />
+                    <path d="M 50,20 Q 56,16 62,18 Q 66,20 68,24 Q 69,27 66,29 Q 62,31 58,30 Q 54,32 50,30 Z" />
+                    <circle cx="60" cy="22" r="1.5" fill="#fff" />
+                    <path d="M 25,28 Q 15,30 10,36 Q 6,42 12,44 Q 20,44 26,40 Q 34,42 42,38 Z" />
+                    <path d="M 46,38 L 48,54 L 54,54 L 51,42 Z" />
+                    <path d="M 38,40 L 40,52 L 44,52 L 42,42 Z" opacity="0.8" />
+                    <path d="M 16,38 Q 14,44 12,54 L 18,54 Q 21,46 23,40 Z" />
+                    <path d="M 22,38 L 24,52 L 28,52 L 27,42 Z" opacity="0.75" />
+                    <path d="M 10,36 Q 4,32 5,24 Q 6,20 10,22 Q 8,26 12,32 Z" />
+                    {/* Mechanical Cog Cutouts in Mane */}
+                    <circle cx="34" cy="26" r="3.5" fill="#fff" opacity="0.9" />
+                    <circle cx="34" cy="26" r="1.5" fill="#0f172a" />
+                    <circle cx="44" cy="28" r="2.5" fill="#fff" opacity="0.9" />
+                    <circle cx="44" cy="28" r="1" fill="#0f172a" />
+                    <circle cx="24" cy="32" r="2.5" fill="#fff" opacity="0.9" />
+                    <circle cx="24" cy="32" r="1" fill="#0f172a" />
                   </svg>
                 </div>
 
@@ -212,26 +300,62 @@ const LoginPage = () => {
                 </div>
               </div>
 
-              {/* Right: India Map Tricolor Silhouette */}
+              {/* Right: Accurate India Map Tricolor Silhouette with Ashoka Chakra */}
               <div className="shrink-0 flex items-center justify-center pl-2">
-                <svg viewBox="0 0 40 48" className="w-7 h-9 drop-shadow-xs">
-                  {/* Stylized India map outline with saffron, white, green tricolor bands */}
+                <svg viewBox="0 0 100 120" className="w-8 h-10 drop-shadow-sm" preserveAspectRatio="xMidYMid meet">
                   <defs>
-                    <linearGradient id="indiaTricolor" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#ff9933" />
-                      <stop offset="45%" stopColor="#ffffff" />
-                      <stop offset="55%" stopColor="#ffffff" />
+                    <linearGradient id="indiaMapTricolor" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#FF9933" />
+                      <stop offset="38%" stopColor="#FF9933" />
+                      <stop offset="46%" stopColor="#FFFFFF" />
+                      <stop offset="54%" stopColor="#FFFFFF" />
+                      <stop offset="62%" stopColor="#138808" />
                       <stop offset="100%" stopColor="#138808" />
                     </linearGradient>
+                    <filter id="mapGlow" x="-10%" y="-10%" width="120%" height="120%">
+                      <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#0f172a" floodOpacity="0.15"/>
+                    </filter>
                   </defs>
+                  
+                  {/* Detailed Geographic Outline of India */}
                   <path 
-                    d="M18,2 Q22,4 24,8 Q28,10 26,14 Q32,16 34,22 Q38,26 32,30 Q30,34 26,36 Q22,44 20,46 Q18,44 14,36 Q10,34 8,30 Q2,26 6,22 Q8,16 14,14 Q12,10 16,8 Z" 
-                    fill="url(#indiaTricolor)" 
-                    stroke="#cbd5e1" 
-                    strokeWidth="1" 
+                    d="M 46,6 
+                       C 48,4 52,4 54,7 
+                       C 56,11 60,13 58,18 
+                       C 57,22 62,25 65,24 
+                       C 70,23 75,25 78,22 
+                       C 82,20 88,23 92,26 
+                       C 96,29 94,34 90,36 
+                       C 85,38 82,34 77,36 
+                       C 73,38 72,42 68,44 
+                       C 65,46 64,50 66,54 
+                       C 68,58 66,63 64,68 
+                       C 61,74 58,80 55,87 
+                       C 52,94 50,102 48,110 
+                       C 47,114 45,114 44,110 
+                       C 42,102 38,92 35,84 
+                       C 32,76 28,70 24,64 
+                       C 20,58 18,52 14,48 
+                       C 8,46 4,42 6,36 
+                       C 8,30 14,32 18,35 
+                       C 22,37 25,34 26,28 
+                       C 27,22 32,18 36,16 
+                       C 40,14 44,9 46,6 Z" 
+                    fill="url(#indiaMapTricolor)" 
+                    stroke="#64748b" 
+                    strokeWidth="0.8"
+                    filter="url(#mapGlow)"
                   />
-                  {/* Ashoka Chakra navy dot */}
-                  <circle cx="20" cy="24" r="2.2" fill="#000080" />
+                  
+                  {/* Ashoka Chakra in Center */}
+                  <g transform="translate(47, 52)">
+                    <circle cx="0" cy="0" r="4.5" fill="none" stroke="#000080" strokeWidth="0.8" />
+                    <circle cx="0" cy="0" r="1.2" fill="#000080" />
+                    <line x1="0" y1="-4.2" x2="0" y2="4.2" stroke="#000080" strokeWidth="0.5" />
+                    <line x1="-4.2" y1="0" x2="4.2" y2="0" stroke="#000080" strokeWidth="0.5" />
+                    <line x1="-3" y1="-3" x2="3" y2="3" stroke="#000080" strokeWidth="0.5" />
+                    <line x1="3" y1="-3" x2="-3" y2="3" stroke="#000080" strokeWidth="0.5" />
+                  </g>
                 </svg>
               </div>
 
