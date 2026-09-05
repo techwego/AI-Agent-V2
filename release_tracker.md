@@ -71,7 +71,7 @@ gantt
 
 | Version | Commit | Date | Time | Module | Commit Message / Summary | Status |
 |---------|--------|------|------|--------|--------------------------|--------|
-| **v7.17.0** | `Pending` | 2026-09-05 | 15:58 IST | Voice UI Avatar | feat: photorealistic 3D digital human assistant avatar (Sam) with real-time lip-sync, micro-saccades, breathing kinematics, and unclipped interaction badge | ✅ Ready |
+| **v7.17.0** | `ad63b4e` | 2026-09-05 | 15:58 IST | Voice UI Avatar | feat: photorealistic 3D digital human assistant avatar (Sam) with real-time lip-sync, micro-saccades, breathing kinematics, and unclipped interaction badge | ✅ Deployed |
 | v7.16.0 | `Pending` | 2026-09-05 | 15:42 IST | Voice UI Avatar | feat: integrate interactive video avatar with WebRTC stream fallback and boundary lip-sync event dispatcher | ✅ Deployed |
 | **v7.7.6** | `bca621d` | 2026-09-04 | 16:48 IST | STT Pipeline | fix(stt): align STT dual engine with v7.6.6 and add verbose transcribe logging | ✅ Deployed |
 | v7.7.5 | `d005794` | 2026-09-04 | 16:42 IST | STT Pipeline | fix(stt): align STT pipeline with proven v6.0.0 architecture - remove conflicting WebSpeech, pure MediaRecorder stream, 200B threshold | ✅ Deployed |
