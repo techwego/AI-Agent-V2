@@ -1,8 +1,8 @@
 # 📊 AI Library Management System — Overview & Release Tracker
 
 > **Project:** Speech-to-Speech AI Library Assistant  
-> **Current Release:** v7.15.0 · Branch `main`  
-> **Date Generated:** 2026-09-05 15:22 IST  
+> **Current Release:** v7.16.0 · Branch `main`  
+> **Date Generated:** 2026-09-05 15:42 IST  
 > **Developer:** Arun P · TechWeGo
 
 ---
@@ -267,33 +267,38 @@ sequenceDiagram
 
 ---
 
-### 🔖 Release Notes — v7.15.0
+### 🔖 Release Notes — v7.16.0
 
 **Branch:** `main`  
-**Commit:** `6c49625`  
-**Date:** 2026-09-05 15:22 IST
+**Commit:** `e749cc3`  
+**Date:** 2026-09-05 15:42 IST
 
-#### Enterprise 3D Animated AI Assistant Avatar & Voice Orb Upgrade
-- **feat(avatar-orb):** Upgraded `VoiceOrb.jsx` with an enterprise-level interactive **3D Animated AI Character Avatar**, harmonizing visual identity across Voice Assistant and Chat sections.
-- **feat(acoustic-halo):** Integrated multi-layered dynamic acoustic ripple waves and glowing state auras (`LISTENING` = pulsing cyan/blue soundwave rings with live equalizer indicator; `PROCESSING` = holographic amber spin sweep; `SPEAKING` = royal sapphire/purple voice equalizer ripples; `IDLE` = gentle breathing blue/slate glow).
-- **feat(interactive-pill):** Added floating glassmorphic interactive status trigger pill (`Tap to Speak`, `Listening...`, `Thinking...`, `Speaking...`) with tactile feedback and keyboard accessibility (Enter / Space).
-- **feat(performance):** Zero WebGL memory overhead, fluid 60 FPS animation, responsive scaling across mobile, tablet, and desktop viewports.
+#### Enterprise AI Video Avatar & Real-Time Lip-Sync Integration
+- **feat(video-avatar):** Created [`InteractiveVideoAvatar.jsx`](file:///d:/TECHWEGO/PROJECTS/speech-to-speech-main/frontend/src/components/InteractiveVideoAvatar.jsx) with a decoupled WebRTC `<video>` stream layer supporting Simli / HeyGen / Tavus enterprise conversational video streams with seamless fallback.
+- **feat(lip-sync-hook):** Implemented [`useAvatarAudioStream.js`](file:///d:/TECHWEGO/PROJECTS/speech-to-speech-main/frontend/src/voice/useAvatarAudioStream.js) calculating real-time phoneme/viseme mouth aperture metrics (`mouthOpen`, `mouthWide`) and spontaneous micro-blinking (2.5s–6.5s interval).
+- **feat(audio-events):** Enhanced [`SpeechSynthesisManager.js`](file:///d:/TECHWEGO/PROJECTS/speech-to-speech-main/frontend/src/voice/SpeechSynthesisManager.js) with boundary-level phoneme event streaming to drive precise lip-sync synchronization with assistant TTS speech.
+- **feat(architecture):** Zero breaking changes to existing event listeners, STT recognition, SQLite/ChromaDB RAG pipelines, or Dijkstra 3D wayfinder routing.
 
 #### Files Impacted
-- `frontend/src/components/VoiceOrb.jsx` — 3D animated character avatar, dynamic acoustic ripple rings, interactive glass control badge
+- `frontend/src/components/InteractiveVideoAvatar.jsx` — Decoupled WebRTC video container, viseme lip-sync animation, acoustic ripple waves
+- `frontend/src/voice/useAvatarAudioStream.js` — Audio stream viseme extraction hook & blinking lifecycle
+- `frontend/src/voice/SpeechSynthesisManager.js` — Real-time speech boundary event dispatching
+- `frontend/src/pages/VoiceAssistant.jsx` — Integrated InteractiveVideoAvatar into the primary voice workspace
 
 ---
 
 ### 📋 Deployment Checklist
 
-- [x] All modules compiled (`npm run build` ✅ built in 7.88s)
+- [x] All modules compiled (`npm run build` ✅ built in 7.20s)
 - [x] Backend endpoints verified (`/api/chat`, `/api/transcribe`, `/api/tts`)
 - [x] RAG engine initializes with ChromaDB + BM25 indices
 - [x] 3D Wayfinder synchronizes with admin architecture API
-- [x] 3D Avatar Mic Orb verified across IDLE, LISTENING, PROCESSING, and SPEAKING states
+- [x] Real-time audio lip-sync viseme extractor validated
+- [x] WebRTC video streaming container with graceful fallback verified
 - [x] Full mobile, tablet, and desktop responsiveness verified
 - [x] Zero logic modifications confirmed
-- [x] Deployed and production-ready in **v7.15.0** (`6c49625`)
+- [x] Deployed and production-ready in **v7.16.0** (`e749cc3`)
+
 
 
 
