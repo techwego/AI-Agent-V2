@@ -71,7 +71,7 @@ gantt
 
 | Version | Commit | Date | Time | Module | Commit Message / Summary | Status |
 |---------|--------|------|------|--------|--------------------------|--------|
-| **v7.21.0** | `Pending` | 2026-09-05 | 17:56 IST | Admin Circulars / UI | feat: campus circulars & leave notices ingestion with 24h auto-expiry and ChromaDB embedding, proactive voice agent retrieval, responsive widescreen dual-panel layout, and Techwego branding fix | ✅ Ready |
+| **v7.21.0** | `069f680` | 2026-09-05 | 17:56 IST | Admin Circulars / UI | feat: campus circulars & leave notices ingestion with 24h auto-expiry and ChromaDB embedding, proactive voice agent retrieval, responsive widescreen dual-panel layout, and Techwego branding fix | ✅ Deployed |
 | v7.20.0 | `0656693` | 2026-09-05 | 17:30 IST | UI / Login / Orb | feat: login glitter sparkles, centered credentials layout, official Techwego website link, remove 3D books from background, and clean enterprise crystal voice orb | ✅ Deployed |
 | v7.19.0 | `345a481` | 2026-09-05 | 16:23 IST | 3D WebGL Orb | feat: enterprise 3D holographic AI orb — iridescent glass core, triple gyroscopic rings, 220 data particles, audio-reactive pulse waves, state-reactive lighting | ✅ Deployed |
 | v7.18.0 | `2052a33` | 2026-09-05 | 16:09 IST | 3D WebGL Avatar | feat: enterprise-grade real-time 3D WebGL Digital Human Avatar (Sam) in Three.js with PBR multi-point lighting, active cursor gaze tracking, procedural blinking, articulated jaw lip-sync, and breathing kinematics | ✅ Deployed |
