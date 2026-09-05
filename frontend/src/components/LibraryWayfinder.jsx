@@ -891,20 +891,6 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         const idx = Math.min(trailPts.length - 1, (i + 1) * 3);
         if (trailPts[idx]) m.position.copy(trailPts[idx]).sub(currentPoint);
       });
-
-      // Smooth camera overview framing in orbit mode
-      if (cameraModeRef.current !== 'walk') {
-        const fly = flyToRef.current;
-        if (fly && fly.progress < 1) {
-          fly.progress = Math.min(1, fly.progress + 0.015);
-          const ease = 1 - Math.pow(1 - fly.progress, 3);
-          if (orbitRef.current && orbitRef.current.target) {
-              orbitRef.current.target.lerp(fly.target, ease * 0.05);
-              orbitRef.current.radius += (fly.radius - orbitRef.current.radius) * ease * 0.05;
-          }
-        }
-        updateCamera();
-      }
       
       routeObjsRef.current.animId = requestAnimationFrame(animate);
     }
@@ -1228,17 +1214,39 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const drag = dragRef.current;
 
     const onPointerDown = (e) => {
+      // User is actively interacting: immediately clear automated fly-to
+      flyToRef.current = null;
       if (e.button === 2 || e.button === 1) drag.panning = true;
       else drag.dragging = true;
       drag.startX = e.clientX; drag.startY = e.clientY;
       drag.lastX = e.clientX; drag.lastY = e.clientY;
-      canvas.setPointerCapture(e.pointerId);
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch (err) {}
     };
-    const onPointerUp = () => { drag.dragging = false; drag.panning = false; };
+    const onPointerUp = (e) => {
+      drag.dragging = false;
+      drag.panning = false;
+      try {
+        if (e && e.pointerId && canvas.hasPointerCapture(e.pointerId)) {
+          canvas.releasePointerCapture(e.pointerId);
+        }
+      } catch (err) {}
+    };
+    const onPointerCancel = (e) => {
+      drag.dragging = false;
+      drag.panning = false;
+      try {
+        if (e && e.pointerId && canvas.hasPointerCapture(e.pointerId)) {
+          canvas.releasePointerCapture(e.pointerId);
+        }
+      } catch (err) {}
+    };
     const onPointerMove = (e) => {
       if (!drag.dragging && !drag.panning) return;
       const dx = e.clientX - drag.lastX, dy = e.clientY - drag.lastY;
       drag.lastX = e.clientX; drag.lastY = e.clientY;
+      flyToRef.current = null;
       
       if (cameraModeRef.current === 'walk') {
          drag.yaw = (drag.yaw || 0) - dx * 0.005;
@@ -1265,6 +1273,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     };
     const onWheel = (e) => {
       e.preventDefault();
+      flyToRef.current = null;
       if (cameraModeRef.current !== 'walk') {
         const orbit = orbitRef.current;
         const zoomSpeed = Math.max(0.005, orbit.radius * 0.0008);
@@ -1276,6 +1285,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointercancel', onPointerCancel);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('wheel', onWheel, { passive: false });
     canvas.addEventListener('contextmenu', onContextMenu);
@@ -1357,12 +1367,16 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
           }
       } else {
           const fly = flyToRef.current;
-          if (fly && fly.progress < 1) {
-            fly.progress = Math.min(1, fly.progress + 0.015);
-            const ease = 1 - Math.pow(1 - fly.progress, 3);
-            orbitRef.current.target.lerp(fly.target, ease * 0.06);
-            orbitRef.current.radius += (fly.radius - orbitRef.current.radius) * ease * 0.06;
-            updateCamera();
+          if (fly) {
+            if (fly.progress < 1) {
+              fly.progress = Math.min(1, fly.progress + 0.02);
+              const ease = 1 - Math.pow(1 - fly.progress, 3);
+              orbitRef.current.target.lerp(fly.target, ease * 0.06);
+              orbitRef.current.radius += (fly.radius - orbitRef.current.radius) * ease * 0.06;
+              updateCamera();
+            } else {
+              flyToRef.current = null;
+            }
           }
           if (routeObjsRef.current.userMarker) {
              routeObjsRef.current.userMarker.visible = false;
@@ -1385,6 +1399,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       resizeObserver.disconnect();
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointercancel', onPointerCancel);
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('wheel', onWheel);
       canvas.removeEventListener('click', onClick);

@@ -190,14 +190,14 @@ const LoginPage = () => {
 
         {/* Feature Highlights */}
         <div className="w-full mt-4 sm:mt-5 px-1">
-          <div className="grid grid-cols-3 gap-3 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 w-full">
             {featurePills.map((f, i) => (
               <div 
                 key={i} 
-                className="flex flex-col items-center justify-center text-center px-2 py-3.5 bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-sm w-full min-h-[90px] interactive-card"
+                className="flex sm:flex-col items-center justify-start sm:justify-center text-left sm:text-center px-3 sm:px-2 py-2.5 sm:py-3.5 bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-xs w-full min-h-[50px] sm:min-h-[86px] interactive-card gap-2.5 sm:gap-0"
               >
-                <f.icon size={20} className={`${f.color} mb-2`} />
-                <span className="text-[11px] font-bold text-slate-800 leading-snug w-full px-1">{f.label}</span>
+                <f.icon size={18} className={`${f.color} sm:mb-2 shrink-0`} />
+                <span className="text-xs sm:text-[11px] font-bold text-slate-800 leading-snug px-0.5">{f.label}</span>
               </div>
             ))}
           </div>
