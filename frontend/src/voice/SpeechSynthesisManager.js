@@ -6,10 +6,16 @@ class SpeechSynthesisManager {
     this.isProcessingQueue = false;
     this.onAllFinished = null;
     this.voices = [];
-    this.selectedVoiceName = localStorage.getItem('preferred_voice') || 'en-IN-Neerja';
+    this.selectedVoiceName = localStorage.getItem('preferred_voice') || 'en-IN-Pallavi';
+    this.activeUtterances = new Set();
     
     this.initVoices();
     this.lipSyncListeners = new Set();
+    this.onStartSpeakingCallback = null;
+  }
+
+  onStartSpeaking(callback) {
+    this.onStartSpeakingCallback = callback;
   }
 
   subscribeLipSync(callback) {
@@ -27,9 +33,14 @@ class SpeechSynthesisManager {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
     const loadVoices = () => {
-      const available = window.speechSynthesis.getVoices();
-      if (available && available.length > 0) {
-        this.voices = available;
+      try {
+        const available = window.speechSynthesis.getVoices();
+        if (available && available.length > 0) {
+          // STRICT ENGLISH WHITELIST: Never allow non-English voices (ta-IN, hi-IN, etc.) to pollute synthesis
+          this.voices = available.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+        }
+      } catch (e) {
+        console.warn('Voice loading error:', e);
       }
     };
 
@@ -37,6 +48,10 @@ class SpeechSynthesisManager {
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
+    // Eager polling on startup to ensure voices are ready before first user click
+    [50, 150, 350, 700, 1500].forEach(delay => {
+      setTimeout(loadVoices, delay);
+    });
   }
 
   setVoice(voicePresetOrName) {
@@ -44,17 +59,28 @@ class SpeechSynthesisManager {
     this.selectedVoiceName = voicePresetOrName;
     try {
       localStorage.setItem('preferred_voice', voicePresetOrName);
+      localStorage.setItem('cached_voice_preset', voicePresetOrName);
     } catch (e) {
       console.warn('LocalStorage error saving voice:', e);
     }
   }
 
   getVoice() {
-    const saved = localStorage.getItem('preferred_voice');
+    const saved = localStorage.getItem('cached_voice_preset') || localStorage.getItem('preferred_voice');
     if (saved) {
       this.selectedVoiceName = saved;
     }
-    return this.selectedVoiceName;
+    return this.selectedVoiceName || 'en-IN-Pallavi';
+  }
+
+  preWarm() {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    try {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+      this.initVoices();
+    } catch (e) {}
   }
 
   stripMarkdown(text) {
@@ -66,47 +92,107 @@ class SpeechSynthesisManager {
       .replace(/<ROUTE_TO:[^>]+>/gi, '')
       .replace(/<ROUTE_[^>]+>/gi, '')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/[^\x00-\x7F]/g, ' ') // Strip non-ASCII / non-Latin characters to prevent regional language leakage
       .trim();
   }
 
   findBestMatchingVoice() {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
     
-    let voices = window.speechSynthesis.getVoices();
-    if (!voices || voices.length === 0) {
-      voices = this.voices;
+    let allVoices = [];
+    try {
+      allVoices = window.speechSynthesis.getVoices() || [];
+    } catch (e) {}
+
+    if (!allVoices || allVoices.length === 0) {
+      allVoices = this.voices || [];
     }
-    if (!voices || voices.length === 0) return null;
+    if (!allVoices || allVoices.length === 0) return null;
 
-    const preset = this.getVoice().toLowerCase();
+    // STRICT ENGLISH ONLY: Exclude Tamil, Hindi, or any non-English TTS voices
+    const voices = allVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+    if (voices.length === 0) return allVoices[0] || null;
 
-    // 1. Direct exact name or URI match
+    let preset = (this.getVoice() || '').trim();
+    // Sanitize non-English regional language names to pallavi
+    if (/[\u0B80-\u0BFF]/.test(preset) || preset.toLowerCase().includes('tamil') || preset.toLowerCase().includes('hindi')) {
+      preset = 'pallavi';
+    } else {
+      preset = preset.toLowerCase();
+    }
+
+    // 1. Exact Name or VoiceURI Match
     const exact = voices.find(v => v.name.toLowerCase() === preset || v.voiceURI.toLowerCase() === preset);
     if (exact) return exact;
 
-    // 2. Indian Female Voice Priority Matching
-    if (preset.includes('neerja') || preset.includes('in-neerja')) {
-      const neerja = voices.find(v => v.name.toLowerCase().includes('neerja'));
-      if (neerja) return neerja;
-    }
-    if (preset.includes('swara') || preset.includes('in-swara')) {
-      const swara = voices.find(v => v.name.toLowerCase().includes('swara'));
-      if (swara) return swara;
-    }
-    if (preset.includes('heera') || preset.includes('in-heera')) {
-      const heera = voices.find(v => v.name.toLowerCase().includes('heera'));
-      if (heera) return heera;
-    }
-    if (preset.includes('priya') || preset.includes('in-priya') || preset.includes('kavya')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('priya') || v.name.toLowerCase().includes('kavya'));
+    // 2. Keyword Matches for Admin Presets
+    if (preset.includes('pallavi')) {
+      const match = voices.find(v => v.name.toLowerCase().includes('pallavi') && (v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('online'))) ||
+                    voices.find(v => v.name.toLowerCase().includes('pallavi')) ||
+                    voices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !v.name.toLowerCase().includes('male'));
       if (match) return match;
     }
 
-    // If any Indian voice requested (en-IN or india)
+    if (preset.includes('neerja')) {
+      const match = voices.find(v => v.name.toLowerCase().includes('neerja') && (v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('online'))) ||
+                    voices.find(v => v.name.toLowerCase().includes('neerja')) ||
+                    voices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !v.name.toLowerCase().includes('male'));
+      if (match) return match;
+    }
+
+    if (preset.includes('swara')) {
+      const match = voices.find(v => v.name.toLowerCase().includes('swara')) ||
+                    voices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !v.name.toLowerCase().includes('male'));
+      if (match) return match;
+    }
+
+    if (preset.includes('heera')) {
+      const match = voices.find(v => v.name.toLowerCase().includes('heera')) ||
+                    voices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !v.name.toLowerCase().includes('male'));
+      if (match) return match;
+    }
+
+    if (preset.includes('kavya') || preset.includes('priya')) {
+      const match = voices.find(v => v.name.toLowerCase().includes('kavya') || v.name.toLowerCase().includes('priya')) ||
+                    voices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !v.name.toLowerCase().includes('male'));
+      if (match) return match;
+    }
+
+    if (preset.includes('aria')) {
+      const match = voices.find(v => v.name.toLowerCase().includes('aria') && (v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('online'))) ||
+                    voices.find(v => v.name.toLowerCase().includes('aria'));
+      if (match) return match;
+    }
+
+    if (preset.includes('jenny')) {
+      const match = voices.find(v => v.name.toLowerCase().includes('jenny') && (v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('online'))) ||
+                    voices.find(v => v.name.toLowerCase().includes('jenny'));
+      if (match) return match;
+    }
+
+    if (preset.includes('sonia')) {
+      const match = voices.find(v => v.name.toLowerCase().includes('sonia') && (v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('online'))) ||
+                    voices.find(v => v.name.toLowerCase().includes('sonia'));
+      if (match) return match;
+    }
+
+    if (preset.includes('libby')) {
+      const match = voices.find(v => v.name.toLowerCase().includes('libby')) ||
+                    voices.find(v => v.lang.toLowerCase().includes('en-gb') && !v.name.toLowerCase().includes('male'));
+      if (match) return match;
+    }
+
+    if (preset.includes('natasha')) {
+      const match = voices.find(v => v.name.toLowerCase().includes('natasha')) ||
+                    voices.find(v => v.lang.toLowerCase().includes('en-au') && !v.name.toLowerCase().includes('male'));
+      if (match) return match;
+    }
+
+    // 3. Indian English regional fallback if en-in preset was chosen
     if (preset.includes('en-in') || preset.includes('india') || preset.includes('indian')) {
       const inFemale = voices.find(v => 
         (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) &&
-        (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('woman') || v.name.toLowerCase().includes('neerja') || v.name.toLowerCase().includes('heera') || v.name.toLowerCase().includes('swara') || v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural'))
+        (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('woman') || v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('heera') || v.name.toLowerCase().includes('pallavi'))
       );
       if (inFemale) return inFemale;
 
@@ -114,25 +200,13 @@ class SpeechSynthesisManager {
       if (anyIn) return anyIn;
     }
 
-    // 3. Aria / Jenny / Sonia / Libby / Natasha / Samantha matches
-    if (preset.includes('aria')) {
-      const aria = voices.find(v => v.name.toLowerCase().includes('aria'));
-      if (aria) return aria;
-    }
-    if (preset.includes('jenny')) {
-      const jenny = voices.find(v => v.name.toLowerCase().includes('jenny'));
-      if (jenny) return jenny;
-    }
-    if (preset.includes('sonia')) {
-      const sonia = voices.find(v => v.name.toLowerCase().includes('sonia'));
-      if (sonia) return sonia;
-    }
-    if (preset.includes('libby')) {
-      const libby = voices.find(v => v.name.toLowerCase().includes('libby'));
-      if (libby) return libby;
+    // 4. US / UK English regional fallbacks
+    if (preset.includes('en-gb') || preset.includes('uk')) {
+      const ukVoice = voices.find(v => v.lang.toLowerCase().includes('en-gb') && !v.name.toLowerCase().includes('male'));
+      if (ukVoice) return ukVoice;
     }
 
-    // 4. Fallback: High-Quality Female English Voice
+    // 5. Pleasant Female English Voice Default (Natural / Neural / Samantha / Zira)
     const pleasantFemale = voices.find(v => 
       v.lang.startsWith('en') && 
       (v.name.includes('Natural') || v.name.includes('Neural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Ava') || v.name.includes('Jenny') || v.name.includes('Aria') || v.name.includes('Neerja') || v.name.includes('Heera')) &&
@@ -143,10 +217,11 @@ class SpeechSynthesisManager {
     const anyFemale = voices.find(v => v.lang.startsWith('en') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira')));
     if (anyFemale) return anyFemale;
 
+    // Strict English fallback
     return voices.find(v => v.lang.startsWith('en')) || voices[0];
   }
 
-  speakWithWebSpeech(cleanText, onEnd) {
+  speakWithWebSpeech(cleanText, onEnd, isRetry = false) {
     if (!('speechSynthesis' in window)) {
       this.speaking = false;
       if (onEnd) onEnd();
@@ -154,18 +229,34 @@ class SpeechSynthesisManager {
     }
 
     try {
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.05;
-
-      const selectedVoice = this.findBestMatchingVoice();
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-        utterance.lang = selectedVoice.lang || 'en-IN';
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
       }
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 1.08; // Natural, fluent conversational tempo (eliminates sluggish drag)
+      utterance.pitch = 1.0; // Warm, natural authentic tone
+
+      if (!isRetry) {
+        const selectedVoice = this.findBestMatchingVoice();
+        if (selectedVoice && selectedVoice.lang && selectedVoice.lang.toLowerCase().startsWith('en')) {
+          utterance.voice = selectedVoice;
+          utterance.lang = selectedVoice.lang;
+        } else {
+          utterance.lang = 'en-US';
+        }
+      } else {
+        // Direct local offline voice fallback to guarantee speech playback
+        utterance.voice = null;
+        utterance.lang = 'en-US';
+      }
+
+      // Retain reference to prevent Chromium garbage collection of active utterance
+      this.activeUtterances.add(utterance);
 
       let isFinished = false;
       const finish = () => {
+        this.activeUtterances.delete(utterance);
         if (!isFinished) {
           isFinished = true;
           this.emitLipSyncEvent({ type: 'stop', text: cleanText });
@@ -175,6 +266,9 @@ class SpeechSynthesisManager {
 
       utterance.onstart = () => {
         this.emitLipSyncEvent({ type: 'start', text: cleanText });
+        if (this.onStartSpeakingCallback) {
+          try { this.onStartSpeakingCallback(); } catch (e) {}
+        }
       };
 
       utterance.onboundary = (event) => {
@@ -191,7 +285,21 @@ class SpeechSynthesisManager {
 
       utterance.onend = finish;
       utterance.onerror = (e) => {
-        console.warn('Web Speech note:', e.error);
+        this.activeUtterances.delete(utterance);
+        if (e.error !== 'interrupted' && e.error !== 'canceled') {
+          console.warn('Web Speech note:', e.error);
+          // Auto-recover on synthesis-failed or network failure
+          if (!isRetry && (e.error === 'synthesis-failed' || e.error === 'network' || e.error === 'audio-busy')) {
+            console.log('[TTS] Auto-recovering with local device speech synthesizer...');
+            try {
+              window.speechSynthesis.cancel();
+              this.speakWithWebSpeech(cleanText, onEnd, true);
+              return;
+            } catch (err) {
+              console.warn('[TTS] Fallback error:', err);
+            }
+          }
+        }
         finish();
       };
 
@@ -261,6 +369,7 @@ class SpeechSynthesisManager {
     this.isProcessingQueue = false;
     this.speaking = false;
     this.onAllFinished = null;
+    this.activeUtterances.clear();
     this.emitLipSyncEvent({ type: 'stop' });
 
     if (this.audioElement) {

@@ -119,10 +119,15 @@ class LibraryConfig(Base):
     custom_layout = Column(JSON, default=dict)
     
     # Global Settings
-    library_name = Column(String, default="University Library")
-    opening_hours = Column(String, default="Mon-Fri: 8AM-8PM, Sat-Sun: 10AM-4PM")
+    college_name = Column(String, default="Anna University")
+    library_name = Column(String, default="Anna University Central Library")
+    agent_name = Column(String, default="Sam")
+    greeting_message = Column(String, default="How can I assist you today?")
+    opening_hours = Column(String, default="Mon-Fri: 8:00 AM - 8:00 PM, Sat: 9:00 AM - 5:00 PM")
     library_policies = Column(String, default="Students can borrow up to 3 books for 14 days.")
-    voice_preset = Column(String, default="en-US-AriaNeural")
+    additional_details = Column(Text, default="Wi-Fi is available throughout the library. Quiet reading rooms are located on Floor 2.")
+    voice_preset = Column(String, default="en-IN-Pallavi")
+    show_guest_cards = Column(Boolean, default=False)
     
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -141,3 +146,15 @@ class Circular(Base):
     expires_at = Column(DateTime, index=True) # Automatically expires after 24h by default
     is_active = Column(Boolean, default=True, index=True)
 
+class GuestVisit(Base):
+    __tablename__ = "guest_visits"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    about = Column(Text, nullable=True)
+    greeting_message = Column(Text, nullable=True)
+    image_filename = Column(String, nullable=True) # Stored in frontend/public/guest_images/
+    is_active = Column(Boolean, default=True, index=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

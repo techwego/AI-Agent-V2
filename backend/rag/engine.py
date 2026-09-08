@@ -336,6 +336,11 @@ class LibraryRAG:
     def ready(self) -> bool:
         return self.state == RAGState.READY
 
+    @property
+    def embedding_model(self):
+        """Property alias for embed_model for cross-module compatibility."""
+        return self.embed_model
+
     def initialize(self):
         """Load ChromaDB, build BM25 index, connect to Groq."""
         try:
@@ -386,6 +391,9 @@ class LibraryRAG:
                 # Execute warm-up request
                 self._warmup_pipeline()
                 
+                # Synchronize library profile & agent identity vector embeddings
+                self._sync_system_profile_embeddings()
+                
                 self.state = RAGState.READY
                 self.diagnostics["startup_time"] = round(time.time() - startup_t0, 3)
                 
@@ -408,6 +416,45 @@ class LibraryRAG:
             self.state = RAGState.ERROR
             self.diagnostics["status_message"] = f"Initialization failed: {e}"
             print(f"[ERROR] RAG Initialization Failed: {e}")
+
+    def _sync_system_profile_embeddings(self):
+        """Syncs SQLite library_config profile records into ChromaDB collection on startup."""
+        try:
+            from backend.database.db import SessionLocal
+            from backend.database.models import LibraryConfig
+            db = SessionLocal()
+            config = db.query(LibraryConfig).first()
+            if config and self.collection is not None and self.embed_model is not None:
+                docs = [
+                    f"Official Profile: {config.college_name or 'Anna University'} - {config.library_name or 'Central Library'}. Executive AI Assistant Name: {config.agent_name or 'Sam'}. Greeting: {config.greeting_message or 'How can I assist you today?'}.",
+                    f"Operating Hours & Timings for {config.library_name or 'the Library'} ({config.college_name or 'the College'}): {config.opening_hours or 'Mon-Fri: 8:00 AM - 8:00 PM'}.",
+                    f"Borrowing Rules, Policies & Guidelines for {config.library_name or 'the Library'}: {config.library_policies or 'Students can borrow up to 3 books for 14 days.'}.",
+                    f"Campus & Library Facilities, Wi-Fi & Additional Details: {config.additional_details or 'Wi-Fi is available across all reading halls.'}."
+                ]
+                metadatas = [
+                    {"source": "System Configuration", "section": "College & Library Identity", "document_type": "profile"},
+                    {"source": "System Configuration", "section": "Operating Hours & Timings", "document_type": "timings"},
+                    {"source": "System Configuration", "section": "Library Rules & Policies", "document_type": "policies"},
+                    {"source": "System Configuration", "section": "Facilities & Additional Details", "document_type": "facilities"}
+                ]
+                ids = [
+                    "system_profile_identity",
+                    "system_profile_timings",
+                    "system_profile_policies",
+                    "system_profile_facilities"
+                ]
+                embeddings = list(self.embed_model.embed(docs))
+                embeddings = [e.tolist() for e in embeddings]
+                self.collection.upsert(
+                    documents=docs,
+                    embeddings=embeddings,
+                    metadatas=metadatas,
+                    ids=ids
+                )
+                print(f"[RAG INGEST] Synced vector embeddings for {config.library_name} (AI: {config.agent_name}) on startup.")
+            db.close()
+        except Exception as e:
+            print(f"[RAG INGEST NOTE] Startup profile sync note: {e}")
 
     # ------------------------------------------------------------------
 
@@ -569,13 +616,49 @@ class LibraryRAG:
                             seen_ids.add(b.id)
                             matched_books.append(b)
                 
-            results = []
+            # Group books by title and author to combine multi-copy accession entries
+            grouped_books = {}
             for b in matched_books:
-                title, author, subject, call_num, loc, floor, copies, avail, desc = (
-                    b.title, b.author, b.department, b.isbn, b.rack, b.floor, b.copies, b.available, b.description
-                )
-                total_copies = copies if copies is not None else 1
-                avail_copies = avail if avail is not None else total_copies
+                key = (b.title.strip().lower(), (b.author or '').strip().lower())
+                if key not in grouped_books:
+                    grouped_books[key] = {
+                        "primary": b,
+                        "rack": b.rack or "",
+                        "floor": b.floor or "1",
+                        "department": b.department or "",
+                        "isbn": b.isbn or "",
+                        "description": b.description or "",
+                        "total_copies": 0,
+                        "available_copies": 0
+                    }
+                entry = grouped_books[key]
+                if b.rack and not entry["rack"]:
+                    entry["rack"] = b.rack
+                if b.floor and entry["floor"] == "1":
+                    entry["floor"] = b.floor
+                if b.department and not entry["department"]:
+                    entry["department"] = b.department
+                if b.isbn and not entry["isbn"]:
+                    entry["isbn"] = b.isbn
+                if b.description and not entry["description"]:
+                    entry["description"] = b.description
+                c = b.copies if b.copies is not None else 1
+                a = b.available if b.available is not None else c
+                entry["total_copies"] += c
+                entry["available_copies"] += a
+
+            results = []
+            for entry in grouped_books.values():
+                b = entry["primary"]
+                title, author = b.title, b.author
+                subject = entry["department"]
+                call_num = entry["isbn"]
+                loc = entry["rack"]
+                floor = entry["floor"]
+                total_copies = max(1, entry["total_copies"])
+                avail_copies = entry["available_copies"]
+                desc = entry["description"]
+                
                 text_content = f"Title: {title}\nAuthor: {author}\n"
                 if subject: text_content += f"Subject / Department: {subject}\n"
                 if call_num: text_content += f"ISBN / Call Number: {call_num}\n"
@@ -1104,27 +1187,29 @@ class LibraryRAG:
                             b_title = m_title.group(1).strip()
                     
                     if b_title:
-                        live_book = db_sync.query(Book).filter(Book.title.ilike(f"%{b_title}%")).first()
-                        if live_book:
-                            total_c = live_book.copies if live_book.copies is not None else 1
-                            avail_c = live_book.available if live_book.available is not None else total_c
-                            live_rack = live_book.rack or ""
+                        live_books = db_sync.query(Book).filter(Book.title.ilike(f"%{b_title}%")).all()
+                        if live_books:
+                            allocated_book = next((b for b in live_books if b.rack), live_books[0])
+                            total_c = sum((b.copies if b.copies is not None else 1) for b in live_books)
+                            avail_c = sum((b.available if b.available is not None else (b.copies if b.copies is not None else 1)) for b in live_books)
+                            live_rack = allocated_book.rack or ""
+                            live_floor = allocated_book.floor or "1"
                             chunk["text"] = (
-                                f"Title: {live_book.title}\n"
-                                f"Author: {live_book.author}\n"
-                                f"Rack: {live_rack}\n"
-                                f"Floor: {live_book.floor or '1'}\n"
+                                f"Title: {allocated_book.title}\n"
+                                f"Author: {allocated_book.author}\n"
+                                f"Rack: {live_rack or 'N/A'}\n"
+                                f"Floor: {live_floor}\n"
                                 f"Available Copies: {avail_c}\n"
                                 f"Total Copies: {total_c}\n"
                             )
-                            if live_book.department: chunk["text"] += f"Subject / Department: {live_book.department}\n"
-                            if live_book.isbn: chunk["text"] += f"Call Number / ISBN: {live_book.isbn}\n"
-                            if live_book.description: chunk["text"] += f"Description: {live_book.description}\n"
+                            if allocated_book.department: chunk["text"] += f"Subject / Department: {allocated_book.department}\n"
+                            if allocated_book.isbn: chunk["text"] += f"Call Number / ISBN: {allocated_book.isbn}\n"
+                            if allocated_book.description: chunk["text"] += f"Description: {allocated_book.description}\n"
                             chunk["metadata"]["rack"] = live_rack
                             chunk["metadata"]["location"] = live_rack
                             chunk["metadata"]["copies"] = total_c
                             chunk["metadata"]["available"] = avail_c
-                            chunk["metadata"]["floor"] = live_book.floor or "1"
+                            chunk["metadata"]["floor"] = live_floor
                             chunk["metadata"]["source"] = "live_database_synced"
                 db_sync.close()
             except Exception as e:
@@ -1146,10 +1231,23 @@ class LibraryRAG:
                 from datetime import datetime
                 db = SessionLocal()
                 config = db.query(LibraryConfig).first()
+                agent_name = "Sam"
+                college_name = "Anna University"
+                library_name = "Anna University Central Library"
+                opening_hours = "Mon-Fri: 8:00 AM - 8:00 PM, Sat: 9:00 AM - 5:00 PM"
+                library_policies = "Students can borrow up to 3 books for 14 days."
+                additional_details = "Wi-Fi is available across all reading halls."
+                greeting_phrase = "How may I assist you with library books, shelf wayfinding, or campus circulars today?"
+                
                 if config:
-                    library_name = config.library_name or "the University Library"
-                    opening_hours = config.opening_hours or ""
-                    library_policies = config.library_policies or ""
+                    college_name = config.college_name or college_name
+                    library_name = config.library_name or library_name
+                    agent_name = config.agent_name or agent_name
+                    opening_hours = config.opening_hours or opening_hours
+                    library_policies = config.library_policies or library_policies
+                    additional_details = config.additional_details or additional_details
+                    if config.greeting_message:
+                        greeting_phrase = config.greeting_message
                 total_books_count = db.query(Book).count()
                 total_physical_copies = db.query(func.sum(Book.copies)).scalar() or total_books_count
                 
@@ -1223,28 +1321,30 @@ class LibraryRAG:
                 circular_instruction = f"\nTODAY'S ACTIVE CAMPUS CIRCULARS & NOTICES (Valid 24h):\n{active_circulars_text}\n- When students ask about circulars, college events, leave notices, exams, or holidays, answer authoritatively and accurately using these active circulars.\n"
 
             system_prompt = (
-                f"You are Sam, the executive AI Library Assistant for {library_name}. "
+                f"You are {agent_name}, the executive AI Library Assistant for {library_name} at {college_name}. "
                 f"Current Real-Time Clock: {current_time_str} ({time_of_day}). "
-                f"Active Real-Time Greeting: '{appropriate_greeting}'. ALWAYS match the actual current time of day when greeting or responding to greetings. Never use 'Good morning' in the afternoon/evening or 'Good evening' in the morning. "
+                f"Active Real-Time Greeting: '{appropriate_greeting}'. "
                 f"Library Opening Hours: {opening_hours}. "
                 f"Library Policies & Rules: {library_policies}. "
+                f"Facilities & Amenities: {additional_details}. "
                 f"Live Library Collection: {total_books_count} unique book titles with {total_physical_copies} total physical copies. "
                 f"{circular_instruction}"
                 "You MUST answer strictly and accurately based ONLY on the retrieved context records from the live library catalog and campus circular database below. Never guess, fabricate, or assume details. "
                 "\nRESPONSE STYLE & ENTERPRISE STANDARDS:\n"
-                f"- For Greetings / Small Talk (e.g. 'hi', 'hello', 'morning', 'hey'): Greet politely using '{appropriate_greeting}! How may I assist you with library books, shelf wayfinding, or campus circulars today?'.\n"
-                "- Tone: Highly articulate, professional, warm, concise, and helpful.\n"
-                "- For Campus Circulars & Events: Provide the title, event date, category, and summary clearly.\n"
-                "- For Book Inquiries: Clearly present the Title, Author, Rack number, Floor, and Availability (e.g., '2 copies available out of 3'). If there is a brief summary or department, include it concisely.\n"
-                "- If multiple book titles match the query: List them clearly with bullet points showing their respective authors, racks, and availability.\n"
+                "- STRICT ENGLISH-ONLY REQUIREMENT: You must communicate exclusively in ENGLISH. All responses, book metadata, rack designations, floor levels, copy numbers, quantities, dates, times, and directions must be output in clear, natural English words and numerals. Never output Tamil, Hindi, regional words, non-English scripts, or transliterated phonetics under any circumstances.\n"
+                "- NO REPETITIVE GREETINGS: NEVER repeat time-based greetings (like 'Good evening', 'Good morning', 'How may I assist you today?') when answering user questions, book searches, or follow-ups, even if the user starts their sentence with 'hey' or 'hello' or during an ongoing conversation. Answer the inquiry directly and concisely.\n"
+                f"- For Standalone Pure Greetings ONLY (e.g. user says ONLY 'hi', 'hello', 'hey' with no book or query): Respond politely in one clean sentence: '{appropriate_greeting}! {greeting_phrase}'.\n"
+                "- Tone: Executive, concise, professional, warm, natural, and helpful without redundant conversational filler.\n"
+                "- For Book Inquiries: Provide a clean, direct answer stating the Title, Author, Rack location, Floor, and Availability (e.g., 'We have **Harry Potter** by J.K. Rowling located at **Rack C6 (Floor 1)**, with 3 copies available out of 5 total copies.').\n"
+                "- For Campus Circulars & Events: State the title, event date, category, and summary clearly.\n"
+                "- If multiple book titles match the query: List them cleanly with bullet points showing their respective authors, racks, and availability.\n"
                 "- For General Library Inquiries (timings, policies, book counts, membership): Answer authoritatively using the official policies and collection statistics above.\n"
-                "- Speech & TTS Optimization: Speak naturally in complete, clear sentences without using awkward ASCII tables or unpronounceable characters.\n"
+                "- Speech & TTS Optimization: Speak naturally in complete, clear sentences without awkward ASCII symbols or unpronounceable characters.\n"
                 "- Robust Phonetic Tolerance: The user may speak via speech-to-text with minor acoustic transcription variations. Intelligently match titles and authors that sound alike (e.g., 'harry port' -> 'Harry Potter', 'good night moon' -> 'Goodnight Moon').\n"
                 "\nNAVIGATION & WAYFINDING INTENT RULES:\n"
-                "1. BOOK INFORMATION INTENT (Default): When the user asks about a book, availability, author, or subject, provide the book details directly in the response. Do NOT ask for user location or output routing tags.\n"
-                "2. PATH / ROUTING INTENT: When the user explicitly requests navigation, directions, or the physical path to a rack/book (e.g., 'where is it kept', 'how do I reach rack B2', 'show me the path'):\n"
-                "   a) If current user location is unknown, ask politely: 'Where are you currently situated in the library (e.g., Entrance, Floor 1, or near a specific rack)?'.\n"
-                "   b) If current location is known or stated, provide clear walking directions and ALWAYS append the 3D wayfinding tag at the very end of your response: `<ROUTE_FROM:start_TO:destination>` (e.g. `<ROUTE_FROM:entrance_TO:B2>`).\n"
+                "1. BOOK INFORMATION INTENT (Default): When the user asks about a book, availability, author, or subject, provide the book details directly in the response with Title, Author, Rack location, and Availability.\n"
+                "2. PATH / ROUTING INTENT: When the user requests navigation, directions, or the physical path to a rack/book (e.g. 'where is it kept', 'how do I reach rack B2', 'show me the path'):\n"
+                "   Provide clear walking directions starting from the library entrance / kiosk and ALWAYS append the 3D wayfinding tag at the very end of your response: `<ROUTE_FROM:entrance_TO:destination>` (e.g. `<ROUTE_FROM:entrance_TO:B2>`). Do NOT ask the user for their current location.\n"
                 "3. CONVERSATIONAL CONTINUITY: If the user asks follow-up questions (e.g., 'what about its rack?' or 'take me to it'), resolve pronouns to the most recently discussed book in the conversation history.\n"
             )
 
@@ -1309,8 +1409,8 @@ class LibraryRAG:
                         is_answering_location = True
             
             if (is_path_intent or is_answering_location) and not is_general_question:
-                # Only inject route tag if missing and location prompt is NOT being asked
-                if not re.search(r'<ROUTE_', full_output, re.IGNORECASE) and "where are you" not in full_output.lower() and "currently located" not in full_output.lower():
+                # Only inject route tag if missing
+                if not re.search(r'<ROUTE_', full_output, re.IGNORECASE):
                     user_loc = None
                     
                     # 1. Extract rack location from current input
@@ -1355,55 +1455,55 @@ class LibraryRAG:
                                     user_loc = "entrance"
                                     break
                     
-                    if user_loc:
-                        # Extract destination rack
-                        dest_rack = ""
-                        # 1. From current LLM output
-                        rm = re.search(r'(?:Rack|Shelf)\s*([A-Z0-9\-]+)', full_output, re.IGNORECASE)
-                        if rm:
-                            dest_rack = rm.group(1).upper()
-                        
-                        # 2. From user query directly
-                        if not dest_rack:
-                            um = re.search(r'(?:to|at|rack)\s+([A-Z][0-9]+)', user_input, re.IGNORECASE)
-                            if not um: um = re.search(r'\b([A-Z][0-9]+)\b', user_input, re.IGNORECASE)
-                            if um:
-                                dest_rack = um.group(1).upper()
+                    # Default directly to entrance so user is never prompted for location
+                    if not user_loc:
+                        user_loc = "entrance"
+                    
+                    # Extract destination rack
+                    dest_rack = ""
+                    # 1. From current LLM output
+                    rm = re.search(r'(?:Rack|Shelf)\s*([A-Z0-9\-]+)', full_output, re.IGNORECASE)
+                    if rm:
+                        dest_rack = rm.group(1).upper()
+                    
+                    # 2. From user query directly
+                    if not dest_rack:
+                        um = re.search(r'(?:to|at|rack)\s+([A-Z][0-9]+)', user_input, re.IGNORECASE)
+                        if not um: um = re.search(r'\b([A-Z][0-9]+)\b', user_input, re.IGNORECASE)
+                        if um:
+                            dest_rack = um.group(1).upper()
 
-                        # 3. From retrieved top chunks metadata
-                        if not dest_rack and top_chunks:
-                            for chk in top_chunks:
-                                meta = chk.get("metadata", {})
-                                rk = meta.get("rack") or meta.get("location")
-                                if rk:
-                                    rk_str = str(rk).strip()
-                                    loc_m = re.search(r'([A-Z0-9\-]+)', rk_str)
-                                    if loc_m:
-                                        dest_rack = loc_m.group(1).upper()
-                                        break
-                        
-                        # 4. From conversation history
-                        if not dest_rack and history:
-                            for msg in reversed(history):
-                                past_text = msg.get("content", "")
-                                hm = re.search(r'<ROUTE_[^>]+_TO:([^>]+)>', past_text)
-                                if not hm: hm = re.search(r'\*\*Rack:\*\*\s*([A-Z0-9\-]+)', past_text, re.IGNORECASE)
-                                if not hm: hm = re.search(r'(?:Rack|to)\s+([A-Z0-9\-]+)', past_text, re.IGNORECASE)
-                                if hm:
-                                    dest_rack = hm.group(1).upper()
+                    # 3. From retrieved top chunks metadata
+                    if not dest_rack and top_chunks:
+                        for chk in top_chunks:
+                            meta = chk.get("metadata", {})
+                            rk = meta.get("rack") or meta.get("location")
+                            if rk:
+                                rk_str = str(rk).strip()
+                                loc_m = re.search(r'([A-Z0-9\-]+)', rk_str)
+                                if loc_m:
+                                    dest_rack = loc_m.group(1).upper()
                                     break
+                    
+                    # 4. From conversation history
+                    if not dest_rack and history:
+                        for msg in reversed(history):
+                            past_text = msg.get("content", "")
+                            hm = re.search(r'<ROUTE_[^>]+_TO:([^>]+)>', past_text)
+                            if not hm: hm = re.search(r'\*\*Rack:\*\*\s*([A-Z0-9\-]+)', past_text, re.IGNORECASE)
+                            if not hm: hm = re.search(r'(?:Rack|to)\s+([A-Z0-9\-]+)', past_text, re.IGNORECASE)
+                            if hm:
+                                dest_rack = hm.group(1).upper()
+                                break
 
-                        # 5. Floor-to-floor
-                        dest_floor_m = re.search(r'(?:to|towards)\s+floor\s*(\d+)', lower_input)
-                        if dest_floor_m:
-                            dest_rack = f"stairs{dest_floor_m.group(1)}"
+                    # 5. Floor-to-floor
+                    dest_floor_m = re.search(r'(?:to|towards)\s+floor\s*(\d+)', lower_input)
+                    if dest_floor_m:
+                        dest_rack = f"stairs{dest_floor_m.group(1)}"
 
-                        if dest_rack:
-                            print(f"Injecting programmatic route tag: <ROUTE_FROM:{user_loc}_TO:{dest_rack}>")
-                            yield f" <ROUTE_FROM:{user_loc}_TO:{dest_rack}>"
-                    else:
-                        print("User location unknown. Forcing LLM to ask.")
-                        yield " Where are you currently located? (e.g. Entrance, Floor 1, or a specific Rack)"
+                    if dest_rack:
+                        print(f"Injecting programmatic route tag: <ROUTE_FROM:{user_loc}_TO:{dest_rack}>")
+                        yield f" <ROUTE_FROM:{user_loc}_TO:{dest_rack}>"
             
         except Exception as e:
             import traceback

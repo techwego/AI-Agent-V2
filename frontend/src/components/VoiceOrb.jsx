@@ -81,7 +81,7 @@ const VoiceOrb = ({ state = 'IDLE', onClick }) => {
           {/* 3D Animated AI Character Avatar (Lottie 3D Assistant) */}
           <div className="w-36 h-36 sm:w-48 sm:h-48 flex items-center justify-center transform-gpu group-hover:scale-105 transition-transform duration-300 pointer-events-none">
             <dotlottie-player 
-              src="https://lottie.host/5f487827-1593-41da-9e88-be41a8bddc2d/fBYqkdblAg.lottie" 
+              src="/robot_avatar.lottie" 
               background="transparent" 
               speed={animationSpeed} 
               style={{ width: '100%', height: '100%' }} 

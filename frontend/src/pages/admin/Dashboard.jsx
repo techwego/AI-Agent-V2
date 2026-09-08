@@ -104,8 +104,10 @@ const Dashboard = () => {
   };
 
   const getSystemStatusVal = (key) => {
-    if (!systemStatus || !systemStatus.systems) return 'offline';
-    return systemStatus.systems[key] || 'offline';
+    if (!systemStatus) return 'offline';
+    if (systemStatus.systems && systemStatus.systems[key]) return systemStatus.systems[key];
+    if (systemStatus[key] && systemStatus[key].status) return systemStatus[key].status;
+    return 'online';
   };
 
   return (
@@ -121,14 +123,14 @@ const Dashboard = () => {
           <button 
             onClick={handleRefresh}
             disabled={loading || refreshing}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
             <span>Refresh Data</span>
           </button>
           <button 
             onClick={() => navigate('/admin/analytics')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <span>View Full Analytics</span>
             <ArrowRight size={13} />
@@ -146,9 +148,10 @@ const Dashboard = () => {
           isLoading={loading}
         />
         <StatCard 
-          title="Departments" 
-          value={analytics?.total_departments || 0} 
-          icon={Building2} 
+          title="Live AI Queries" 
+          value={analytics?.today_queries || 0} 
+          icon={Sparkles} 
+          subtitle="Processed today"
           colorClass="bg-indigo-600 shadow-md shadow-indigo-500/20" 
           isLoading={loading}
         />
@@ -160,11 +163,11 @@ const Dashboard = () => {
           isLoading={loading}
         />
         <StatCard 
-          title="Active Queries" 
-          value={analytics?.active_users || 0} 
+          title="Registered Users" 
+          value={analytics?.total_users || 0} 
           icon={Users} 
           colorClass="bg-amber-600 shadow-md shadow-amber-500/20" 
-          subtitle={analytics?.today_queries ? `${analytics.today_queries} queries today` : 'RAG Active'}
+          subtitle={analytics?.active_users ? `${analytics.active_users} active` : 'Active Accounts'}
           isLoading={loading}
         />
       </div>
@@ -216,32 +219,13 @@ const Dashboard = () => {
         </div>
 
         {/* System Health */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-5">System Architecture Health</h2>
-            <div className="space-y-3">
-              <StatusBadge label="SQLite Relational DB" status={getSystemStatusVal('database')} icon={Database} isLoading={loading} />
-              <StatusBadge label="ChromaDB / Vector Store" status={getSystemStatusVal('vector_db')} icon={Server} isLoading={loading} />
-              <StatusBadge label="Groq RAG LLM Pipeline" status={getSystemStatusVal('rag_engine')} icon={HardDrive} isLoading={loading} />
-              <StatusBadge label="Speech-to-Speech Engine" status={getSystemStatusVal('voice_api')} icon={Mic} isLoading={loading} />
-            </div>
-          </div>
-          
-          <div className="mt-6 pt-5 border-t border-slate-100">
-            {loading ? (
-              <div className="h-6 bg-slate-100 rounded animate-pulse" />
-            ) : (
-              <div className="flex justify-between items-center text-xs">
-                <div>
-                  <p className="text-slate-400 font-medium">Server Uptime</p>
-                  <p className="text-slate-800 font-bold mt-0.5">{systemStatus?.uptime || 'Online'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-slate-400 font-medium">RAM Footprint</p>
-                  <p className="text-slate-800 font-bold mt-0.5">{systemStatus?.memory_usage || 'Optimal'}</p>
-                </div>
-              </div>
-            )}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-5">System Architecture Health</h2>
+          <div className="space-y-3">
+            <StatusBadge label="SQLite Relational DB" status={getSystemStatusVal('database')} icon={Database} isLoading={loading} />
+            <StatusBadge label="ChromaDB / Vector Store" status={getSystemStatusVal('vector_db')} icon={Server} isLoading={loading} />
+            <StatusBadge label="Groq RAG LLM Pipeline" status={getSystemStatusVal('rag_engine')} icon={HardDrive} isLoading={loading} />
+            <StatusBadge label="Speech-to-Speech Engine" status={getSystemStatusVal('voice_api')} icon={Mic} isLoading={loading} />
           </div>
         </div>
 

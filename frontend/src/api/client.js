@@ -30,6 +30,7 @@ api.interceptors.response.use(
 
 // Auth endpoints
 export const login = (data) => api.post('/auth/login', data);
+export const guestLogin = (guest_id) => api.post('/auth/guest-login', { guest_id });
 export const register = (data) => api.post('/auth/register', data);
 export const getProfile = () => api.get('/auth/profile');
 export const changePassword = (data) => api.put('/auth/change-password', data);
@@ -79,9 +80,10 @@ export const deleteUpload = (id) => api.delete(`/admin/uploads/${id}`);
 export const resetStuckUploads = () => api.post('/admin/uploads/reset-stuck');
 export const deleteAllData = () => api.delete('/admin/uploads/delete-all');
 
-export const getAnalytics = () => api.get('/admin/analytics');
+export const getAnalytics = (params) => api.get('/admin/analytics', { params });
 export const getLogs = () => api.get('/admin/logs');
 export const getChatLogs = () => api.get('/admin/chat-logs');
+export const deleteChatLogs = (before_date) => api.delete('/admin/chat-logs', { data: { before_date } });
 export const getSystemStatus = () => api.get('/admin/system-status');
 export const blockUser = (id) => api.put(`/admin/users/${id}/block`);
 export const unblockUser = (id) => api.put(`/admin/users/${id}/unblock`);
@@ -98,5 +100,19 @@ export const deleteCircular = (id) => api.delete(`/admin/circulars/${id}`);
 export const purgeExpiredCirculars = () => api.post('/admin/circulars/purge-expired');
 export const getActiveCirculars = () => api.get('/circulars/active');
 
-export default api;
+// Guest Visits
+export const getActiveGuests = () => api.get('/guests/active');
+export const getGuestById = (id) => api.get(`/guests/${id}`);
+export const getAdminGuests = () => api.get('/admin/guests');
+export const createGuest = (formData) => api.post('/admin/guests', formData, {
+  headers: { 'Content-Type': 'multipart/form-data' }
+});
+export const updateGuest = (id, formData) => api.put(`/admin/guests/${id}`, formData, {
+  headers: { 'Content-Type': 'multipart/form-data' }
+});
+export const deleteGuest = (id) => api.delete(`/admin/guests/${id}`);
+export const duplicateGuest = (id) => api.post(`/admin/guests/${id}/duplicate`);
+export const toggleGuestStatus = (id) => api.post(`/admin/guests/${id}/toggle`);
+export const toggleGuestCards = () => api.post('/admin/guests/toggle-cards');
 
+export default api;

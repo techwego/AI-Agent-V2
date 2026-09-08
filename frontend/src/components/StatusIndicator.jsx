@@ -1,7 +1,7 @@
 import React from 'react';
 import { Volume2, Loader2, Sparkles, Mic } from 'lucide-react';
 
-const StatusIndicator = ({ state = 'IDLE' }) => {
+const StatusIndicator = ({ state = 'IDLE', agentName = 'AI' }) => {
   return (
     <div className="flex flex-col items-center justify-center h-9 select-none">
       
@@ -15,7 +15,7 @@ const StatusIndicator = ({ state = 'IDLE' }) => {
       {state === 'INTRODUCING' && (
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-xs font-bold text-purple-700 shadow-sm transition-all animate-[fadeInScale_0.2s_ease-out]">
           <Volume2 size={13} className="text-purple-600 animate-pulse" />
-          <span>Sam is introducing...</span>
+          <span>{agentName || 'Assistant'} is introducing...</span>
         </div>
       )}
 
@@ -44,7 +44,7 @@ const StatusIndicator = ({ state = 'IDLE' }) => {
             <span className="w-1 h-3 bg-indigo-600 rounded-full animate-[bounce_0.5s_infinite_0.15s]" />
             <span className="w-1 h-1.5 bg-indigo-500 rounded-full animate-[bounce_0.7s_infinite_0.3s]" />
           </div>
-          <span>Sam is speaking</span>
+          <span>{agentName || 'Assistant'} is speaking</span>
         </div>
       )}
 

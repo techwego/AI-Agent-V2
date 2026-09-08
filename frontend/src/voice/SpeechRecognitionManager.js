@@ -22,7 +22,10 @@ class SpeechRecognitionManager {
     this.maxListeningTimer = null;
 
     this.hasSpoken = false;
-    this.SILENCE_THRESHOLD = 3; // Lowered to 3 for quiet Realtek mics
+    this.speechFrames = 0;
+    this.SILENCE_THRESHOLD = 2.5; // Highly responsive to all voice levels
+    this.PAUSE_SILENCE_DURATION = 800; // 800ms natural conversational pause
+    this.MAX_SILENCE_TIMEOUT = 5000; // 5 seconds of initial idle silence
     this.FFT_SIZE = 512;
 
     // Callbacks
@@ -31,6 +34,8 @@ class SpeechRecognitionManager {
     this.volumeCallback = null;
     this.silenceTimeoutCallback = null;
     this.interimCallback = null;
+    this.speechDetectedCallback = null;
+    this.speechEndedCallback = null;
     this.currentAbortController = null;
   }
 
@@ -39,13 +44,33 @@ class SpeechRecognitionManager {
   onVolumeChange(cb) { this.volumeCallback = cb; }
   onSilenceTimeout(cb) { this.silenceTimeoutCallback = cb; }
   onInterimTranscription(cb) { this.interimCallback = cb; }
+  onSpeechDetected(cb) { this.speechDetectedCallback = cb; }
+  onSpeechEnded(cb) { this.speechEndedCallback = cb; }
   isListening() { return this.listening; }
+
+  async preWarmMic() {
+    try {
+      if (!this.stream || !this.stream.active || !this.stream.getAudioTracks().some(t => t.readyState === 'live')) {
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+      if (!this.audioContext || this.audioContext.state === 'closed') {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = this.FFT_SIZE;
+        this.microphone = this.audioContext.createMediaStreamSource(this.stream);
+        this.microphone.connect(this.analyser);
+      }
+    } catch (e) {
+      // Permission not yet granted, will prompt on first click
+    }
+  }
 
   async startListening() {
     if (this.listening) return;
 
     this.audioChunks = [];
     this.hasSpoken = false;
+    this.speechFrames = 0;
 
     try {
       // Reuse existing stream if still active, otherwise get new one
@@ -53,14 +78,13 @@ class SpeechRecognitionManager {
         if (this.stream) {
           try { this.stream.getTracks().forEach(t => t.stop()); } catch(e){}
         }
-        // Exact v6.0.0 approach: simple { audio: true }
         this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       }
 
       const track = this.stream.getAudioTracks()[0];
-      console.log('[STT] Mic ready:', track.label, '| state:', track.readyState);
+      console.log('[STT] Mic ready:', track?.label, '| state:', track?.readyState);
 
-      // Setup Web Audio API for VAD visualization (passive — does NOT gate recording)
+      // Setup Web Audio API for VAD visualization
       if (!this.audioContext || this.audioContext.state === 'closed') {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this.analyser = this.audioContext.createAnalyser();
@@ -71,7 +95,7 @@ class SpeechRecognitionManager {
         await this.audioContext.resume();
       }
 
-      // Setup MediaRecorder — record directly from hardware stream (v6.0.0 approach)
+      // Setup MediaRecorder
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : undefined;
@@ -85,13 +109,13 @@ class SpeechRecognitionManager {
       };
 
       this.mediaRecorder.onstop = async () => {
-        // Only send to Whisper if speech was actually detected
-        if (this.audioChunks.length > 0 && this.hasSpoken) {
+        // Send to Whisper if speech was detected or multiple audio chunks collected
+        if (this.audioChunks.length > 0 && (this.hasSpoken || this.audioChunks.length >= 3)) {
           const audioBlob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
           console.log(`[STT] MediaRecorder stopped. Size: ${audioBlob.size} bytes, hasSpoken: ${this.hasSpoken}, chunks: ${this.audioChunks.length}`);
           await this.sendForTranscription(audioBlob);
         } else {
-          console.log(`[STT] MediaRecorder stopped. No speech detected (hasSpoken: false). Dropped ${this.audioChunks.length} chunks.`);
+          console.log(`[STT] MediaRecorder stopped. No speech detected. Dropped ${this.audioChunks.length} chunks.`);
           if (this.silenceTimeoutCallback) {
             this.silenceTimeoutCallback();
           }
@@ -100,9 +124,6 @@ class SpeechRecognitionManager {
 
       this.mediaRecorder.start(100); // collect data every 100ms
       this.listening = true;
-
-      // NO Web Speech API — this was the root cause of WASAPI contention on Realtek mics
-      // v6.0.0 never used it, and that version worked perfectly.
 
       this.startSilenceDetection();
 
@@ -129,7 +150,7 @@ class SpeechRecognitionManager {
     let initialSilenceStart = Date.now();
 
     this.checkSilenceInterval = setInterval(() => {
-      if (!this.analyser) return;
+      if (!this.analyser || !this.listening) return;
       this.analyser.getByteFrequencyData(dataArray);
 
       // Calculate max volume
@@ -146,16 +167,28 @@ class SpeechRecognitionManager {
       }
 
       if (maxVolume > this.SILENCE_THRESHOLD) {
-        this.hasSpoken = true;
-        silenceStart = Date.now(); // Reset silence timer
+        this.speechFrames += 1;
+        if (this.speechFrames >= 1) {
+          if (!this.hasSpoken) {
+            this.hasSpoken = true;
+            if (this.speechDetectedCallback) {
+              this.speechDetectedCallback();
+            }
+          }
+          silenceStart = Date.now(); // Reset silence timer
+        }
       } else {
+        this.speechFrames = Math.max(0, this.speechFrames - 1);
         const now = Date.now();
-        // End of speech: 500ms silence after speaking (match v6.0.0)
-        if (this.hasSpoken && (now - silenceStart > 500)) {
+        // End of speech: 800ms natural conversational pause after speaking
+        if (this.hasSpoken && (now - silenceStart > this.PAUSE_SILENCE_DURATION)) {
+          if (this.speechEndedCallback) {
+            this.speechEndedCallback();
+          }
           this.stopListening();
         }
-        // Complete silence: 5 seconds with no speech at all (match v6.0.0)
-        else if (!this.hasSpoken && (now - initialSilenceStart > 5000)) {
+        // Complete silence: 5 seconds with no speech at all
+        else if (!this.hasSpoken && (now - initialSilenceStart > this.MAX_SILENCE_TIMEOUT)) {
           this.stopListening();
         }
       }
@@ -210,6 +243,10 @@ class SpeechRecognitionManager {
     try {
       this.cancelTranscription();
       this.currentAbortController = new AbortController();
+
+      if (this.speechEndedCallback) {
+        this.speechEndedCallback();
+      }
 
       const formData = new FormData();
       formData.append('audio', blob, 'recording.webm');

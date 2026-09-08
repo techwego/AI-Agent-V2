@@ -70,16 +70,22 @@ def ingest_circular_into_rag(circular_id: int, title: str, content: str, categor
         ids = [f"circular_{circular_id}_chunk_{i}" for i in range(len(chunks))]
         
         # FastEmbed embeddings
-        embeddings = list(rag_engine.embedding_model.embed(texts))
+        embedder = getattr(rag_engine, 'embed_model', None) or getattr(rag_engine, 'embedding_model', None)
+        if embedder is None:
+            from fastembed import TextEmbedding
+            embedder = TextEmbedding("BAAI/bge-small-en-v1.5", threads=1)
+            
+        embeddings = list(embedder.embed(texts))
         embeddings = [e.tolist() for e in embeddings]
         
-        rag_engine.collection.upsert(
-            documents=texts,
-            embeddings=embeddings,
-            metadatas=metadatas,
-            ids=ids
-        )
-        print(f"[RAG INGEST] Successfully indexed {len(chunks)} chunks for circular '{title}'")
+        if rag_engine.collection is not None:
+            rag_engine.collection.upsert(
+                documents=texts,
+                embeddings=embeddings,
+                metadatas=metadatas,
+                ids=ids
+            )
+            print(f"[RAG INGEST] Successfully indexed {len(chunks)} chunks for circular '{title}'")
     except Exception as e:
         print(f"[RAG INGEST ERROR] Failed to embed circular: {e}")
 
@@ -91,6 +97,7 @@ async def upload_circular(
     category: str = Form("General"), # Leave, Event, Exam, Notice, Holiday, General
     event_date: Optional[str] = Form(None),
     expire_hours: int = Form(24),
+    custom_expiry_date: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
@@ -119,7 +126,23 @@ async def upload_circular(
         raise HTTPException(status_code=400, detail="Circular content or a readable document file is required.")
         
     now = datetime.utcnow()
-    expires_at = now + timedelta(hours=max(1, expire_hours))
+    
+    # Check if custom expiry date is provided
+    expires_at = None
+    if custom_expiry_date and custom_expiry_date.strip():
+        try:
+            # Try parsing ISO or datetime-local string (YYYY-MM-DDTHH:MM or YYYY-MM-DD)
+            clean_date_str = custom_expiry_date.strip().replace("Z", "")
+            if "T" in clean_date_str:
+                expires_at = datetime.fromisoformat(clean_date_str)
+            else:
+                expires_at = datetime.strptime(clean_date_str, "%Y-%m-%d") + timedelta(hours=23, minutes=59)
+        except Exception as ex:
+            print(f"Warning: Failed to parse custom_expiry_date '{custom_expiry_date}': {ex}")
+            expires_at = now + timedelta(hours=max(1, expire_hours))
+    
+    if not expires_at:
+        expires_at = now + timedelta(hours=max(1, expire_hours))
     
     new_circular = Circular(
         title=title.strip(),

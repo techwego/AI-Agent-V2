@@ -5,22 +5,23 @@ import {
   LogOut, User, Send, Sparkles, Search, Mic, Map, X, MessageSquare, 
   Compass, Navigation, ArrowRight, CornerDownRight, 
   GraduationCap, Volume2, BookOpen, Clock, HelpCircle, Layers, Radio,
-  Megaphone, Bell, Calendar, Tag, ChevronRight
+  Megaphone, Bell, Calendar, Tag, ChevronRight, Shield, ShieldCheck, HeartHandshake
 } from 'lucide-react';
 import LibraryWayfinder from '../components/LibraryWayfinder';
 import InteractiveVideoAvatar from '../components/InteractiveVideoAvatar';
+import RobotLottieAvatar from '../components/RobotLottieAvatar';
 import ChatBubble from '../components/ChatBubble';
 import BookSearch from '../components/BookSearch';
 import AnimatedBackground from '../components/AnimatedBackground';
 import { useToast } from '../components/Toast';
-import { sendChat, getArchitecture, getActiveCirculars } from '../api/client';
+import { sendChat, getArchitecture, getActiveCirculars, getGuestById } from '../api/client';
 
 import stateManager, { State } from '../voice/ConversationStateManager';
 import ttsManager from '../voice/SpeechSynthesisManager';
 import sttManager from '../voice/SpeechRecognitionManager';
 
 const VoiceAssistant = () => {
-  const { user, logoutUser } = useAuth();
+  const { user, logoutUser, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
@@ -48,6 +49,18 @@ const VoiceAssistant = () => {
   const [totalFloors, setTotalFloors] = useState(2);
   const [routeSteps, setRouteSteps] = useState([]);
   const [activeCirculars, setActiveCirculars] = useState([]);
+  const [guestData, setGuestData] = useState(null);
+  const [systemProfile, setSystemProfile] = useState(() => ({
+    agent_name: localStorage.getItem('cached_agent_name') || 'Sam',
+    greeting_message: localStorage.getItem('cached_greeting_message') || 'How can I assist you today?',
+    college_name: localStorage.getItem('cached_college_name') || 'Anna University',
+    library_name: localStorage.getItem('cached_library_name') || 'Anna University Central Library'
+  }));
+  const systemProfileRef = useRef(systemProfile);
+
+  useEffect(() => {
+    systemProfileRef.current = systemProfile;
+  }, [systemProfile]);
   
   const chatMessagesEndRef = useRef(null);
   const voiceMessagesRef = useRef(voiceMessages);
@@ -69,19 +82,47 @@ const VoiceAssistant = () => {
     setSearchParams({ mode });
   }, [setSearchParams]);
 
-  useEffect(() => {
-    const unsubscribe = stateManager.subscribe((newState) => {
-      setConversationState(newState);
-    });
-    
-    // Sync latest voice preset configured by Admin
+  const syncSystemProfile = useCallback(() => {
+    // Read local cache immediately to prevent voice latency
+    const localVoice = localStorage.getItem('cached_voice_preset') || localStorage.getItem('preferred_voice');
+    if (localVoice) {
+      ttsManager.setVoice(localVoice);
+    }
+
     getArchitecture().then(res => {
-      if (res?.data?.voice_preset) {
-        ttsManager.setVoice(res.data.voice_preset);
+      if (res?.data) {
+        if (res.data.voice_preset) {
+          ttsManager.setVoice(res.data.voice_preset);
+        }
+        const profile = {
+          agent_name: res.data.agent_name || 'Sam',
+          greeting_message: res.data.greeting_message || 'How can I assist you today?',
+          college_name: res.data.college_name || 'Anna University',
+          library_name: res.data.library_name || 'Anna University Central Library'
+        };
+        setSystemProfile(profile);
+        systemProfileRef.current = profile;
+        localStorage.setItem('cached_agent_name', profile.agent_name);
+        localStorage.setItem('cached_greeting_message', profile.greeting_message);
+        localStorage.setItem('cached_college_name', profile.college_name);
+        localStorage.setItem('cached_library_name', profile.library_name);
       }
     }).catch(err => {
       console.warn('Could not sync architecture voice preset:', err);
     });
+  }, []);
+
+  useEffect(() => {
+    // Pre-warm Web Speech API and Microphone audio context on mount for zero first-click lag
+    ttsManager.preWarm();
+    sttManager.preWarmMic();
+
+    const unsubscribe = stateManager.subscribe((newState) => {
+      setConversationState(newState);
+    });
+    
+    syncSystemProfile();
+    window.addEventListener('system-settings-change', syncSystemProfile);
 
     // Fetch today's active campus circulars
     getActiveCirculars().then(res => {
@@ -90,26 +131,70 @@ const VoiceAssistant = () => {
       console.warn('Could not load active circulars:', err);
     });
 
-    return unsubscribe;
-  }, []);
+    // Check if entered as a VIP Guest
+    const guestId = searchParams.get('guest_id');
+    if (guestId) {
+      getGuestById(guestId).then(res => {
+        if (res.data) {
+          setGuestData(res.data);
+          const customGreeting = res.data.greeting_message;
+          if (customGreeting && !hasIntroducedRef.current) {
+            hasIntroducedRef.current = true;
+            setVoiceMessages([{ role: 'ai', content: customGreeting, timestamp: Date.now() }]);
+            setChatMessages([{ role: 'assistant', content: customGreeting, timestamp: Date.now() }]);
+            
+            // Allow slight delay for audio context to settle, then speak
+            setTimeout(() => {
+              stateManager.setState(State.SPEAKING);
+              ttsManager.speak(customGreeting, () => {
+                stateManager.setState(State.IDLE);
+              });
+            }, 600);
+          }
+        }
+      }).catch(err => {
+        console.warn('Could not load guest details:', err);
+      });
+    }
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('system-settings-change', syncSystemProfile);
+    };
+  }, [syncSystemProfile, searchParams]);
 
   useEffect(() => {
     chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, voiceMessages, activeTab, interactionMode]);
 
   useEffect(() => {
+    // When user starts speaking actively, keep state in LISTENING
+    sttManager.onSpeechDetected(() => {
+      if (stateManager.getState() !== State.LISTENING) {
+        stateManager.setState(State.LISTENING);
+      }
+    });
+
+    // When user finishes speaking (1200ms silence detected), immediately transition to PROCESSING (Thinking...)
+    sttManager.onSpeechEnded(() => {
+      stateManager.setState(State.PROCESSING);
+    });
+
+    // When TTS starts speaking out loud, transition state to SPEAKING
+    ttsManager.onStartSpeaking(() => {
+      stateManager.setState(State.SPEAKING);
+    });
+
     sttManager.onTranscription((text) => {
       const normalized = (text || '').toLowerCase().trim().replace(/[.,!?]/g, "");
-      const hallucinations = [
-        "thank you", "thanks", "thank you very much", "thank you so much",
-        "thanks for watching", "thank you for watching", "subtitles by", "you"
+      const videoHallucinations = [
+        "thanks for watching", "thank you for watching", "subtitles by", "amara.org", "subscribed", "subscribe"
       ];
 
-      if (text && text.trim() && !hallucinations.includes(normalized)) {
+      if (text && text.trim() && !videoHallucinations.some(h => normalized.includes(h))) {
         handleVoiceInput(text.trim());
       } else {
         stateManager.setState(State.IDLE);
-        // Silently reset — this means the mic captured silence and Whisper hallucinated
       }
     });
 
@@ -142,6 +227,9 @@ const VoiceAssistant = () => {
       sttManager.onError(() => {});
       sttManager.onSilenceTimeout(() => {});
       sttManager.onInterimTranscription(() => {});
+      sttManager.onSpeechDetected(() => {});
+      sttManager.onSpeechEnded(() => {});
+      ttsManager.onStartSpeaking(() => {});
       ttsManager.cancel();
       sttManager.stopListening();
       stateManager.reset();
@@ -216,6 +304,32 @@ const VoiceAssistant = () => {
     }
     
     // 4. Start listening immediately on orb click
+    if (!hasIntroducedRef.current) {
+      hasIntroducedRef.current = true;
+      stateManager.setState(State.INTRODUCING);
+      
+      const hour = new Date().getHours();
+      let greeting = 'Hello';
+      if (hour >= 5 && hour < 12) greeting = 'Good morning';
+      else if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+      else if (hour >= 17 && hour < 22) greeting = 'Good evening';
+      
+      const curProfile = systemProfileRef.current;
+      const introText = `${greeting}! I am ${curProfile.agent_name || 'AI Assistant'}, your AI Library Assistant at ${curProfile.library_name || 'the Central Library'}. ${curProfile.greeting_message || 'Which book or rack are you looking for today?'}`;
+      
+      setVoiceMessages(prev => [...prev, { role: 'ai', content: introText, timestamp: Date.now() }]);
+      
+      ttsManager.speak(introText, () => {
+        // After intro speech completes, transition automatically to LISTENING so user can speak immediately
+        if (stateManager.setState(State.LISTENING)) {
+          setTimeout(() => {
+            sttManager.startListening();
+          }, 350);
+        }
+      });
+      return;
+    }
+    
     startListening();
   }, [handleInterrupt, startListening]);
 
@@ -294,8 +408,21 @@ const VoiceAssistant = () => {
         ttsManager.enqueue(remainingSpeech);
       }
 
+      // Check if user's input expressed parting/closing intent
+      const isPartingIntent = /\b(thank you|thanks|thank you very much|thanks a lot|bye|goodbye|bye bye|end conversation|end chat|close chat|exit|quit|see you|see you later|that is all|that's all)\b/i.test(queryText.trim());
+
       ttsManager.endStream(() => {
-        stateManager.setState(State.IDLE);
+        if (isPartingIntent) {
+          stateManager.setState(State.IDLE);
+          sttManager.stopListening();
+        } else {
+          // Continuous listening mode: automatically start listening for the next user query
+          if (stateManager.setState(State.LISTENING)) {
+            setTimeout(() => {
+              sttManager.startListening();
+            }, 350);
+          }
+        }
       });
 
       // Parse route tag if present
@@ -352,7 +479,8 @@ const VoiceAssistant = () => {
       if (hour < 12) greeting = 'Good morning';
       else if (hour < 17) greeting = 'Good afternoon';
       
-      const welcomeText = `${greeting}! I am Sam, your AI Library Assistant. Which book or rack are you looking for today?`;
+      const curProfile = systemProfileRef.current;
+      const welcomeText = `${greeting}! I am ${curProfile.agent_name || 'AI Assistant'}, your AI Library Assistant at ${curProfile.library_name || 'the Central Library'}. ${curProfile.greeting_message || 'Which book or rack are you looking for today?'}`;
       
       setChatMessages([
         { role: 'user', content: queryText, timestamp: Date.now() },
@@ -385,13 +513,17 @@ const VoiceAssistant = () => {
         fullResponse += chunk;
 
         const displayResponse = fullResponse.replace(/<ROUTE_[^>]*>?/gi, '');
+        const routeMatch = fullResponse.match(/<ROUTE_FROM:(.*?)_TO:(.*?)>/i) || fullResponse.match(/<ROUTE_TO:(.*?)>/i);
+        const destRack = routeMatch ? (routeMatch[2] || routeMatch[1])?.trim() : null;
+
         setChatMessages(prev => {
           const next = [...prev];
           next[next.length - 1] = { 
             role: 'assistant', 
             content: displayResponse, 
             timestamp: Date.now(),
-            hasRoute: /<ROUTE_[^>]*>/i.test(fullResponse)
+            hasRoute: Boolean(routeMatch),
+            routeTarget: destRack
           };
           return next;
         });
@@ -427,6 +559,15 @@ const VoiceAssistant = () => {
     }
   };
 
+  const handleShowDirectRoute = useCallback((destRack) => {
+    if (!destRack) return;
+    const cleanRack = destRack.replace(/[^A-Za-z0-9\-]/g, '').toUpperCase();
+    setRouteFrom('entrance');
+    setRouteTo(cleanRack);
+    setIsMapFullscreen(true);
+    showToast(`Routing from Entrance to Rack ${cleanRack}`, 'info');
+  }, [showToast]);
+
   const handleRackClick = useCallback((rackId) => {
     setRouteTo(rackId);
     showToast(`Destination set to Rack ${rackId}`, 'info');
@@ -449,47 +590,44 @@ const VoiceAssistant = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen text-slate-900 bg-slate-50 overflow-hidden font-sans selection:bg-blue-100 selection:text-blue-900 relative">
-      
-      {/* 3D Knowledge Constellation Background */}
-      <AnimatedBackground />
+    <div className="flex flex-col h-screen text-slate-100 bg-transparent overflow-hidden font-sans selection:bg-blue-600/30 selection:text-white relative">
 
       {/* ========================================================================= */}
-      {/* 1. TOP NAVBAR: Clean & Crisp White & Blue Header */}
+      {/* 1. TOP NAVBAR: Clean & Crisp Dark Glass Header */}
       {/* ========================================================================= */}
-      <header className="bg-white/90 backdrop-blur-2xl border-b border-slate-200/80 px-3 sm:px-6 py-2.5 z-20 shrink-0 shadow-xs">
+      <header className="bg-slate-900/80 backdrop-blur-2xl border-b border-slate-700/60 px-3 sm:px-6 py-2.5 z-20 shrink-0 shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           
           {/* University Brand */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-blue-600/20 text-white ring-2 ring-white shrink-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-blue-600/30 text-white ring-1 ring-white/20 shrink-0">
               <GraduationCap size={18} />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight truncate leading-tight flex items-center gap-1.5">
+              <h1 className="text-xs sm:text-sm font-extrabold text-white tracking-tight truncate leading-tight flex items-center gap-1.5">
                 Anna University
-                <span className="hidden sm:inline text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+                <span className="hidden sm:inline text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800/60 font-semibold">
                   CENTRAL LIBRARY
                 </span>
               </h1>
-              <p className="text-[10px] text-slate-500 font-medium truncate leading-tight">
+              <p className="text-[10px] text-slate-400 font-medium truncate leading-tight">
                 AI Research & 3D Wayfinding Assistant
               </p>
             </div>
-            <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs ml-1 font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-beacon-green" />
+            <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 shadow-xs ml-1 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-beacon-green" />
               ONLINE
             </span>
           </div>
 
           {/* Mode Switcher (Centered & Refined) */}
-          <div className="flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 shadow-xs shrink-0 ring-2 ring-blue-600/5">
+          <div className="flex items-center bg-slate-800/90 p-1 rounded-2xl border border-slate-700/70 shadow-xs shrink-0 ring-1 ring-blue-500/20">
             <button 
               onClick={() => switchMode('voice')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold tab-pill ${
                 interactionMode === 'voice' 
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700/60'
               }`}
             >
               <Mic size={13} /> <span>Voice</span>
@@ -498,8 +636,8 @@ const VoiceAssistant = () => {
               onClick={() => switchMode('chat')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold tab-pill ${
                 interactionMode === 'chat' 
-                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/20' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/30' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700/60'
               }`}
             >
               <MessageSquare size={13} /> <span>Chat</span>
@@ -507,16 +645,29 @@ const VoiceAssistant = () => {
           </div>
 
           {/* User Profile & Logout */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-[11px] font-bold text-slate-700 shadow-xs">
-              <div className="w-5 h-5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center text-[10px] font-mono font-bold">
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Admin Return Button */}
+            {(isAdmin || user?.role === 'admin') && (
+              <button
+                onClick={() => navigate('/admin/dashboard')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-indigo-500/20 hover:from-amber-500/30 hover:to-indigo-500/30 border border-amber-500/40 text-amber-300 hover:text-white text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
+                title="Return to Admin Dashboard"
+              >
+                <Shield size={13} className="text-amber-400" />
+                <span className="hidden sm:inline">Admin Portal</span>
+                <ArrowRight size={12} className="text-amber-400" />
+              </button>
+            )}
+
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/90 border border-slate-700/70 text-[11px] font-bold text-slate-200 shadow-xs">
+              <div className="w-5 h-5 rounded-md bg-blue-950/80 text-blue-400 border border-blue-800/60 flex items-center justify-center text-[10px] font-mono font-bold">
                 {user?.username?.slice(0, 1).toUpperCase() || 'U'}
               </div>
               <span className="hidden sm:inline max-w-[80px] truncate">{user?.username || 'Student'}</span>
             </div>
             <button 
               onClick={handleLogout} 
-              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-95 border border-transparent hover:border-red-200" 
+              className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-950/60 rounded-lg transition-all active:scale-95 border border-transparent hover:border-red-800/60 cursor-pointer" 
               title="Logout"
             >
               <LogOut size={14} />
@@ -535,126 +686,154 @@ const VoiceAssistant = () => {
         {interactionMode === 'voice' && (
           <div className="flex-1 flex flex-col justify-between w-full h-full overflow-y-auto custom-scrollbar animate-page-enter">
             
-            {/* Top Title Banner */}
-            <div className="flex flex-col items-center text-center gap-1 shrink-0 pt-1 pb-2">
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-blue-200/80 text-blue-700 text-[11px] font-bold shadow-xs backdrop-blur-md">
-                <Sparkles size={11} className="text-amber-500" />
-                <span>Sam · AI Library & Campus Intelligence Assistant</span>
+            {/* ════════════════════════════════════════════════════════════════ */}
+            {/* UPPER HALF: Prominent 3D Voice Orb & Interactive Guidance    */}
+            {/* ════════════════════════════════════════════════════════════════ */}
+            <div className="flex-1 flex flex-col items-center justify-center relative min-h-[300px] sm:min-h-[340px] py-1">
+              
+              {/* Single Top Title Banner */}
+              {guestData ? (
+                <div className="flex flex-col items-center text-center gap-1 shrink-0 mb-2 animate-fade-in-scale">
+                  <div className="inline-flex items-center gap-1.5 px-3.5 py-0.5 rounded-full bg-pink-950/80 border border-pink-500/40 text-pink-300 text-[10px] font-bold shadow-md backdrop-blur-md">
+                    <HeartHandshake size={12} className="text-pink-400" />
+                    <span>Distinguished Guest Welcome · {guestData.name}</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-tight">
+                    Welcome to {systemProfile.library_name || 'Central Library'}, {guestData.name}!
+                  </h2>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-center gap-1 shrink-0 mb-2">
+                  <div className="inline-flex items-center gap-1.5 px-3.5 py-0.5 rounded-full bg-slate-900/80 border border-slate-700/80 text-blue-300 text-[10px] font-bold shadow-xs backdrop-blur-md">
+                    <Sparkles size={11} className="text-amber-400" />
+                    <span>{systemProfile.agent_name || 'Sam'} · AI Library & Campus Intelligence Assistant</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-tight">
+                    {systemProfile.greeting_message || 'How can I assist you today?'}
+                  </h2>
+                </div>
+              )}
+
+              {/* Prominent Center Orb Core */}
+              <div className="relative flex items-center justify-center my-auto">
+                <InteractiveVideoAvatar state={conversationState} onClick={handleOrbClick} size={280} />
               </div>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                How can I assist you today?
-              </h2>
-              <p className="text-xs text-slate-500 font-medium max-w-md">
-                Tap the microphone orb to speak, ask for campus circulars, or request 3D shelf directions
-              </p>
+
+              {/* Instructional Flow Guidance */}
+              <div className="flex flex-col items-center text-center gap-1 mt-2 shrink-0">
+                <p className="text-[11px] sm:text-xs text-slate-300 font-medium flex items-center gap-2 bg-slate-900/85 border border-slate-700/80 px-4 py-1.5 rounded-full backdrop-blur-md shadow-md shadow-blue-950/40">
+                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                  <span>Tap orb to start speaking · Tap again to finish & listen</span>
+                </p>
+              </div>
+
             </div>
 
-            {/* Main Widescreen Dual-Wing Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 my-auto items-center">
+            {/* ════════════════════════════════════════════════════════════════ */}
+            {/* LOWER HALF: Full-Height Live Voice Conversation Transcript   */}
+            {/* ════════════════════════════════════════════════════════════════ */}
+            <div className="flex-1 flex flex-col w-full max-w-4xl mx-auto min-h-[220px] sm:min-h-[260px] overflow-hidden py-1">
               
-              {/* Left Wing / Orb Core (6 Cols on desktop) */}
-              <div className="lg:col-span-6 flex flex-col items-center justify-center relative py-2">
-                <InteractiveVideoAvatar state={conversationState} onClick={handleOrbClick} />
-              </div>
-
-              {/* Right Wing / Live Transcripts & Active Circulars (6 Cols on desktop) */}
-              <div className="lg:col-span-6 flex flex-col gap-3 w-full max-h-[380px] lg:max-h-[440px]">
-                
-                {/* Live Conversation Voice Transcript Feed */}
-                <div className="w-full bg-white/95 backdrop-blur-2xl rounded-2xl border border-slate-200/90 shadow-xl shadow-blue-600/5 p-4 flex flex-col flex-1 min-h-[160px] overflow-hidden">
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <Volume2 size={15} className="text-blue-600" />
-                      <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider font-mono">
+              {/* Live Conversation Voice Transcript Feed */}
+              <div className="w-full h-full bg-slate-900/90 backdrop-blur-2xl rounded-3xl border border-slate-700/80 shadow-2xl shadow-blue-950/60 p-4 sm:p-5 flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between pb-3 mb-2 border-b border-slate-800/80 shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                      <Volume2 size={16} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-100 uppercase tracking-wider font-mono block">
                         Live Voice Conversation
                       </span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-mono font-semibold px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100">
-                      {conversationState}
-                    </span>
-                  </div>
-                  
-                  <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                    {voiceMessages.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full py-4 text-slate-400 text-center">
-                        <Mic size={22} className="text-blue-400 mb-1 opacity-70 animate-pulse" />
-                        <p className="text-xs font-medium">Click the orb on the left to start speaking...</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Sam will listen and respond live in real-time.</p>
-                      </div>
-                    ) : (
-                      voiceMessages.map((msg, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`text-xs flex items-start gap-2 ${
-                            msg.role === 'user' ? 'text-blue-700 font-bold' : 'text-slate-800 font-medium'
-                          }`}
-                        >
-                          <span className="text-[10px] uppercase tracking-wider font-mono text-slate-400 shrink-0 select-none mt-0.5 font-bold">
-                            {msg.role === 'user' ? 'You:' : 'Sam:'}
-                          </span>
-                          <div className={`flex-1 break-words rounded-xl px-3 py-1.5 leading-relaxed ${
-                            msg.role === 'user' 
-                              ? 'bg-blue-50/90 border border-blue-100 text-blue-900 font-semibold' 
-                              : 'bg-slate-50/90 border border-slate-100 text-slate-800'
-                          }`}>
-                            {msg.interim && (
-                              <span className="inline-block w-1.5 h-3 mr-1 bg-amber-400 animate-pulse align-middle" />
-                            )}
-                            {msg.content}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                    <div ref={chatMessagesEndRef} />
-                  </div>
-                </div>
-
-                {/* Today's Active Campus Notices & Circulars Mini-Card */}
-                {activeCirculars.length > 0 && (
-                  <div className="w-full bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-white backdrop-blur-xl rounded-2xl border border-blue-200/80 p-3 shadow-xs shrink-0">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5 text-blue-800 font-bold text-xs">
-                        <Megaphone size={14} className="text-blue-600 animate-bounce" />
-                        <span>Today's Campus Circulars ({activeCirculars.length})</span>
-                      </div>
-                      <span className="text-[10px] font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-bold">
-                        24h Live
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        Real-time dual acoustic transcription
                       </span>
                     </div>
-                    <div className="space-y-1.5 max-h-[85px] overflow-y-auto custom-scrollbar pr-1">
-                      {activeCirculars.map((ac) => (
-                        <div key={ac.id} className="text-[11px] bg-white/90 p-2 rounded-xl border border-blue-100/80 flex items-start justify-between gap-2">
-                          <div>
-                            <span className="font-bold text-slate-800">{ac.title}</span>
-                            <p className="text-slate-600 text-[10px] line-clamp-1 mt-0.5">{ac.content}</p>
-                          </div>
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 shrink-0 uppercase font-mono">
-                            {ac.category}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
-                )}
-
+                  <span className="text-[10px] text-blue-300 font-mono font-bold px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 shadow-inner">
+                    {conversationState}
+                  </span>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto space-y-2.5 pr-1.5 custom-scrollbar">
+                  {voiceMessages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full py-6 text-slate-500 text-center">
+                      <Mic size={24} className="text-blue-400 mb-2 opacity-70 animate-pulse" />
+                      <p className="text-xs sm:text-sm font-medium text-slate-400">Click the microphone orb above to speak...</p>
+                      <p className="text-[11px] text-slate-500 mt-1">{systemProfile.agent_name || 'Sam'} will transcribe and respond live in clear English.</p>
+                    </div>
+                  ) : (
+                    voiceMessages.map((msg, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`text-xs sm:text-sm flex items-start gap-2.5 ${
+                          msg.role === 'user' ? 'text-blue-400 font-bold' : 'text-slate-200 font-medium'
+                        }`}
+                      >
+                        <span className="text-[10px] sm:text-[11px] uppercase tracking-wider font-mono text-slate-500 shrink-0 select-none mt-1 font-bold">
+                          {msg.role === 'user' ? 'You:' : `${systemProfile.agent_name || 'Sam'}:`}
+                        </span>
+                        <div className={`flex-1 break-words rounded-2xl px-3.5 py-2 leading-relaxed ${
+                          msg.role === 'user' 
+                            ? 'bg-blue-950/70 border border-blue-800/60 text-blue-200 font-semibold' 
+                            : 'bg-slate-800/80 border border-slate-700/60 text-slate-200'
+                        }`}>
+                          {msg.interim && (
+                            <span className="inline-block w-1.5 h-3.5 mr-1 bg-amber-400 animate-pulse align-middle" />
+                          )}
+                          {msg.content}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  <div ref={chatMessagesEndRef} />
+                </div>
               </div>
 
             </div>
+
+            {/* Today's Active Campus Notices & Circulars Mini-Card */}
+            {activeCirculars.length > 0 && (
+              <div className="w-full max-w-4xl mx-auto bg-slate-900/85 backdrop-blur-xl rounded-2xl border border-slate-700/70 p-2.5 shadow-xs shrink-0">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1.5 text-blue-300 font-bold text-xs">
+                    <Megaphone size={13} className="text-blue-400 animate-bounce" />
+                    <span>Today's Campus Circulars ({activeCirculars.length})</span>
+                  </div>
+                  <span className="text-[9px] font-mono text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-800/60 font-bold">
+                    24h Live
+                  </span>
+                </div>
+                <div className="space-y-1 max-h-[60px] overflow-y-auto custom-scrollbar pr-1">
+                  {activeCirculars.map((ac) => (
+                    <div key={ac.id} className="text-[10px] bg-slate-800/80 p-1.5 rounded-xl border border-slate-700/60 flex items-start justify-between gap-2">
+                      <div>
+                        <span className="font-bold text-slate-200">{ac.title}</span>
+                        <p className="text-slate-400 text-[9px] line-clamp-1 mt-0.5">{ac.content}</p>
+                      </div>
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-400 border border-blue-800/60 shrink-0 uppercase font-mono">
+                        {ac.category || 'NOTICE'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Bottom Action Bar */}
             <div className="flex items-center justify-center flex-wrap gap-3 shrink-0 pt-2 pb-1">
               <button
                 onClick={() => setIsMapFullscreen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/95 hover:bg-blue-50 border border-slate-200/90 hover:border-blue-300 text-xs font-bold text-slate-700 hover:text-blue-700 shadow-xs transition-all active:scale-[0.97] cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 hover:border-blue-500 text-xs font-bold text-slate-200 hover:text-white shadow-xs transition-all active:scale-[0.97] cursor-pointer"
               >
-                <Compass size={15} className="text-blue-600" />
+                <Compass size={15} className="text-blue-400" />
                 <span>3D Campus Wayfinder</span>
               </button>
               <button
                 onClick={() => switchMode('chat')}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/95 hover:bg-indigo-50 border border-slate-200/90 hover:border-indigo-300 text-xs font-bold text-slate-700 hover:text-indigo-700 shadow-xs transition-all active:scale-[0.97] cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 hover:border-indigo-500 text-xs font-bold text-slate-200 hover:text-white shadow-xs transition-all active:scale-[0.97] cursor-pointer"
               >
-                <MessageSquare size={15} className="text-indigo-600" />
+                <MessageSquare size={15} className="text-indigo-400" />
                 <span>Switch to Text Chat</span>
               </button>
             </div>
@@ -664,22 +843,22 @@ const VoiceAssistant = () => {
 
         {/* -------------------- CHAT MODE -------------------- */}
         {interactionMode === 'chat' && (
-          <div className="flex-1 flex flex-col bg-white/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xl shadow-blue-500/5 overflow-hidden animate-page-enter">
+          <div className="flex-1 flex flex-col bg-slate-900/85 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-slate-700/70 shadow-2xl shadow-blue-950/50 overflow-hidden animate-page-enter">
             
             {/* Chat Header Tabs */}
-            <div className="px-3 sm:px-5 py-2.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+            <div className="px-3 sm:px-5 py-2.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
-                <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider font-mono">AI Interactive Chat</span>
+                <div className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-emerald-500/30" />
+                <span className="text-xs font-extrabold text-white uppercase tracking-wider font-mono">AI Interactive Chat</span>
               </div>
 
-              <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200/70 shadow-xs">
+              <div className="flex items-center bg-slate-800/90 p-0.5 rounded-xl border border-slate-700/70 shadow-xs">
                 <button
                   onClick={() => setActiveTab('chat')}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold tab-pill ${
                     activeTab === 'chat' 
-                      ? 'bg-blue-600 text-white shadow-xs' 
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs' 
+                      : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   <MessageSquare size={12} />
@@ -689,8 +868,8 @@ const VoiceAssistant = () => {
                   onClick={() => setActiveTab('search')}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold tab-pill ${
                     activeTab === 'search' 
-                      ? 'bg-indigo-600 text-white shadow-xs' 
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-xs' 
+                      : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   <Search size={12} />
@@ -698,7 +877,7 @@ const VoiceAssistant = () => {
                 </button>
                 <button
                   onClick={() => setIsMapFullscreen(true)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 tab-pill"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white tab-pill"
                 >
                   <Map size={12} />
                   <span>3D Map</span>
@@ -707,25 +886,16 @@ const VoiceAssistant = () => {
             </div>
 
             {/* Chat Body & Viewports */}
-            <div className="flex-1 relative overflow-hidden bg-white">
+            <div className="flex-1 relative overflow-hidden bg-transparent">
               
               {/* Messages View */}
               <div className={`absolute inset-0 flex flex-col ${activeTab !== 'chat' ? 'hidden' : 'flex'}`}>
                 <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3 transform-gpu will-change-scroll flex flex-col custom-scrollbar">
                   {chatMessages.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center opacity-90 animate-[fadeInScale_0.5s_ease-out]">
-                      <dotlottie-player 
-                        src="https://lottie.host/5f487827-1593-41da-9e88-be41a8bddc2d/fBYqkdblAg.lottie" 
-                        background="transparent" 
-                        speed="1" 
-                        style={{ width: '220px', height: '220px' }} 
-                        direction="1" 
-                        playMode="normal" 
-                        loop 
-                        autoplay
-                      ></dotlottie-player>
-                      <h3 className="text-slate-900 font-extrabold text-lg mt-1">How can I help you today?</h3>
-                      <p className="text-slate-500 font-medium text-xs mt-1.5 text-center max-w-[280px] leading-relaxed">
+                      <RobotLottieAvatar className="w-48 h-48 sm:w-56 sm:h-56" />
+                      <h3 className="text-white font-extrabold text-lg mt-1">How can I help you today?</h3>
+                      <p className="text-slate-400 font-medium text-xs mt-1.5 text-center max-w-[280px] leading-relaxed">
                         Ask me for book locations, shelf availability, or 3D campus wayfinding directions.
                       </p>
                     </div>
@@ -737,6 +907,7 @@ const VoiceAssistant = () => {
                         onSpeak={msg.role === 'assistant' ? handleSpeakAgain : undefined}
                         hasRoute={msg.hasRoute}
                         isSpeaking={conversationState === State.SPEAKING || conversationState === State.INTRODUCING}
+                        onShowRoute={handleShowDirectRoute}
                       />
                     ))
                   )}
@@ -744,7 +915,7 @@ const VoiceAssistant = () => {
                 </div>
 
                 {/* Input Bar */}
-                <div className="p-3 border-t border-slate-100 bg-white">
+                <div className="p-3 border-t border-slate-800 bg-slate-950/70">
                   <form onSubmit={handleTextSend} className="flex gap-2">
                     <div className="relative flex-1">
                       <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -754,7 +925,7 @@ const VoiceAssistant = () => {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Ask for books, authors, or directions (e.g. 'Where is AI rack?')..."
-                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-medium"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-850 border border-slate-700/80 rounded-xl text-white text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:bg-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                       />
                     </div>
                     <button
@@ -790,14 +961,14 @@ const VoiceAssistant = () => {
       <div 
         className={`transition-opacity duration-200 ${
           isMapFullscreen 
-            ? 'fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex flex-col opacity-100 pointer-events-auto' 
+            ? 'fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col opacity-100 pointer-events-auto' 
             : 'opacity-0 pointer-events-none absolute -left-[9999px] -top-[9999px] w-1 h-1'
         }`}
       >
-        <div className="flex-1 flex flex-col m-0 sm:m-3 bg-white rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-200">
+        <div className="flex-1 flex flex-col m-0 sm:m-3 bg-slate-900/90 backdrop-blur-2xl rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-700/70">
           
           {/* Wayfinder Header Toolbar */}
-          <div className="px-4 py-3 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 flex items-center justify-between z-30 shrink-0 shadow-xs flex-wrap gap-2">
+          <div className="px-4 py-3 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800 flex items-center justify-between z-30 shrink-0 shadow-xs flex-wrap gap-2">
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs shadow-md shadow-blue-600/20">
                 <Compass className="animate-spin-slow" size={14} />
@@ -805,22 +976,22 @@ const VoiceAssistant = () => {
               </div>
 
               {routeTo && (
-                <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-900 shadow-xs font-mono">
-                  <Navigation size={12} className="text-amber-600" />
+                <div className="flex items-center gap-1.5 bg-amber-950/80 border border-amber-800/60 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-300 shadow-xs font-mono">
+                  <Navigation size={12} className="text-amber-400" />
                   <span>From: {routeFrom || 'Entrance'}</span>
-                  <ArrowRight size={11} className="text-amber-500" />
-                  <span className="font-extrabold text-amber-900">Rack {routeTo}</span>
+                  <ArrowRight size={11} className="text-amber-400" />
+                  <span className="font-extrabold text-amber-200">Rack {routeTo}</span>
                 </div>
               )}
 
               {/* Floor Switcher */}
-              <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 gap-0.5">
+              <div className="flex items-center bg-slate-800/90 p-0.5 rounded-xl border border-slate-700/70 gap-0.5">
                 <button
                   onClick={() => setActiveFloor('both')}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                     activeFloor === 'both' 
                       ? 'bg-blue-600 text-white shadow-xs' 
-                      : 'text-slate-600 hover:text-slate-900'
+                      : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   All Floors
@@ -832,7 +1003,7 @@ const VoiceAssistant = () => {
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                       activeFloor === String(i+1) 
                         ? 'bg-blue-600 text-white shadow-xs' 
-                        : 'text-slate-600 hover:text-slate-900'
+                        : 'text-slate-400 hover:text-white'
                     }`}
                   >
                     Floor {i+1}
@@ -865,7 +1036,7 @@ const VoiceAssistant = () => {
 
               <button
                 onClick={handleCloseFullscreenMap}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-300 bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 transition-colors"
               >
                 <X size={14} /> <span>Close</span>
               </button>
@@ -873,7 +1044,7 @@ const VoiceAssistant = () => {
           </div>
 
           {/* 3D Map Area */}
-          <div className="flex-1 relative overflow-hidden bg-slate-100">
+          <div className="flex-1 relative overflow-hidden bg-slate-950">
             <LibraryWayfinder 
               ref={wayfindRef}
               routeFrom={routeFrom}
@@ -886,14 +1057,14 @@ const VoiceAssistant = () => {
 
             {/* Turn-by-Turn Guidance Overlay */}
             {routeSteps.length > 0 && (
-              <div className="absolute bottom-16 sm:bottom-6 left-3 sm:left-6 max-w-sm bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl p-3.5 shadow-xl z-20 space-y-1.5">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-600 uppercase tracking-wider font-mono">
+              <div className="absolute bottom-16 sm:bottom-6 left-3 sm:left-6 max-w-sm bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3.5 shadow-xl z-20 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-400 uppercase tracking-wider font-mono">
                   <Navigation size={13} /> Route Instructions
                 </div>
-                <div className="space-y-1 max-h-32 overflow-y-auto pr-1 text-slate-700">
+                <div className="space-y-1 max-h-32 overflow-y-auto pr-1 text-slate-200">
                   {routeSteps.map((step, idx) => (
                     <div key={idx} className="flex items-start gap-1.5 text-xs font-medium">
-                      <CornerDownRight size={12} className="text-amber-500 shrink-0 mt-0.5" />
+                      <CornerDownRight size={12} className="text-amber-400 shrink-0 mt-0.5" />
                       <span>{step}</span>
                     </div>
                   ))}
@@ -903,13 +1074,13 @@ const VoiceAssistant = () => {
 
             {/* Quick Ask AI Chat Bar inside the Map */}
             <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-3">
-              <form onSubmit={(e) => handleTextSend(e, fsInput)} className="flex gap-2 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 shadow-xl">
+              <form onSubmit={(e) => handleTextSend(e, fsInput)} className="flex gap-2 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-700/80 shadow-xl">
                 <input
                   type="text"
                   value={fsInput}
                   onChange={(e) => setFsInput(e.target.value)}
-                  placeholder="Ask Sam for directions to any book or rack..."
-                  className="flex-1 bg-transparent px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none font-medium"
+                  placeholder={`Ask ${systemProfile.agent_name || 'Assistant'} for directions to any book or rack...`}
+                  className="flex-1 bg-transparent px-3 py-1.5 text-xs text-slate-100 placeholder-slate-400 focus:outline-none font-medium"
                 />
                 <button
                   type="submit"
@@ -928,16 +1099,16 @@ const VoiceAssistant = () => {
       {/* ========================================================================= */}
       {/* 4. BOTTOM FOOTER */}
       {/* ========================================================================= */}
-      <footer className="bg-white/90 backdrop-blur-md border-t border-slate-200/80 py-1.5 px-4 text-center shrink-0 z-20">
-        <p className="text-[10px] text-slate-500 font-medium font-mono flex items-center justify-center gap-1.5">
+      <footer className="bg-slate-900/80 backdrop-blur-md border-t border-slate-800/80 py-1.5 px-4 text-center shrink-0 z-20">
+        <p className="text-[10px] text-slate-400 font-medium font-mono flex items-center justify-center gap-1.5">
           <span>ANNA UNIVERSITY CENTRAL LIBRARY AI SYSTEM</span>
-          <span className="text-slate-300">|</span>
+          <span className="text-slate-600">|</span>
           <span>POWERED BY</span>
           <a 
-            href="https://techwego.com/" 
+            href="https://techwego.in/" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-700 font-extrabold hover:underline"
+            className="text-blue-400 hover:text-blue-300 font-extrabold hover:underline"
           >
             Techwego
           </a>

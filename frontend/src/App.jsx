@@ -7,6 +7,7 @@ import VoiceAssistant from './pages/VoiceAssistant';
 import Profile from './pages/user/Profile';
 
 import AdminLayout from './components/AdminLayout';
+import AnimatedBackground from './components/AnimatedBackground';
 import Dashboard from './pages/admin/Dashboard';
 import Circulars from './pages/admin/Circulars';
 import Books from './pages/admin/Books';
@@ -17,6 +18,7 @@ import Analytics from './pages/admin/Analytics';
 import Logs from './pages/admin/Logs';
 import Settings from './pages/admin/Settings';
 import Architecture from './pages/admin/Architecture';
+import Guests from './pages/admin/Guests';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -69,57 +71,63 @@ const App = () => {
 
   return (
     <ErrorBoundary>
-    <Router>
-      <Routes>
-        <Route 
-          path="/" 
-          element={
-            !isAuthenticated ? <Navigate to="/login" /> : 
-            isAdmin ? <Navigate to="/admin/dashboard" /> : 
-            <Navigate to="/assistant" />
-          } 
-        />
+      <div className="relative min-h-screen text-slate-900 overflow-x-hidden font-sans selection:bg-blue-100 selection:text-blue-900 bg-transparent">
+        {/* Universal Constellation & Orbital Background for the entire application */}
+        <AnimatedBackground />
         
-        <Route path="/login" element={<LoginPage />} />
-        
-        {/* Keep /voice as an alias that redirects to /assistant for backward compat */}
-        <Route path="/voice" element={
-          <ProtectedRoute>
-            <Navigate to="/assistant?mode=voice" replace />
-          </ProtectedRoute>
-        } />
+        <Router>
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                !isAuthenticated ? <Navigate to="/login" /> : 
+                isAdmin ? <Navigate to="/admin/dashboard" /> : 
+                <Navigate to="/assistant" />
+              } 
+            />
+            
+            <Route path="/login" element={<LoginPage />} />
+            
+            {/* Keep /voice as an alias that redirects to /assistant for backward compat */}
+            <Route path="/voice" element={
+              <ProtectedRoute>
+                <Navigate to="/assistant?mode=voice" replace />
+              </ProtectedRoute>
+            } />
 
-        <Route path="/assistant" element={
-          <ProtectedRoute>
-            <VoiceAssistant />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/profile" element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        } />
+            <Route path="/assistant" element={
+              <ProtectedRoute>
+                <VoiceAssistant />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
 
-        <Route path="/admin" element={
-          <AdminRoute>
-            <AdminLayout />
-          </AdminRoute>
-        }>
-          <Route index element={<Navigate to="dashboard" />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="circulars" element={<Circulars />} />
-          <Route path="books" element={<Books />} />
-          <Route path="upload" element={<Upload />} />
-          <Route path="departments" element={<Departments />} />
-          <Route path="users" element={<Users />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="logs" element={<Logs />} />
-          <Route path="architecture" element={<Architecture />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </Router>
+            <Route path="/admin" element={
+              <AdminRoute>
+                <AdminLayout />
+              </AdminRoute>
+            }>
+              <Route index element={<Navigate to="dashboard" />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="circulars" element={<Circulars />} />
+              <Route path="guests" element={<Guests />} />
+              <Route path="books" element={<Books />} />
+              <Route path="upload" element={<Upload />} />
+              <Route path="departments" element={<Departments />} />
+              <Route path="users" element={<Users />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="logs" element={<Logs />} />
+              <Route path="architecture" element={<Architecture />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
+          </Routes>
+        </Router>
+      </div>
     </ErrorBoundary>
   );
 };

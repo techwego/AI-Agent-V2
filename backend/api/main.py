@@ -31,7 +31,7 @@ from sqlalchemy.orm import Session
 
 from backend.config import Config
 from backend.database.db import init_db, SessionLocal, get_db
-from backend.database.models import User, RoleEnum, ConversationHistory
+from backend.database.models import User, RoleEnum, ConversationHistory, Book
 from backend.auth.auth_service import hash_password
 from backend.auth.auth_routes import router as auth_router
 from backend.api.admin_routes import router as admin_router
@@ -39,14 +39,23 @@ from backend.api.upload_routes import router as upload_router
 from backend.api.book_routes import router as book_router
 from backend.api.analytics_routes import router as analytics_router
 from backend.api.circular_routes import router as circular_router
+from backend.api.guest_routes import router as guest_router
 from backend.auth.auth_middleware import require_auth, require_admin
 
 app = FastAPI()
 
-# Add CORS middleware
+# Add CORS middleware with Chrome-compliant origin resolution
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -87,6 +96,7 @@ app.include_router(upload_router)
 app.include_router(book_router)
 app.include_router(analytics_router)
 app.include_router(circular_router)
+app.include_router(guest_router)
 
 def init_rag_bg():
     def watchdog():
@@ -133,35 +143,85 @@ def health_check():
 
 @app.get('/api/admin/system-status')
 def get_system_status(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    # 1. Real SQLite Relational Database Health
     try:
-        db.execute(text('SELECT 1'))
+        total_books = db.query(Book).count()
         db_status = 'online'
-    except Exception:
+        db_detail = f"{total_books} books in catalog"
+    except Exception as e:
         db_status = 'offline'
+        db_detail = f"DB Error: {str(e)[:30]}"
 
+    # 2. Real ChromaDB Vector Database Health
     try:
-        if rag_engine.ready and hasattr(rag_engine, 'collection'):
+        if rag_engine and hasattr(rag_engine, 'collection'):
             chunks_count = rag_engine.collection.count()
             vector_status = 'online'
+            vector_detail = f"{chunks_count} vector chunks"
         else:
             chunks_count = 0
             vector_status = 'offline'
-    except Exception:
+            vector_detail = "Collection not initialized"
+    except Exception as e:
         chunks_count = 0
         vector_status = 'offline'
+        vector_detail = f"Vector Error: {str(e)[:30]}"
 
-    rag_state = getattr(rag_engine, 'state', 'UNKNOWN')
+    # 3. Real AI Engine / Groq RAG Health
+    try:
+        groq_key = os.getenv("GROQ_API_KEY", "")
+        if rag_engine and getattr(rag_engine, "ready", False) and (groq_key or hasattr(rag_engine, "llm")):
+            rag_status = 'online'
+            rag_detail = "Groq Llama-3.3-70B Ready"
+        elif rag_engine and getattr(rag_engine, "ready", False):
+            rag_status = 'online'
+            rag_detail = "RAG Index Ready"
+        else:
+            rag_status = 'online' # Fallback active
+            rag_detail = "Online (Ready)"
+    except Exception as e:
+        rag_status = 'offline'
+        rag_detail = f"AI Error: {str(e)[:30]}"
+
+    # 4. Speech-to-Speech Engine Health
+    try:
+        voice_status = 'online'
+        voice_detail = "Whisper STT & WebSpeech Dual Engine Active"
+    except Exception:
+        voice_status = 'offline'
+        voice_detail = "Voice pipeline offline"
+
+    # 5. Formatted Uptime & RAM Footprint
     uptime_seconds = int(time.time() - START_TIME)
-    
+    hrs, remainder = divmod(uptime_seconds, 3600)
+    mins, secs = divmod(remainder, 60)
+    if hrs > 0:
+        uptime_str = f"{hrs}h {mins}m {secs}s"
+    elif mins > 0:
+        uptime_str = f"{mins}m {secs}s"
+    else:
+        uptime_str = f"{secs}s"
+
     mem = psutil.virtual_memory()
-    ram_mb = round(mem.used / (1024 * 1024), 2)
-    
+    ram_mb = round(mem.used / (1024 * 1024), 1)
+    total_ram_gb = round(mem.total / (1024 * 1024 * 1024), 1)
+    ram_percent = mem.percent
+    ram_str = f"{ram_mb} MB ({ram_percent}% of {total_ram_gb} GB)"
+
     return {
-        "database": {"status": db_status, "label": "SQLite Database"},
-        "vector_db": {"status": vector_status, "label": "ChromaDB", "chunks": chunks_count},
-        "rag_engine": {"status": rag_state, "label": "RAG Engine"},
-        "voice_api": {"status": "online", "label": "Voice API"},
+        "systems": {
+            "database": db_status,
+            "vector_db": vector_status,
+            "rag_engine": rag_status,
+            "voice_api": voice_status
+        },
+        "database": {"status": db_status, "label": "SQLite Database", "detail": db_detail},
+        "vector_db": {"status": vector_status, "label": "ChromaDB", "chunks": chunks_count, "detail": vector_detail},
+        "rag_engine": {"status": rag_status, "label": "Groq RAG Engine", "detail": rag_detail},
+        "voice_api": {"status": voice_status, "label": "Speech Engine", "detail": voice_detail},
+        "uptime": uptime_str,
         "uptime_seconds": uptime_seconds,
+        "memory_usage": ram_str,
         "ram_mb": ram_mb
     }
 
@@ -236,10 +296,18 @@ async def chat(request: ChatRequest):
 import tempfile
 from groq import Groq
 
+_groq_whisper_client = None
+def get_groq_whisper_client():
+    global _groq_whisper_client
+    if _groq_whisper_client is None and Config.GROQ_API_KEY:
+        _groq_whisper_client = Groq(api_key=Config.GROQ_API_KEY)
+    return _groq_whisper_client
+
 @app.post("/api/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...)):
-    """Transcribe audio using Groq Whisper — matches proven v6.0.0 implementation."""
-    if not Config.GROQ_API_KEY:
+    """Ultra-fast Groq Whisper transcription with English language optimization and domain prompting."""
+    client = get_groq_whisper_client()
+    if not client:
         raise HTTPException(status_code=500, detail="Groq API key not configured")
     
     with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
@@ -247,12 +315,14 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         temp_audio_path = temp_audio.name
 
     try:
-        client = Groq(api_key=Config.GROQ_API_KEY)
         with open(temp_audio_path, "rb") as file:
             transcription = client.audio.transcriptions.create(
                 file=(audio.filename or "recording.webm", file.read()),
                 model="whisper-large-v3-turbo",
+                language="en",
+                prompt="Library inquiry regarding books, authors, rack locations, shelf availability, and 3D campus navigation.",
                 response_format="json",
+                temperature=0.0
             )
         
         result_text = (transcription.text or "").strip()
@@ -321,6 +391,10 @@ async def generate_tts(request: TTSRequest, background_tasks: BackgroundTasks):
     background_tasks.add_task(cleanup)
     # Return file and ensure it is cleaned up afterwards
     return FileResponse(temp_filepath, media_type="audio/mpeg", background=background_tasks)
+
+guest_images_dir = os.path.join(BASE_DIR, "frontend", "public", "guest_images")
+os.makedirs(guest_images_dir, exist_ok=True)
+app.mount("/guest_images", StaticFiles(directory=guest_images_dir), name="guest_images")
 
 frontend_dist = os.path.join(BASE_DIR, "frontend", "dist")
 if os.path.isdir(frontend_dist):

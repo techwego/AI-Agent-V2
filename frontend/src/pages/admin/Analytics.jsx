@@ -23,10 +23,17 @@ const Analytics = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [deleteBeforeDate, setDeleteBeforeDate] = useState('');
+
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const res = await getAnalytics();
+      const params = {};
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+      const res = await getAnalytics(params);
       setAnalytics(res.data);
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
@@ -37,7 +44,22 @@ const Analytics = () => {
 
   useEffect(() => {
     fetchAnalytics();
-  }, []);
+  }, [startDate, endDate]);
+
+  const handleDeleteLogs = async () => {
+    if (!deleteBeforeDate) return;
+    if (!window.confirm(`Are you sure you want to delete all search/chat logs older than ${deleteBeforeDate}? This cannot be undone.`)) return;
+    try {
+      setLoading(true);
+      const { deleteChatLogs } = await import('../../api/client');
+      const res = await deleteChatLogs(deleteBeforeDate);
+      alert(res.data.message);
+      fetchAnalytics();
+    } catch (err) {
+      alert('Failed to delete logs: ' + (err.response?.data?.detail || err.message));
+      setLoading(false);
+    }
+  };
 
   const stats1 = [
     { title: 'Total Books', value: analytics?.total_books || 0, icon: BookOpen, colorClass: { bg: 'bg-blue-50', text: 'text-blue-600' } },
@@ -50,6 +72,29 @@ const Analytics = () => {
     { title: 'Vector Datasets Ingested', value: analytics?.total_uploads || 0, icon: UploadCloud, colorClass: { bg: 'bg-purple-50', text: 'text-purple-600' } },
     { title: 'Active Monthly Researchers', value: analytics?.active_users || 0, icon: UserCheck, colorClass: { bg: 'bg-sky-50', text: 'text-sky-600' } },
   ];
+
+  const handleExportMissingBooksExcel = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/analytics/export-missing-books-excel', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to generate Excel report');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `missing_book_demands_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Error downloading Excel file:', err);
+    }
+  };
 
   const handleExportCSV = () => {
     if (!analytics) return;
@@ -92,9 +137,17 @@ const Analytics = () => {
         </div>
         <div className="flex items-center gap-2.5">
           <button 
+            onClick={handleExportMissingBooksExcel}
+            disabled={loading || !analytics}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
+          >
+            <Download size={13} />
+            <span>Export Missing Books (Excel)</span>
+          </button>
+          <button 
             onClick={handleExportCSV}
             disabled={loading || !analytics}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-xl border border-emerald-200 shadow-sm transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all cursor-pointer"
           >
             <Download size={13} />
             <span>Export CSV</span>
@@ -102,11 +155,51 @@ const Analytics = () => {
           <button 
             onClick={fetchAnalytics}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all cursor-pointer"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             <span>Refresh</span>
           </button>
+        </div>
+      </div>
+
+      {/* Analytics Controls */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filter Dates:</span>
+          <input 
+            type="date" 
+            value={startDate} 
+            onChange={e => setStartDate(e.target.value)}
+            className="border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-700" 
+          />
+          <span className="text-slate-400 text-xs">to</span>
+          <input 
+            type="date" 
+            value={endDate} 
+            onChange={e => setEndDate(e.target.value)}
+            className="border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-700" 
+          />
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-red-500 uppercase tracking-wider">Cleanup Logs:</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">Older than:</span>
+            <input 
+              type="date" 
+              value={deleteBeforeDate} 
+              onChange={e => setDeleteBeforeDate(e.target.value)}
+              className="border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-700" 
+            />
+            <button 
+              onClick={handleDeleteLogs}
+              disabled={!deleteBeforeDate || loading}
+              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold rounded-lg cursor-pointer disabled:opacity-50"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
 
@@ -161,10 +254,20 @@ const Analytics = () => {
         {/* Top Missing Books Card */}
         <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-1">
-              <AlertTriangle size={14} className="text-amber-500" />
-              <span>Missing Book Demands</span>
-            </h3>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <AlertTriangle size={14} className="text-amber-500" />
+                <span>Missing Book Demands</span>
+              </h3>
+              <button
+                onClick={handleExportMissingBooksExcel}
+                className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Export detailed report to Excel"
+              >
+                <Download size={10} />
+                <span>Export Excel</span>
+              </button>
+            </div>
             <p className="text-[11px] text-slate-400 mb-4">Books searched by students that are not currently in the catalog.</p>
             
             {loading ? (
@@ -191,8 +294,8 @@ const Analytics = () => {
             )}
           </div>
 
-          <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-400">
-            Use this data to acquire frequently demanded library resources.
+          <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
+            <span>Use this telemetry for resource acquisition.</span>
           </div>
         </div>
 

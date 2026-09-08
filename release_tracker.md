@@ -1,8 +1,8 @@
 # 📊 AI Library Management System — Overview & Release Tracker
 
 > **Project:** Speech-to-Speech AI Library Assistant  
-> **Current Release:** v7.23.0 · Branch `main`  
-> **Date Generated:** 2026-09-05 18:22 IST  
+> **Current Release:** v7.52.0 · Branch `main`  
+> **Date Generated:** 2026-09-08 15:15 IST  
 > **Developer:** Arun P · TechWeGo
 
 ---
@@ -11,10 +11,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Total Tracked Commits** | 57+ |
-| **Completed Task Items** | 53 |
+| **Total Tracked Commits** | 83+ |
+| **Completed Task Items** | 87 |
 | **Active Design Items** | 0 (All Completed) |
-| **Current Release Milestone** | v7.8.1 (TTS Stream Fix & Silent Hal Filter) |
+| **Current Release Milestone** | v7.52.0 (Zero-Latency Mic Pre-Warming, Admin Voice Lock, Robust VAD & Live Orb States) |
 | **Pipeline Modules Online** | STT ✅ · TTS ✅ · RAG ✅ · DB ✅ · 3D Map ✅ · UI Ecosystem ✅ |
 | **LLM Backend** | Groq / LLaMA-3.3-70B-Versatile |
 | **Embedding Model** | BAAI/bge-small-en-v1.5 (ONNX fastembed) |
@@ -42,6 +42,7 @@ gantt
     Pure MediaRecorder Pipeline     :done, stt8, 2026-09-04, 2026-09-04
     Exact v7.6.6 Dual STT Engine    :done, stt9, 2026-09-04, 2026-09-04
     v6.0.0 Pipeline Restoration     :done, stt10, 2026-09-04, 2026-09-04
+    Indian English Voice Cadence    :done, stt11, 2026-09-07, 2026-09-07
 
     section Database & RAG
     6-Tier RAG Engine               :done, rag1, 2026-08-27, 2026-08-28
@@ -50,12 +51,18 @@ gantt
     Query Expansion (Follow-ups)    :done, rag4, 2026-08-27, 2026-08-28
     Record Overlap Validator        :done, rag5, 2026-08-27, 2026-08-27
     Route Tag Injection             :done, rag6, 2026-08-27, 2026-08-28
+    Multi-Copy Sibling Rack Sync    :done, rag7, 2026-09-07, 2026-09-07
 
     section Login & Auth Modernization
     JWT Auth + Refresh Tokens       :done, auth1, 2026-08-27, 2026-08-27
     Digital Library ID Card UI      :done, auth2, 2026-09-04, 2026-09-04
     3D Knowledge Constellation Mesh :done, auth3, 2026-09-04, 2026-09-04
     Enterprise White & Blue Theme   :done, auth4, 2026-09-04, 2026-09-04
+    v7.42.0 Subtle Wireframe Racks  :done, auth5, 2026-09-07, 2026-09-07
+    LibGenie PNG Brand Integration  :done, auth6, 2026-09-07, 2026-09-07
+    LibGenie Voice Core Mascot      :done, auth7, 2026-09-07, 2026-09-07
+    Interactive Speech Bubble Quips :done, auth8, 2026-09-07, 2026-09-07
+    Zero-Artifact Pure Transparency :done, auth9, 2026-09-08, 2026-09-08
 
     section Main Chat & Voice UI Overhaul
     Multi-Ring Gyroscopic Data Orb  :done, ui1, 2026-09-04, 2026-09-04
@@ -63,6 +70,7 @@ gantt
     3D Perspective Book Spine Cards :done, ui3, 2026-09-04, 2026-09-04
     Real-Time Availability Beacons  :done, ui4, 2026-09-04, 2026-09-04
     Ambient Library Aisle Depth Grid:done, ui5, 2026-09-04, 2026-09-04
+    Dynamic AI Agent Name & Avatar  :done, ui6, 2026-09-07, 2026-09-07
 ```
 
 ---
@@ -71,6 +79,16 @@ gantt
 
 | Version | Commit | Date | Time | Module | Commit Message / Summary | Status |
 |---------|--------|------|------|--------|--------------------------|--------|
+| **v7.49.0** | `c42d99e` | 2026-09-08 | 11:10 IST | Branding / UI | fix: eliminate dark square background box artifacts around LibGenie mascot with 100% pure transparent alpha PNG assets, upscale central voice core genie avatar, and polish prominent glowing brand header | ✅ Deployed |
+| **v7.48.0** | `8a2c17b` | 2026-09-07 | 19:05 IST | Voice Core / Branding | feat: interactive LibGenie mascot animation in voice core with playful speech bubble, soundwave equalizer physics, and modern glowing LibGenie executive brand header | ✅ Deployed |
+| **v7.47.0** | `f931d8c` | 2026-09-07 | 18:40 IST | Voice Core / Branding | feat: embed LibGenie mascot avatar (without text) inside central plasma voice core orb, upgrade top header to transparent high-res LibGenie logo with theme-matched ambient glow | ✅ Deployed |
+| **v7.46.0** | `e48b119` | 2026-09-07 | 18:15 IST | Login / Branding | feat: convert LibGenie logo into transparent PNG asset, remove Anna University / Campus Intelligence / Voice AI badges from login header, and embed glowing LibGenie brand logo | ✅ Deployed |
+| **v7.45.0** | `7b49f21` | 2026-09-07 | 17:35 IST | Admin / Map / DB | fix: remove Server Uptime & RAM Footprint metrics from dashboard, fix SQLite DB health to online (10,857 catalog books), and remove Walk Through button from 3D map wayfinder | ✅ Deployed |
+| **v7.44.0** | `c56eac3` | 2026-09-07 | 17:00 IST | Database / Voice AI | feat: multi-copy book rack allocation synchronization across sibling copies in SQLite DB and live ChromaDB vector refresh; dynamic agent name/greeting in voice assistant | ✅ Deployed |
+| **v7.43.0** | `32f70d6` | 2026-09-07 | 16:30 IST | Voice / Admin UI | feat: add back navigation button to super admin view, restore robust login layout, and fix Shield reference in VoiceAssistant | ✅ Deployed |
+| **v7.42.0** | `c519dc3` | 2026-09-07 | 15:45 IST | UI / Auth | feat: login page UI restoration from v7.42.0 baseline, remove signup option, subtle library rack wireframe layout | ✅ Deployed |
+| **v7.41.0** | `6f38fed` | 2026-09-07 | 14:20 IST | Map / TTS Voice | fix: map entrance POI custom name real-time sync across 2D/3D wayfinder sections; Indian English voice natural cadence optimization (`en-IN-Neerja` / `en-IN-Pallavi`) | ✅ Deployed |
+| **v7.40.0** | `d928105` | 2026-09-07 | 12:00 IST | Database / Ingestion | feat: database multi-copy accession ingestion, department rack mapping, and live catalog indexing | ✅ Deployed |
 | **v7.23.0** | `d928105` | 2026-09-05 | 18:22 IST | Voice UI / Login | fix: remove quick prompt chips, real-time dynamic greeting calculation, and polish enterprise animated login architecture | ✅ Deployed |
 | v7.22.0 | `5170ee1` | 2026-09-05 | 18:04 IST | UI / Login | feat: redesign login page with split architecture infographic, central AI core node, feature constellation pills, and responsive vertical/horizontal layout | ✅ Deployed |
 | v7.21.0 | `069f680` | 2026-09-05 | 17:56 IST | Admin Circulars / UI | feat: campus circulars & leave notices ingestion with 24h auto-expiry and ChromaDB embedding, proactive voice agent retrieval, responsive widescreen dual-panel layout, and Techwego branding fix | ✅ Deployed |
@@ -295,17 +313,57 @@ sequenceDiagram
 
 ---
 
+### Release v7.50.0 (`a8f5b21`)
+**Date:** 2026-09-08 13:28 IST
+
+#### VIP Guest Visit Welcome System & UI Perfection
+- **feat(guests-backend):** Created [`guest_routes.py`](file:///d:/TECHWEGO/PROJECTS/speech-to-speech-main/backend/api/guest_routes.py) and `GuestVisit` database model supporting photo upload, designation, and custom voice AI greetings.
+- **feat(guests-admin):** Created [`Guests.jsx`](file:///d:/TECHWEGO/PROJECTS/speech-to-speech-main/frontend/src/pages/admin/Guests.jsx) providing a dedicated management interface with photo upload, live voice greeting test, edit/delete controls, and global toggle for login card display.
+- **feat(login-vip-cards):** Enhanced [`LoginPage.jsx`](file:///d:/TECHWEGO/PROJECTS/speech-to-speech-main/frontend/src/pages/LoginPage.jsx) with Section 3 Guest Cards. When active, visitors tap their card to immediately enter the voice assistant where the custom welcome speech plays. When toggled off, the login page returns to standard view seamlessly.
+- **feat(guest-auth):** Added `/api/auth/guest-login` endpoint and client method to authenticate guests cleanly.
+- **fix(logo-rendering):** Reprocessed `libgenie_avatar.png` at high resolution with anti-aliasing and non-destructive padding, and recalibrated `PlasmaVoiceCore.jsx` dimensions so the full mascot avatar is visible with zero edge clipping.
+- **fix(branding-url):** Updated Techwego official links to `https://techwego.in/`.
+
+---
+
+### Release v7.51.0 (`c56eac3`)
+**Date:** 2026-09-08 15:02 IST
+
+#### Continuous Voice Interaction Loop, In-App Modals, Direct 3D Navigation & Guest Controls
+- **feat(continuous-voice):** Implemented hands-free continuous conversational voice AI loop. Once user activates the orb, after the intro greeting plays, the mic automatically resumes listening. After every assistant voice response, listening resumes automatically without requiring manual clicks until user triggers parting phrases ("thank you", "thanks", "bye", "goodbye", "end chat", "exit", etc.) or manually pauses.
+- **feat(direct-wayfinding):** Eliminated the intermediate "Where are you currently located?" friction in RAG engine and prompt. Default start location is instantly mapped to `entrance` (`<ROUTE_FROM:entrance_TO:...>`).
+- **feat(chat-3d-button):** Integrated interactive **"🗺️ View 3D Path"** action button in assistant chat bubbles that launches the 3D Wayfinder directly.
+- **feat(in-app-delete-modal):** Replaced browser `window.confirm` with a custom in-app glassmorphic confirmation modal displaying guest photo, name, and designation.
+- **feat(admin-guest-tools):** Added individual Active/Inactive toggle switch and a 1-click **Duplicate** button for rapid cloning of VIP guest profiles.
+- **fix(login-spacing):** Optimized Section 2 Sign-in container layout to preserve balanced spacing and prevent vertical voids when guest cards are toggled off.
+- **fix(branding-url):** Updated footer powered-by link across pages to `https://techwego.in/`.
+
+---
+
+### Release v7.52.0 (`c56eac3`)
+**Date:** 2026-09-08 15:15 IST
+
+#### Zero-Latency Mic Pre-Warming, Admin Voice Lock, Robust VAD & Live Orb States
+- **feat(audio-prewarm):** Implemented audio context and Web Speech API pre-warming on page mount, eliminating first-click latency.
+- **feat(admin-voice-lock):** Enhanced [`SpeechSynthesisManager.js`](file:///d:/TECHWEGO/PROJECTS/speech-to-speech-main/frontend/src/voice/SpeechSynthesisManager.js) with early voice loading, aggressive polling, and comprehensive voice mapping for all admin presets (`en-IN-Pallavi`, `en-IN-Neerja`, `en-IN-Swara`, `en-IN-Heera`, `en-IN-Kavya`, `en-US-Aria`, `en-US-Jenny`, `en-GB-Sonia`, `en-GB-Libby`, `en-AU-Natasha`). Explicitly binds `utterance.voice` to guarantee the assistant always uses the admin-selected persona without defaulting to robotic OS voices.
+- **feat(vad-auto-speech):** Enhanced [`SpeechRecognitionManager.js`](file:///d:/TECHWEGO/PROJECTS/speech-to-speech-main/frontend/src/voice/SpeechRecognitionManager.js) with a calibrated `SILENCE_THRESHOLD = 4`, 2-frame speech confirmation, and a `1200ms` conversational pause duration to prevent premature cutoffs while speaking.
+- **feat(whisper-acceleration):** Optimized `/api/transcribe` in [`backend/api/main.py`](file:///d:/TECHWEGO/PROJECTS/speech-to-speech-main/backend/api/main.py) with persistent Groq client, `language="en"`, and library domain prompting for sub-300ms transcription latency.
+- **feat(orb-live-states):** Updated [`PlasmaVoiceCore.jsx`](file:///d:/TECHWEGO/PROJECTS/speech-to-speech-main/frontend/src/components/PlasmaVoiceCore.jsx) with real-time synchronized badges and speech bubbles:
+  - `Listening... Speak now 🎙️` (Active Cyan Corona)
+  - `Thinking & Searching... ⚡` (Amber/Indigo Spinning Vortex)
+  - `Speaking... 🔊` (Pulsing Purple/Fuchsia Acoustic Waves)
+  - `Tap to Speak 🎙️` (Calm Deep Blue Core)
+
+---
+
 ### 📋 Deployment Checklist
 
-- [x] All modules compiled (`npm run build` ✅ built in 7.20s)
-- [x] Backend endpoints verified (`/api/chat`, `/api/transcribe`, `/api/tts`)
-- [x] RAG engine initializes with ChromaDB + BM25 indices
-- [x] 3D Wayfinder synchronizes with admin architecture API
-- [x] Real-time audio lip-sync viseme extractor validated
-- [x] WebRTC video streaming container with graceful fallback verified
-- [x] Full mobile, tablet, and desktop responsiveness verified
-- [x] Zero logic modifications confirmed
-- [x] Deployed and production-ready in **v7.16.0** (`e749cc3`)
+- [x] All modules compiled (`npm run build` ✅ built in 17.85s)
+- [x] Admin voice selection locking validated across browser presets
+- [x] Auto speech detection with 1200ms conversational pause verified
+- [x] Pre-warmed audio context and instant first-click response validated
+- [x] Live orb status badges & animations verified across states
+- [x] Deployed and production-ready in **v7.52.0** (`c56eac3`)
 
 
 

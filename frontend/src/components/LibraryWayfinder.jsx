@@ -237,15 +237,16 @@ function buildDynamicGraph(config) {
           if (poi.offset === 'front') pz = pz < 0 ? pz + 3 : pz - 3;
           if (poi.offset === 'back') pz = pz < 0 ? pz - 3 : pz + 3;
 
-          const poiId = poi.type + '_' + index;
-          addNode(poiId, px, anchor.y, pz, poi.type === 'entrance' ? 'Entrance' : 'Stairs Floor ' + poi.floor, poi.type, poi.floor);
+          const poiId = poi.id || (poi.type + '_' + index);
+          const poiLabel = poi.name || (poi.type === 'entrance' ? 'Entrance' : 'Stairs Floor ' + poi.floor);
+          addNode(poiId, px, anchor.y, pz, poiLabel, poi.type, poi.floor);
           
           addEdge(poiId, anchor.aisleId);
 
           if (poi.type === 'stairs' && poi.connectsToFloor) {
               const destY = floorHeights[poi.connectsToFloor - 1];
               const destId = poiId + '_dest';
-              addNode(destId, px, destY, pz, 'Stairs Floor ' + poi.connectsToFloor, 'stairs', poi.connectsToFloor);
+              addNode(destId, px, destY, pz, poi.name ? poi.name + ' (Floor ' + poi.connectsToFloor + ')' : 'Stairs Floor ' + poi.connectsToFloor, 'stairs', poi.connectsToFloor);
               addEdge(poiId, destId, 9);
               
               const destFloorAisles = Object.keys(nodes).filter(k => nodes[k].floor === poi.connectsToFloor && nodes[k].type === 'corridor');
@@ -286,8 +287,8 @@ function generateDirections(path, nodes) {
   const endNode = nodes[path[path.length - 1]];
   
   let startLabel = startNode.label || 'your location';
-  if (startNode.type === 'stairs') startLabel = `Stairs on Floor ${startNode.floor}`;
-  if (startNode.type === 'entrance') startLabel = `the Entrance`;
+  if (startNode.type === 'stairs') startLabel = startNode.label ? startNode.label : `Stairs on Floor ${startNode.floor}`;
+  if (startNode.type === 'entrance') startLabel = startNode.label ? `the ${startNode.label}` : `the Entrance`;
   
   steps.push(`Start from ${startLabel}.`);
   
@@ -551,7 +552,19 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
           }
         })
         .catch(err => {
-          console.error("Failed to fetch layout config via API client", err);
+          console.error("Failed to fetch layout config via API client, using default fallback layout:", err);
+          const fallbackCfg = {
+            floors: 2,
+            rows_per_floor: 2,
+            cols_per_row: 6,
+            shelves_per_rack: 4,
+            pois: [],
+            custom_racks: {},
+            custom_layout: {}
+          };
+          setConfig(fallbackCfg);
+          setGraphData(buildDynamicGraph(fallbackCfg));
+          if (onConfigLoaded) onConfigLoaded(fallbackCfg);
         });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1175,7 +1188,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
                );
                cone.position.y = 0.55;
                pinGroup.add(cone);
-               const pinLabel = makeLabel('ENTRANCE', { bg: '#111a2e', fg: '#eae6da', scale: 0.65 });
+               const entranceText = (n.label || 'ENTRANCE').toUpperCase();
+               const pinLabel = makeLabel(entranceText, { bg: '#111a2e', fg: '#eae6da', scale: 0.65 });
                pinLabel.position.y = 1.5;
                pinGroup.add(pinLabel);
                pinGroup.position.set(n.x, n.y, n.z);
@@ -1193,7 +1207,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
                }
                stairGroup.position.set(n.x, n.y, n.z);
                scene.add(stairGroup);
-               const stairLabel = makeLabel('STAIRS', { bg: '#111a2e', fg: '#eae6da', scale: 0.6 });
+               const stairsText = (n.label || 'STAIRS').toUpperCase();
+               const stairLabel = makeLabel(stairsText, { bg: '#111a2e', fg: '#eae6da', scale: 0.6 });
                stairLabel.position.set(n.x, n.y + totalStairHeight + 1, n.z);
                scene.add(stairLabel);
            }
@@ -1425,17 +1440,6 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
   return (
     <div className="w-full h-full rounded-xl overflow-hidden relative" style={{ touchAction: 'none', minHeight: '300px' }}>
       <div ref={mountRef} className="w-full h-full" style={{ cursor: cameraMode === 'walk' ? 'crosshair' : 'grab' }} />
-      
-      {routeInfo && (
-        <div className="absolute top-3 left-3 z-20">
-          <button
-            onClick={() => handleSetCameraMode(cameraMode === 'orbit' ? 'walk' : 'orbit')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-black/60 backdrop-blur-md border border-white/15 text-white hover:bg-white/10 transition-all shadow-lg"
-          >
-            {cameraMode === 'orbit' ? '🚶 Walk Through' : '🔭 Overview'}
-          </button>
-        </div>
-      )}
       
       {routeInfo && (
         <div className="absolute bottom-3 left-3 z-20 bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-3 py-2 text-xs text-gray-200 shadow-lg">

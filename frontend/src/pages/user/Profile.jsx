@@ -9,9 +9,7 @@ const Profile = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 p-4 sm:p-8 flex flex-col items-center justify-start relative overflow-hidden font-sans selection:bg-blue-100 selection:text-blue-900">
-      {/* 3D Animated Background */}
-      <AnimatedBackground />
+    <div className="min-h-screen bg-transparent text-slate-900 p-4 sm:p-8 flex flex-col items-center justify-start relative overflow-hidden font-sans selection:bg-blue-100 selection:text-blue-900">
 
       <div className="w-full max-w-md mb-4 flex items-center justify-between relative z-10">
         <button

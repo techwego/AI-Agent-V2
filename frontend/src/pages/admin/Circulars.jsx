@@ -17,6 +17,7 @@ const Circulars = () => {
   const [category, setCategory] = useState('Leave');
   const [eventDate, setEventDate] = useState('');
   const [expireHours, setExpireHours] = useState(24);
+  const [customExpiryDate, setCustomExpiryDate] = useState('');
   const [content, setContent] = useState('');
   const [file, setFile] = useState(null);
 
@@ -54,7 +55,19 @@ const Circulars = () => {
     formData.append('title', title.trim());
     formData.append('category', category);
     formData.append('event_date', eventDate || new Date().toISOString().split('T')[0]);
-    formData.append('expire_hours', expireHours);
+    
+    if (expireHours === -1) {
+      if (!customExpiryDate) {
+        showToast('Please select a custom auto-delete date & time', 'error');
+        setSubmitting(false);
+        return;
+      }
+      formData.append('expire_hours', 24);
+      formData.append('custom_expiry_date', customExpiryDate);
+    } else {
+      formData.append('expire_hours', expireHours);
+    }
+
     if (content.trim()) formData.append('content', content.trim());
     if (file) formData.append('file', file);
 
@@ -64,6 +77,7 @@ const Circulars = () => {
       setTitle('');
       setContent('');
       setEventDate('');
+      setCustomExpiryDate('');
       setFile(null);
       fetchCirculars();
     } catch (err) {
@@ -122,7 +136,7 @@ const Circulars = () => {
             </span>
             <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-200 flex items-center gap-1.5">
               <Timer size={13} className="text-amber-600" />
-              <span>24-Hour Auto-Expiry</span>
+              <span>Auto-Expiry & Vector Ingestion</span>
             </span>
           </div>
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -136,14 +150,14 @@ const Circulars = () => {
         <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={fetchCirculars}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs transition-colors flex items-center gap-2 shadow-xs"
+            className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             <span>Refresh</span>
           </button>
           <button
             onClick={handlePurge}
-            className="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-semibold text-xs transition-colors flex items-center gap-2 shadow-xs"
+            className="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-semibold text-xs transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
           >
             <Trash2 size={14} />
             <span>Purge Expired</span>
@@ -178,7 +192,7 @@ const Circulars = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Tomorrow College Leave Announcement / Annual Tech Symposium"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium"
               />
             </div>
 
@@ -191,7 +205,7 @@ const Circulars = () => {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-semibold bg-white"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-semibold"
                 >
                   <option value="Leave">Leave / Holiday</option>
                   <option value="Event">Campus Event</option>
@@ -207,16 +221,34 @@ const Circulars = () => {
                 <select
                   value={expireHours}
                   onChange={(e) => setExpireHours(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-semibold bg-white"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-semibold"
                 >
                   <option value={12}>12 Hours</option>
                   <option value={24}>24 Hours (Default)</option>
                   <option value={48}>48 Hours (2 Days)</option>
                   <option value={72}>72 Hours (3 Days)</option>
                   <option value={168}>7 Days</option>
+                  <option value={-1}>Custom Date & Time</option>
                 </select>
               </div>
             </div>
+
+            {/* Custom Expiry Date/Time Picker */}
+            {expireHours === -1 && (
+              <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-1">
+                <label className="block text-xs font-bold text-amber-900">
+                  Custom Auto-Delete Date & Time <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={customExpiryDate}
+                  onChange={(e) => setCustomExpiryDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-amber-300 bg-white text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                />
+                <p className="text-[10px] text-amber-700">The circular will automatically deactivate and purge from vector memory at this time.</p>
+              </div>
+            )}
 
             {/* Event Date */}
             <div>
@@ -227,8 +259,8 @@ const Circulars = () => {
                 type="text"
                 value={eventDate}
                 onChange={(e) => setEventDate(e.target.value)}
-                placeholder="e.g. Tomorrow (6th Sept) or 2026-09-06"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium"
+                placeholder="e.g. Tomorrow (8th Sept) or 2026-09-08"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium"
               />
             </div>
 
@@ -242,7 +274,7 @@ const Circulars = () => {
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Enter circular announcement text, timing details, affected departments, or instructions..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium resize-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium resize-none"
               />
             </div>
 

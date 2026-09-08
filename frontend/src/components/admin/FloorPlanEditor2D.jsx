@@ -467,13 +467,18 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
       setTimeout(() => setSidebarSaved(false), 2500);
     } else if (selectedType === 'poi' && selectedId) {
       const cleanName = tempRackName.trim() || 'POI';
-      setConfig(prev => ({
-        ...prev,
-        custom_layout: {
-          ...prev.custom_layout,
-          pois: (prev.custom_layout.pois || []).map(p => p.id === selectedId ? { ...p, name: cleanName } : p)
-        }
-      }));
+      setConfig(prev => {
+        const nextCustomPois = (prev.custom_layout?.pois || []).map(p => p.id === selectedId ? { ...p, name: cleanName } : p);
+        const nextTopPois = (prev.pois || []).map(p => p.id === selectedId ? { ...p, name: cleanName } : p);
+        return {
+          ...prev,
+          pois: nextTopPois,
+          custom_layout: {
+            ...(prev.custom_layout || {}),
+            pois: nextCustomPois
+          }
+        };
+      });
       setSidebarSaved(true);
       setTimeout(() => setSidebarSaved(false), 2500);
     }
@@ -1245,9 +1250,9 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
           </button>
           <button
             onClick={handleSaveAndReturn}
-            className="px-6 py-3 rounded-2xl text-xs font-extrabold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 shadow-2xl shadow-emerald-600/30 ring-4 ring-emerald-500/20 transition-all active:scale-95 flex items-center gap-2"
+            className="px-6 py-3 rounded-2xl text-xs font-extrabold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 shadow-2xl shadow-emerald-600/30 ring-4 ring-emerald-500/20 transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
           >
-            <Save size={16} /> <span>💾 Save Blueprint & Apply to 3D Map</span>
+            <Save size={16} /> <span>Save Blueprint & Apply to 3D Map</span>
           </button>
         </div>
 

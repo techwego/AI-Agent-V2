@@ -39,3 +39,20 @@ def require_admin(current_user: User = Depends(get_current_user)):
             detail="The user doesn't have enough privileges"
         )
     return current_user
+
+oauth2_optional_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
+
+def get_optional_current_user(token: str = Depends(oauth2_optional_scheme), db: Session = Depends(get_db)):
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+        user = db.query(User).filter(User.username == username).first()
+        if user and user.is_active:
+            return user
+        return None
+    except JWTError:
+        return None

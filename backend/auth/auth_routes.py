@@ -6,9 +6,9 @@ from pydantic import BaseModel
 from typing import Optional
 
 from backend.database.db import get_db
-from backend.database.models import User, LoginHistory, RoleEnum
+from backend.database.models import User, LoginHistory, RoleEnum, GuestVisit
 from backend.auth.auth_service import hash_password, verify_password, create_access_token, create_refresh_token
-from backend.auth.auth_middleware import get_current_user, require_admin, require_auth
+from backend.auth.auth_middleware import get_current_user, require_admin, require_auth, get_optional_current_user
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -68,12 +68,37 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
         }
     }
 
+class GuestLoginRequest(BaseModel):
+    guest_id: int
+
+@router.post("/guest-login")
+def guest_login(req: GuestLoginRequest, db: Session = Depends(get_db)):
+    guest = db.query(GuestVisit).filter(GuestVisit.id == req.guest_id, GuestVisit.is_active == True).first()
+    if not guest:
+        raise HTTPException(status_code=404, detail="Guest profile not found or inactive")
+    
+    access_token = create_access_token(data={"sub": f"guest_{guest.id}", "role": "user"})
+    refresh_token = create_refresh_token(data={"sub": f"guest_{guest.id}"})
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": {
+            "id": guest.id,
+            "username": guest.name,
+            "role": "user",
+            "is_guest": True,
+            "guest_id": guest.id
+        }
+    }
+
 @router.post("/register")
-def register(user_data: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Only admins can create other admins, users can be created by anyone? Wait, prompt says: "admin only can create other admins"
+def register(user_data: UserCreate, db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
+    # Only admins can create other admins; public users can register as student ("user")
     if user_data.role == "admin":
-        if current_user.role.value != "admin":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can create other admins")
+        if not current_user or current_user.role.value != "admin":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can create other admin accounts")
     
     db_user = db.query(User).filter(User.username == user_data.username).first()
     if db_user:
@@ -87,7 +112,16 @@ def register(user_data: UserCreate, db: Session = Depends(get_db), current_user:
     )
     db.add(new_user)
     db.commit()
-    return {"message": "User registered successfully"}
+    db.refresh(new_user)
+    return {
+        "message": "User registered successfully",
+        "user": {
+            "id": new_user.id,
+            "username": new_user.username,
+            "role": new_user.role.value,
+            "email": new_user.email
+        }
+    }
 
 @router.post("/logout")
 def logout(current_user: User = Depends(require_auth)):

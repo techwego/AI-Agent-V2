@@ -117,20 +117,71 @@ def update_book(
                 value = value.upper()
         setattr(book, key, value)
         
+    # Sibling copy synchronization: propagate rack, floor, and department to all sibling copies of same title & author
+    if ("rack" in update_data or "floor" in update_data or "department" in update_data) and book.title:
+        siblings = db.query(Book).filter(
+            Book.title == book.title,
+            Book.author == book.author,
+            Book.id != book.id
+        ).all()
+        for sib in siblings:
+            if "rack" in update_data:
+                sib.rack = book.rack
+            if "floor" in update_data:
+                sib.floor = book.floor
+            if "department" in update_data:
+                sib.department = book.department
+        
     db.commit()
     db.refresh(book)
     
     db.add(AdminLog(
         admin_id=current_user.id, 
         action="UPDATE_BOOK", 
-        details=f"Updated Book ID: {book.id}, Title: {book.title}"
+        details=f"Updated Book ID: {book.id}, Title: {book.title}, Rack: {book.rack}"
     ))
     db.commit()
     
-    # Trigger RAG Engine rebuild
+    # Trigger RAG Engine rebuild and ChromaDB update
     try:
         from backend.api.main import rag_engine
-        rag_engine._build_or_load_sqlite_index()
+        if rag_engine:
+            if rag_engine.collection is not None and book.title:
+                total_c = db.query(Book).filter(Book.title == book.title, Book.author == book.author).count() or 1
+                book_text = (
+                    f"Title: {book.title}\n"
+                    f"Author: {book.author}\n"
+                    f"Rack: {book.rack or 'N/A'}\n"
+                    f"Floor: {book.floor or '1'}\n"
+                    f"Available Copies: {book.available or 1}\n"
+                    f"Total Copies: {total_c}\n"
+                )
+                if book.department: book_text += f"Subject / Department: {book.department}\n"
+                if book.isbn: book_text += f"ISBN / Call Number: {book.isbn}\n"
+                if book.description: book_text += f"Description: {book.description}\n"
+                
+                embedder = getattr(rag_engine, 'embed_model', None) or getattr(rag_engine, 'embedding_model', None)
+                if embedder is None:
+                    from fastembed import TextEmbedding
+                    embedder = TextEmbedding("BAAI/bge-small-en-v1.5", threads=1)
+                emb = list(embedder.embed([book_text]))[0].tolist()
+                rag_engine.collection.upsert(
+                    documents=[book_text],
+                    embeddings=[emb],
+                    metadatas=[{
+                        "source": "Library Books Catalog",
+                        "title": book.title,
+                        "author": book.author or "",
+                        "rack": book.rack or "",
+                        "location": book.rack or "",
+                        "floor": book.floor or "1",
+                        "copies": total_c,
+                        "available": book.available or 1,
+                        "document_type": "book"
+                    }],
+                    ids=[f"book_{book.id}"]
+                )
+            rag_engine._build_or_load_sqlite_index()
     except Exception as e:
         print(f"Failed to update RAG engine for book update: {e}")
 

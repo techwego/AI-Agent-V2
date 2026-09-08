@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
@@ -108,7 +108,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User 
 
 # Analytics and Logs moved to analytics_routes.py
 
-# --- Library Architecture Configuration ---
+# --- Library Architecture & System Profile Configuration ---
 class LibraryConfigUpdate(BaseModel):
     floors: int
     rows_per_floor: int
@@ -118,24 +118,89 @@ class LibraryConfigUpdate(BaseModel):
     custom_racks: dict = {}
     custom_layout: dict = {}
     
-    # Optional global settings
+    # Global settings
+    college_name: Optional[str] = None
     library_name: Optional[str] = None
+    agent_name: Optional[str] = None
+    greeting_message: Optional[str] = None
     opening_hours: Optional[str] = None
     library_policies: Optional[str] = None
+    additional_details: Optional[str] = None
     voice_preset: Optional[str] = None
+
+def ingest_system_profile_into_rag(config: LibraryConfig):
+    """Embeds library & campus profile, agent identity, operating hours, and policies into ChromaDB."""
+    try:
+        from backend.api.main import rag_engine
+        if not rag_engine or not hasattr(rag_engine, "collection"):
+            return
+            
+        docs = [
+            f"Official Profile: {config.college_name or 'Anna University'} - {config.library_name or 'Central Library'}. Executive AI Assistant Name: {config.agent_name or 'Sam'}. Greeting: {config.greeting_message or 'How can I assist you today?'}.",
+            f"Operating Hours & Timings for {config.library_name or 'the Library'} ({config.college_name or 'the College'}): {config.opening_hours or 'Mon-Fri: 8:00 AM - 8:00 PM'}.",
+            f"Borrowing Rules, Policies & Guidelines for {config.library_name or 'the Library'}: {config.library_policies or 'Students can borrow up to 3 books for 14 days.'}.",
+            f"Campus & Library Facilities, Wi-Fi & Additional Details: {config.additional_details or 'Wi-Fi is available across all reading halls.'}."
+        ]
+        metadatas = [
+            {"source": "System Configuration", "section": "College & Library Identity", "document_type": "profile"},
+            {"source": "System Configuration", "section": "Operating Hours & Timings", "document_type": "timings"},
+            {"source": "System Configuration", "section": "Library Rules & Policies", "document_type": "policies"},
+            {"source": "System Configuration", "section": "Facilities & Additional Details", "document_type": "facilities"}
+        ]
+        ids = [
+            "system_profile_identity",
+            "system_profile_timings",
+            "system_profile_policies",
+            "system_profile_facilities"
+        ]
+        
+        embedder = getattr(rag_engine, 'embed_model', None) or getattr(rag_engine, 'embedding_model', None)
+        if embedder is None:
+            from fastembed import TextEmbedding
+            embedder = TextEmbedding("BAAI/bge-small-en-v1.5", threads=1)
+        
+        embeddings = list(embedder.embed(docs))
+        embeddings = [e.tolist() for e in embeddings]
+        
+        if rag_engine.collection is not None:
+            rag_engine.collection.upsert(
+                documents=docs,
+                embeddings=embeddings,
+                metadatas=metadatas,
+                ids=ids
+            )
+            print(f"[RAG INGEST] Successfully updated ChromaDB vector embeddings for {config.library_name} profile.")
+    except Exception as e:
+        print(f"[RAG INGEST ERROR] Failed to embed library profile: {e}")
 
 @router.get("/architecture")
 def get_architecture(db: Session = Depends(get_db)):
     config = db.query(LibraryConfig).first()
     if not config:
-        config = LibraryConfig(floors=2, rows_per_floor=2, cols_per_row=6, shelves_per_rack=4, pois=[], custom_racks={}, custom_layout={})
+        config = LibraryConfig(
+            floors=2, 
+            rows_per_floor=2, 
+            cols_per_row=6, 
+            shelves_per_rack=4, 
+            pois=[], 
+            custom_racks={}, 
+            custom_layout={},
+            college_name="Anna University",
+            library_name="Anna University Central Library",
+            agent_name="Sam",
+            greeting_message="How can I assist you today?",
+            opening_hours="Mon-Fri: 8:00 AM - 8:00 PM, Sat: 9:00 AM - 5:00 PM",
+            library_policies="Students can borrow up to 3 books for 14 days.",
+            additional_details="Wi-Fi is available throughout the library. Quiet reading rooms are located on Floor 2.",
+            voice_preset="en-IN-Pallavi"
+        )
         db.add(config)
         db.commit()
         db.refresh(config)
     return config
 
 @router.post("/architecture")
-def update_architecture(config_update: LibraryConfigUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+def update_architecture(config_update: LibraryConfigUpdate, background_tasks: BackgroundTasks, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     config = db.query(LibraryConfig).first()
     if not config:
         config = LibraryConfig()
@@ -149,21 +214,32 @@ def update_architecture(config_update: LibraryConfigUpdate, db: Session = Depend
     config.custom_racks = config_update.custom_racks
     config.custom_layout = config_update.custom_layout
     
+    if config_update.college_name is not None:
+        config.college_name = config_update.college_name
     if config_update.library_name is not None:
         config.library_name = config_update.library_name
+    if config_update.agent_name is not None:
+        config.agent_name = config_update.agent_name
+    if config_update.greeting_message is not None:
+        config.greeting_message = config_update.greeting_message
     if config_update.opening_hours is not None:
         config.opening_hours = config_update.opening_hours
     if config_update.library_policies is not None:
         config.library_policies = config_update.library_policies
+    if config_update.additional_details is not None:
+        config.additional_details = config_update.additional_details
     if config_update.voice_preset is not None:
         config.voice_preset = config_update.voice_preset
     
     # Log the action
-    admin_log = AdminLog(admin_id=current_user.id, action="Update Architecture", details=f"Floors: {config.floors}, Rows: {config.rows_per_floor}, Cols: {config.cols_per_row}")
-
+    admin_log = AdminLog(admin_id=current_user.id, action="Update System Settings", details=f"Library: {config.library_name}, Agent: {config.agent_name}, Floors: {config.floors}")
     db.add(admin_log)
     
     db.commit()
     db.refresh(config)
-    return {"message": "Library architecture updated successfully", "config": config}
+    
+    # Update Vector Embedding in ChromaDB in background
+    background_tasks.add_task(ingest_system_profile_into_rag, config)
+    
+    return {"message": "Library architecture and profile updated successfully", "config": config}
 
