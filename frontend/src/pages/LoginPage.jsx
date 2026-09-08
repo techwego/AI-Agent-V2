@@ -167,22 +167,19 @@ const LoginPage = () => {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-tr from-blue-600/20 via-indigo-600/15 to-purple-600/20 rounded-full blur-3xl pointer-events-none" />
           </div>
 
-          {/* ── LibGenie Modern Brand Header ── */}
-          <div className="relative z-10 flex flex-col items-center justify-center text-center shrink-0 pt-0.5 pb-0.5">
-            <div className="inline-flex items-center gap-3.5 px-5 py-2 rounded-full bg-slate-900/80 border border-purple-500/40 shadow-[0_4px_30px_rgba(168,85,247,0.35)] backdrop-blur-xl group hover:border-purple-400 transition-all duration-300">
+          {/* ── LibGenie Modern Brand Header (78-80% Width, Centered, No Indicator Dot) ── */}
+          <div className="relative z-10 flex flex-col items-center justify-center text-center shrink-0 pt-0.5 pb-0.5 w-full">
+            <div className="w-[78%] sm:w-[80%] max-w-xl flex items-center justify-center gap-4 px-6 py-2.5 rounded-full bg-slate-900/85 border border-purple-500/40 shadow-[0_4px_30px_rgba(168,85,247,0.35)] backdrop-blur-xl group hover:border-purple-400 transition-all duration-300">
               <img 
                 src="/libgenie_avatar.png" 
                 alt="LibGenie Mascot" 
-                className="h-9 sm:h-11 w-auto object-contain drop-shadow-[0_0_15px_rgba(168,85,247,0.9)] group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 select-none"
+                className="h-10 sm:h-12 w-auto object-contain drop-shadow-[0_0_15px_rgba(168,85,247,0.9)] group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 select-none shrink-0"
               />
-              <div className="flex flex-col items-start justify-center">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl sm:text-3xl font-black tracking-tight bg-gradient-to-r from-blue-400 via-indigo-200 to-fuchsia-400 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(168,85,247,0.4)]">
-                    LibGenie
-                  </span>
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,1)]" />
-                </div>
-                <span className="text-[9px] sm:text-[10px] tracking-[0.25em] uppercase font-extrabold text-indigo-300/90 -mt-0.5">
+              <div className="flex flex-col items-center sm:items-start justify-center text-center sm:text-left">
+                <span className="text-2xl sm:text-3xl font-black tracking-tight bg-gradient-to-r from-blue-400 via-indigo-200 to-fuchsia-400 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(168,85,247,0.4)] leading-none">
+                  LibGenie
+                </span>
+                <span className="text-[9px] sm:text-[10px] tracking-[0.25em] uppercase font-extrabold text-indigo-300/90 mt-1">
                   AI Library Assistant
                 </span>
               </div>
