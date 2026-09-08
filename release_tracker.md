@@ -1,8 +1,8 @@
 # 📊 AI Library Management System — Overview & Release Tracker
 
 > **Project:** Speech-to-Speech AI Library Assistant  
-> **Current Release:** v7.52.0 · Branch `main`  
-> **Date Generated:** 2026-09-08 15:15 IST  
+> **Current Release:** v7.53.0 · Branch `main`  
+> **Date Generated:** 2026-09-08 16:25 IST  
 > **Developer:** Arun P · TechWeGo
 
 ---
@@ -11,10 +11,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Total Tracked Commits** | 83+ |
-| **Completed Task Items** | 87 |
+| **Total Tracked Commits** | 85+ |
+| **Completed Task Items** | 92 |
 | **Active Design Items** | 0 (All Completed) |
-| **Current Release Milestone** | v7.52.0 (Zero-Latency Mic Pre-Warming, Admin Voice Lock, Robust VAD & Live Orb States) |
+| **Current Release Milestone** | v7.53.0 (Split Student/Admin Sign-In, VIP Guest Greeting Banner, 30s Timeout, 2D/3D Fixtures & Enhanced Wayfinding) |
 | **Pipeline Modules Online** | STT ✅ · TTS ✅ · RAG ✅ · DB ✅ · 3D Map ✅ · UI Ecosystem ✅ |
 | **LLM Backend** | Groq / LLaMA-3.3-70B-Versatile |
 | **Embedding Model** | BAAI/bge-small-en-v1.5 (ONNX fastembed) |

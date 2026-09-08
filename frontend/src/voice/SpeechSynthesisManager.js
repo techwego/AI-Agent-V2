@@ -83,9 +83,31 @@ class SpeechSynthesisManager {
     } catch (e) {}
   }
 
-  stripMarkdown(text) {
+  expandHonorifics(text) {
     if (!text) return '';
     return text
+      // Common titles with trailing dot
+      .replace(/\bDr\./gi, 'Doctor')
+      .replace(/\bMr\./gi, 'Mister')
+      .replace(/\bMrs\./gi, 'Missus')
+      .replace(/\bMs\./gi, 'Miss')
+      .replace(/\bProf\./gi, 'Professor')
+      .replace(/\bEr\./gi, 'Engineer')
+      // Common titles without dot followed by space and name
+      .replace(/\bDr\s+/gi, 'Doctor ')
+      .replace(/\bMr\s+/gi, 'Mister ')
+      .replace(/\bMrs\s+/gi, 'Missus ')
+      .replace(/\bMs\s+/gi, 'Miss ')
+      .replace(/\bProf\s+/gi, 'Professor ')
+      .replace(/\bEr\s+/gi, 'Engineer ')
+      // Common acronyms for smooth natural speech
+      .replace(/\bOPAC\b/gi, 'O-Pack')
+      .replace(/\bRFID\b/gi, 'R-F-I-D');
+  }
+
+  stripMarkdown(text) {
+    if (!text) return '';
+    let cleaned = text
       .replace(/\*\*/g, '')
       .replace(/_/g, '')
       .replace(/#/g, '')
@@ -94,6 +116,7 @@ class SpeechSynthesisManager {
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       .replace(/[^\x00-\x7F]/g, ' ') // Strip non-ASCII / non-Latin characters to prevent regional language leakage
       .trim();
+    return this.expandHonorifics(cleaned);
   }
 
   findBestMatchingVoice() {

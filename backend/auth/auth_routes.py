@@ -93,6 +93,28 @@ def guest_login(req: GuestLoginRequest, db: Session = Depends(get_db)):
         }
     }
 
+@router.post("/student-quick-access")
+def student_quick_access(db: Session = Depends(get_db)):
+    # Find default student user or create guest student token
+    student_user = db.query(User).filter(User.role == RoleEnum.user).first()
+    username = student_user.username if student_user else "student_guest"
+    user_id = student_user.id if student_user else 9999
+    
+    access_token = create_access_token(data={"sub": username, "role": "user"})
+    refresh_token = create_refresh_token(data={"sub": username})
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user_id,
+            "username": "Student",
+            "role": "user",
+            "is_student_quick": True
+        }
+    }
+
 @router.post("/register")
 def register(user_data: UserCreate, db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
     # Only admins can create other admins; public users can register as student ("user")

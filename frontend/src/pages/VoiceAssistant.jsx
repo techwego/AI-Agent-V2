@@ -256,6 +256,40 @@ const VoiceAssistant = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [conversationState, isMapFullscreen]);
 
+  // -------------------------------------------------------------
+  // 30-SECOND STUDENT & GUEST INACTIVITY AUTO-LOGOUT
+  // -------------------------------------------------------------
+  useEffect(() => {
+    // Only apply inactivity timeout to students/guests (not admins)
+    if (isAdmin || user?.role === 'admin') return;
+
+    const INACTIVITY_TIMEOUT_MS = 30000; // 30 seconds
+    let timeoutId = null;
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        console.log('[Inactivity] 30s timeout elapsed. Returning to login page.');
+        ttsManager.cancel();
+        sttManager.stopListening();
+        stateManager.reset();
+        logoutUser();
+        navigate('/login');
+      }, INACTIVITY_TIMEOUT_MS);
+    };
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+    activityEvents.forEach(evt => window.addEventListener(evt, resetTimer, { passive: true }));
+
+    // Start timer on mount
+    resetTimer();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      activityEvents.forEach(evt => window.removeEventListener(evt, resetTimer));
+    };
+  }, [isAdmin, user, logoutUser, navigate]);
+
   const handleLogout = () => {
     ttsManager.cancel();
     sttManager.stopListening();
@@ -676,6 +710,48 @@ const VoiceAssistant = () => {
 
         </div>
       </header>
+
+      {/* ========================================================================= */}
+      {/* VIP DISTINGUISHED GUEST WELCOME BANNER (Rendered when guest is active)    */}
+      {/* ========================================================================= */}
+      {guestData && (
+        <div className="bg-gradient-to-r from-pink-950/90 via-slate-900/95 to-purple-950/90 border-b border-pink-500/40 px-3 sm:px-6 py-2 z-15 shrink-0 shadow-lg animate-fade-in-scale">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl p-0.5 bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 shadow-md shadow-pink-500/30 shrink-0">
+                <div className="w-full h-full rounded-[14px] overflow-hidden bg-slate-950 flex items-center justify-center">
+                  {guestData.image_url ? (
+                    <img src={guestData.image_url} alt={guestData.name} className="w-full h-full object-cover object-top" />
+                  ) : (
+                    <span className="font-black text-pink-300 text-base">{guestData.name?.charAt(0)}</span>
+                  )}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-pink-300 bg-pink-950 border border-pink-700/60 px-2 py-0.5 rounded-md shadow-xs">
+                    VIP Distinguished Dignitary
+                  </span>
+                </div>
+                <h2 className="text-xs sm:text-sm font-black text-white truncate mt-0.5">
+                  Welcome to {systemProfile.library_name || 'Anna University Central Library'}, {guestData.name}
+                </h2>
+                {guestData.about && (
+                  <p className="text-[10px] sm:text-[11px] text-indigo-200 truncate font-medium">
+                    {guestData.about}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-[10px] font-extrabold text-pink-300 bg-pink-500/15 border border-pink-500/30 shadow-xs flex items-center gap-1.5">
+                <HeartHandshake size={13} className="text-pink-400" />
+                <span>VIP Session</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 2. MAIN CENTER AREA: Dedicated Voice or Chat Assistant */}

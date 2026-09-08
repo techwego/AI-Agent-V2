@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { login, getArchitecture, getActiveGuests, guestLogin } from '../api/client';
+import { login, getArchitecture, getActiveGuests, guestLogin, studentQuickAccess } from '../api/client';
 import { 
   Lock, User, ArrowRight, BookOpen, Shield, GraduationCap, 
   BookMarked, MapPin, Search, KeyRound, Sparkles, ExternalLink,
@@ -14,13 +14,14 @@ import PlasmaVoiceCore from '../components/PlasmaVoiceCore';
 const LoginPage = () => {
   const { isAuthenticated, isAdmin, loginUser } = useAuth();
   const navigate = useNavigate();
-  const [role, setRole] = useState('user');
+  const [role, setRole] = useState('admin');
   const [username, setUsername] = useState('');
   const [agentName, setAgentName] = useState(() => localStorage.getItem('cached_agent_name') || 'LibGenie');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [studentLoading, setStudentLoading] = useState(false);
   const [libraryName, setLibraryName] = useState(() => localStorage.getItem('cached_library_name') || 'Anna University Central Library');
   const [showGuestCards, setShowGuestCards] = useState(false);
   const [guests, setGuests] = useState([]);
@@ -53,6 +54,29 @@ const LoginPage = () => {
       }
     }).catch(() => {});
   }, []);
+
+  const handleStudentQuickAccess = async () => {
+    setStudentLoading(true);
+    setError('');
+    try {
+      const res = await studentQuickAccess();
+      const { access_token, user } = res.data;
+      loginUser(access_token, user);
+      navigate('/assistant');
+    } catch (err) {
+      console.warn('Student quick access fallback:', err);
+      try {
+        const res = await login({ username: 'student', password: 'password', role: 'user' });
+        const { access_token, user } = res.data;
+        loginUser(access_token, user);
+        navigate('/assistant');
+      } catch (fallbackErr) {
+        navigate('/assistant');
+      }
+    } finally {
+      setStudentLoading(false);
+    }
+  };
 
   const handleGuestCardClick = async (guest) => {
     setGuestLoadingId(guest.id);
@@ -110,7 +134,7 @@ const LoginPage = () => {
 
     setLoading(true);
     try {
-      const res = await login({ username, password, role });
+      const res = await login({ username, password, role: 'admin' });
       const { access_token, user } = res.data;
       loginUser(access_token, user);
       if (user.role === 'admin') {
@@ -119,7 +143,7 @@ const LoginPage = () => {
         navigate('/assistant');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Invalid credentials. Please verify your student or admin account.');
+      setError(err.response?.data?.detail || 'Invalid administrator credentials. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -252,131 +276,177 @@ const LoginPage = () => {
 
 
         {/* ─────────────────────────────────────────────────────────────────── */}
-        {/* SECTION 2 — Touch-Ergonomic Auth Card                               */}
+        {/* SECTION 2 — Split Sign-In: Student Quick Access (Left) + Admin (Right)*/}
         {/* ─────────────────────────────────────────────────────────────────── */}
         <section className="w-full bg-slate-900/85 backdrop-blur-2xl rounded-[1.5rem] sm:rounded-[2rem] border border-slate-700/60 shadow-2xl shadow-blue-950/50 p-4 sm:p-6 relative overflow-hidden flex flex-col justify-center shrink-0">
           
           {/* Ambient Glow */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-tr from-indigo-600/15 via-blue-600/10 to-violet-600/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-tr from-indigo-600/15 via-blue-600/10 to-violet-600/15 rounded-full blur-3xl pointer-events-none" />
           </div>
 
-          <div className="w-full max-w-lg mx-auto relative z-10 flex flex-col justify-center">
-            {/* Card Header Title */}
-            <div className="text-center mb-3 sm:mb-4 shrink-0">
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[11px] font-bold mb-1">
-                <ShieldCheck size={13} />
-                <span>Enterprise Academic Access</span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                Sign In to LibGenie
-              </h2>
-              <p className="text-[11px] sm:text-xs text-slate-400 font-medium mt-0.5">
-                Access 3D wayfinding, catalog intelligence & live AI voice assistant
-              </p>
-            </div>
-
-            {/* Role Switcher Pill */}
-            <div className="flex p-1 bg-slate-800/80 backdrop-blur-sm rounded-xl mb-3 border border-slate-700/70 shrink-0">
-              <button
-                type="button"
-                onClick={() => setRole('user')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation ${
-                  role === 'user'
-                    ? 'bg-blue-600/80 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <User size={13} />
-                <span>Student</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('admin')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation ${
-                  role === 'admin'
-                    ? 'bg-indigo-600/80 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Shield size={13} />
-                <span>Admin</span>
-              </button>
-            </div>
-
-            {/* Alerts */}
-            {error && (
-              <div className="mb-2 p-2.5 bg-red-950/70 border border-red-800/80 rounded-xl text-red-200 text-xs font-semibold flex items-center gap-2 shrink-0">
-                <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* Auth Form */}
-            <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3">
+          <div className="w-full relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-stretch">
+            
+            {/* ── LEFT COLUMN: Student Instant Access ── */}
+            <div className="flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-950/50 via-slate-900/80 to-indigo-950/40 border border-blue-500/30 shadow-lg hover:border-blue-400/60 transition-all duration-300 relative overflow-hidden group">
+              
+              {/* Subtle background glow */}
+              <div className="absolute -top-12 -left-12 w-36 h-36 bg-blue-500/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+              
               <div>
-                <label className="block text-[11px] sm:text-xs font-bold text-slate-300 mb-0.5">
-                  Username / ID
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="block w-full px-3.5 py-2.5 bg-slate-950/80 backdrop-blur-sm border border-slate-700/80 rounded-xl text-white text-xs sm:text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 shadow-xs transition-all font-medium"
-                    placeholder={role === 'admin' ? "Enter admin username" : "Enter student username"}
-                  />
+                {/* Header Tag */}
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/40 text-blue-300 text-[11px] font-bold">
+                    <GraduationCap size={13} className="text-cyan-400" />
+                    <span>Student Access</span>
+                  </div>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                </div>
+
+                {/* Animated Logo + Title */}
+                <div className="flex items-center gap-3.5 my-2">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl p-1 bg-gradient-to-tr from-blue-500 via-indigo-500 to-cyan-400 shadow-lg shadow-blue-500/30 shrink-0 group-hover:scale-105 group-hover:rotate-3 transition-all duration-300">
+                    <div className="w-full h-full rounded-[12px] bg-slate-950 flex items-center justify-center overflow-hidden p-1">
+                      <img 
+                        src="/libgenie_avatar.png" 
+                        alt="LibGenie Animated Mascot" 
+                        className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.8)] animate-pulse"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-1.5">
+                      <span>If you are a student</span>
+                      <Sparkles size={14} className="text-yellow-400" />
+                    </h3>
+                    <p className="text-[11px] sm:text-xs text-indigo-200 font-medium mt-0.5">
+                      Direct access without login credentials
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-[11px] sm:text-xs text-slate-300/90 leading-relaxed mt-2 mb-3">
+                  Click below to instantly launch the <strong>AI Voice Assistant</strong>, <strong>3D Shelf Wayfinder</strong>, and catalog search.
+                </p>
+              </div>
+
+              {/* Instant Access Button */}
+              <div>
+                <button
+                  type="button"
+                  onClick={handleStudentQuickAccess}
+                  disabled={studentLoading}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 via-cyan-600 to-indigo-600 hover:from-blue-500 hover:to-cyan-500 text-white font-black text-xs sm:text-sm rounded-xl shadow-xl shadow-blue-600/30 hover:shadow-cyan-500/40 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50 touch-manipulation group"
+                >
+                  {studentLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <GraduationCap size={16} className="group-hover:rotate-12 transition-transform" />
+                      <span>Click Here to Enter (Student)</span>
+                      <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </button>
+                <div className="mt-2 text-center text-[10px] text-slate-400 font-medium">
+                  ✨ Instant Campus Access for Students
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[11px] sm:text-xs font-bold text-slate-300 mb-0.5">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full px-3.5 py-2.5 pr-10 bg-slate-950/80 backdrop-blur-sm border border-slate-700/80 rounded-xl text-white text-xs sm:text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 shadow-xs transition-all font-medium"
-                    placeholder="Enter password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors p-1 cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
+            </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full mt-1.5 py-2.5 sm:py-3 px-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-blue-600/30 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50 touch-manipulation"
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <LogIn size={15} />
-                    <span>Sign In to LibGenie</span>
+            {/* ── RIGHT COLUMN: Admin Sign In ── */}
+            <div className="flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-slate-950/60 border border-slate-700/80 shadow-lg relative overflow-hidden">
+              
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/40 text-indigo-300 text-[11px] font-bold">
+                    <ShieldCheck size={13} className="text-indigo-400" />
+                    <span>Administrator Sign In</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">Admin Portal</span>
+                </div>
+
+                <h3 className="text-sm sm:text-base font-black text-white tracking-tight mt-1 mb-0.5">
+                  Admin Authentication
+                </h3>
+                <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium mb-3">
+                  Manage 3D layouts, circulars & settings
+                </p>
+
+                {/* Alerts */}
+                {error && (
+                  <div className="mb-2 p-2 bg-red-950/70 border border-red-800/80 rounded-xl text-red-200 text-xs font-semibold flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
+                    <span className="truncate">{error}</span>
                   </div>
                 )}
-              </button>
-            </form>
 
-            {/* Helper info & SSL badge */}
-            <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[10px] sm:text-[11px] font-mono text-slate-400 shrink-0">
-              <span>Auth: <strong className="text-slate-200">student</strong> / <strong className="text-slate-200">admin</strong></span>
-              <div className="flex items-center gap-1 text-slate-500">
-                <ShieldCheck size={12} className="text-emerald-400" />
-                <span>256-Bit SSL Encrypted</span>
+                {/* Auth Form */}
+                <form onSubmit={handleSubmit} className="space-y-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-0.5">
+                      Admin Username
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="block w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 font-medium"
+                      placeholder="Enter admin username"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-0.5">
+                      Admin Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="block w-full px-3 py-2 pr-9 bg-slate-900/90 border border-slate-700/80 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 font-medium"
+                        placeholder="Enter admin password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors p-0.5 cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full mt-2 py-2.5 px-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50 touch-manipulation"
+                  >
+                    {loading ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <Lock size={14} />
+                        <span>Sign In as Admin</span>
+                      </div>
+                    )}
+                  </button>
+                </form>
               </div>
+
+              <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-500">
+                <span>Protected Admin Area</span>
+                <span className="flex items-center gap-1 text-emerald-400">
+                  <ShieldCheck size={11} /> 256-Bit SSL
+                </span>
+              </div>
+
             </div>
+
           </div>
 
         </section>

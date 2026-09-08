@@ -474,6 +474,43 @@ function makeLabel(text, opts = {}) {
   return sprite;
 }
 
+function createFloorRackDecal(code, name) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  
+  // High contrast background decal
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+  ctx.beginPath();
+  ctx.roundRect(4, 4, 248, 120, 16);
+  ctx.fill();
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 5;
+  ctx.stroke();
+  
+  // Large bold Rack Code
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = '900 46px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(code || '').toUpperCase(), 128, 44);
+  
+  // Category / Name
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 20px sans-serif';
+  const cleanName = String(name || '').replace(/^Rack\s+/i, '');
+  const truncated = cleanName.length > 18 ? cleanName.substring(0, 16) + '..' : cleanName;
+  ctx.fillText(truncated, 128, 90);
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.2), mat);
+  mesh.rotation.x = -Math.PI / 2; // Lie flat on floor
+  mesh.position.set(0, 0.02, 1.2); // Position in front of the rack
+  return mesh;
+}
+
 const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackClick, onRouteComplete, onConfigLoaded, activeFloor = 'both', overrideConfig }, ref) => {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -784,17 +821,17 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     scene.add(glowTube);
     routeObjsRef.current.glow = glowTube;
 
-    // Comet (flowing energy pulse along the path)
+    // Comet (flowing energy pulse along the path - crisp moving white ball)
     const cometGroup = new THREE.Group();
     const headMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16), headMat);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 16), headMat);
     head.renderOrder = 1000;
     cometGroup.add(head);
     const trail = [];
     for (let i = 1; i <= 5; i++) {
       const m = new THREE.Mesh(
-        new THREE.SphereGeometry(0.32 - i * 0.04, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.6 - i * 0.1, depthTest: false })
+        new THREE.SphereGeometry(0.35 - i * 0.05, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 - i * 0.12, depthTest: false })
       );
       m.renderOrder = 1000 - i;
       cometGroup.add(m);
@@ -810,15 +847,17 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const beaconGroup = new THREE.Group();
     beaconGroup.position.set(destNode.x, destNode.y - 0.15, destNode.z);
     
+    // Emerald Green Destination Beacon Pillar
     const pillarGeo = new THREE.CylinderGeometry(0.08, 0.08, 5, 16);
-    const pillarMat = new THREE.MeshBasicMaterial({ color: 0xe2665f, transparent: true, opacity: 0.4 });
+    const pillarMat = new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.45 });
     const pillar = new THREE.Mesh(pillarGeo, pillarMat);
     pillar.position.y = 2.5;
     beaconGroup.add(pillar);
     
+    // Emerald Green Pulsing Rings
     for (let i = 0; i < 2; i++) {
       const ringGeo = new THREE.RingGeometry(0.8 + i * 0.6, 1.0 + i * 0.6, 32);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0xe2665f, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.rotation.x = -Math.PI / 2;
       ring.position.y = 0.05;
@@ -826,8 +865,9 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       beaconGroup.add(ring);
     }
     
-    const diamondGeo = new THREE.OctahedronGeometry(0.4, 0);
-    const diamondMat = new THREE.MeshBasicMaterial({ color: 0xff6655, transparent: true, opacity: 0.9 });
+    // Emerald Green Floating Diamond
+    const diamondGeo = new THREE.OctahedronGeometry(0.45, 0);
+    const diamondMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.95 });
     const diamond = new THREE.Mesh(diamondGeo, diamondMat);
     diamond.position.y = 5.2;
     beaconGroup.add(diamond);
@@ -858,8 +898,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       const destMesh = rackMeshByCodeRef.current[physicalCode].children[0];
       if (destMesh && destMesh.material) {
         destMesh.material = destMesh.material.clone();
-        destMesh.material.emissive.setHex(0xe2665f);
-        destMesh.material.emissiveIntensity = 0.8;
+        destMesh.material.emissive.setHex(0x10b981);
+        destMesh.material.emissiveIntensity = 0.85;
       }
     }
 
@@ -1092,6 +1132,10 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
             sign.position.set(0, 2.8, 0);
             rackGroup.add(sign);
 
+            // Floor Decal (Directly visible on the floor from top/isometric camera)
+            const floorDecal = createFloorRackDecal(code, customName);
+            rackGroup.add(floorDecal);
+
             rackGroup.position.set(r.x, fy, r.z);
             if (r.rotation) {
               rackGroup.rotation.y = (r.rotation * Math.PI) / 180;
@@ -1166,6 +1210,10 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
                    sign.position.set(0, 2.8, 0);
                    rackGroup.add(sign);
 
+                   // Floor Decal for standard racks
+                   const floorDecal = createFloorRackDecal(code, customName);
+                   rackGroup.add(floorDecal);
+
                    rackGroup.position.set(cx, fy, rz);
                    rackGroup.userData = { rackCode: code, floor: f+1 };
                    rackMeshByCodeRef.current[code] = rackGroup;
@@ -1180,20 +1228,134 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     if (graphData && graphData.nodes) {
        Object.keys(graphData.nodes).forEach(k => {
            const n = graphData.nodes[k];
+           
            if (n.type === 'entrance') {
-               const pinGroup = new THREE.Group();
-               const cone = new THREE.Mesh(
-                 new THREE.ConeGeometry(0.45, 1.1, 16),
-                 new THREE.MeshStandardMaterial({ color: 0x5fe3a0, emissive: 0x5fe3a0, emissiveIntensity: 0.35, roughness: 0.2 })
-               );
-               cone.position.y = 0.55;
-               pinGroup.add(cone);
-               const entranceText = (n.label || 'ENTRANCE').toUpperCase();
-               const pinLabel = makeLabel(entranceText, { bg: '#111a2e', fg: '#eae6da', scale: 0.65 });
-               pinLabel.position.y = 1.5;
-               pinGroup.add(pinLabel);
-               pinGroup.position.set(n.x, n.y, n.z);
-               scene.add(pinGroup);
+               const entranceGroup = new THREE.Group();
+               // Open Door Frame Post
+               const frameGeo = new THREE.BoxGeometry(2.4, 2.8, 0.2);
+               const frameMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.2, roughness: 0.5 });
+               const frame = new THREE.Mesh(frameGeo, frameMat);
+               frame.position.y = 1.4;
+               entranceGroup.add(frame);
+               // Emerald glowing threshold portal on floor
+               const threshGeo = new THREE.PlaneGeometry(2.2, 1.2);
+               const threshMat = new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.65, side: THREE.DoubleSide });
+               const thresh = new THREE.Mesh(threshGeo, threshMat);
+               thresh.rotation.x = -Math.PI / 2;
+               thresh.position.set(0, 0.03, 0);
+               entranceGroup.add(thresh);
+               // Open door wings
+               const wingGeo = new THREE.BoxGeometry(0.95, 2.4, 0.06);
+               const wingMat = new THREE.MeshStandardMaterial({ color: 0x064e3b, roughness: 0.4 });
+               const leftWing = new THREE.Mesh(wingGeo, wingMat);
+               leftWing.position.set(-0.85, 1.25, 0.35);
+               leftWing.rotation.y = Math.PI / 4;
+               const rightWing = new THREE.Mesh(wingGeo, wingMat);
+               rightWing.position.set(0.85, 1.25, 0.35);
+               rightWing.rotation.y = -Math.PI / 4;
+               entranceGroup.add(leftWing);
+               entranceGroup.add(rightWing);
+               // Overhead label
+               const entranceText = (n.label || 'MAIN ENTRANCE').toUpperCase();
+               const pinLabel = makeLabel(entranceText, { bg: '#064e3b', fg: '#34d399', scale: 0.75 });
+               pinLabel.position.y = 3.3;
+               entranceGroup.add(pinLabel);
+               entranceGroup.position.set(n.x, n.y, n.z);
+               scene.add(entranceGroup);
+           } else if (n.type === 'exit') {
+               const exitGroup = new THREE.Group();
+               // Exit Frame
+               const frameGeo = new THREE.BoxGeometry(2.2, 2.8, 0.2);
+               const frameMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+               const frame = new THREE.Mesh(frameGeo, frameMat);
+               frame.position.y = 1.4;
+               exitGroup.add(frame);
+               // Red glowing threshold portal on floor
+               const threshGeo = new THREE.PlaneGeometry(2.0, 1.0);
+               const threshMat = new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+               const thresh = new THREE.Mesh(threshGeo, threshMat);
+               thresh.rotation.x = -Math.PI / 2;
+               thresh.position.set(0, 0.03, 0);
+               exitGroup.add(thresh);
+               // Overhead illuminated Exit Sign
+               const exitLabel = makeLabel((n.label || 'EXIT DOOR').toUpperCase(), { bg: '#881337', fg: '#fda4af', scale: 0.7 });
+               exitLabel.position.y = 3.3;
+               exitGroup.add(exitLabel);
+               exitGroup.position.set(n.x, n.y, n.z);
+               scene.add(exitGroup);
+           } else if (n.type === 'rfid_kiosk') {
+               const rfidGroup = new THREE.Group();
+               // Pedestal
+               const pedGeo = new THREE.CylinderGeometry(0.28, 0.34, 1.2, 16);
+               const pedMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.4, roughness: 0.3 });
+               const ped = new THREE.Mesh(pedGeo, pedMat);
+               ped.position.y = 0.6;
+               rfidGroup.add(ped);
+               // Angled touch scanner terminal
+               const screenGeo = new THREE.BoxGeometry(0.8, 0.55, 0.06);
+               const screenMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.65 });
+               const screen = new THREE.Mesh(screenGeo, screenMat);
+               screen.rotation.x = -0.35;
+               screen.position.set(0, 1.35, 0.05);
+               rfidGroup.add(screen);
+               // Overhead label
+               const rfidLabel = makeLabel((n.label || 'RFID KIOSK').toUpperCase(), { bg: '#083344', fg: '#22d3ee', scale: 0.65 });
+               rfidLabel.position.y = 2.0;
+               rfidGroup.add(rfidLabel);
+               rfidGroup.position.set(n.x, n.y, n.z);
+               scene.add(rfidGroup);
+           } else if (n.type === 'opac_kiosk') {
+               const opacGroup = new THREE.Group();
+               // Terminal desk
+               const deskGeo = new THREE.BoxGeometry(0.9, 0.9, 0.6);
+               const deskMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.5 });
+               const desk = new THREE.Mesh(deskGeo, deskMat);
+               desk.position.y = 0.45;
+               opacGroup.add(desk);
+               // Monitor screen
+               const monGeo = new THREE.BoxGeometry(0.9, 0.6, 0.06);
+               const monMat = new THREE.MeshStandardMaterial({ color: 0x6366f1, emissive: 0x6366f1, emissiveIntensity: 0.7 });
+               const mon = new THREE.Mesh(monGeo, monMat);
+               mon.position.set(0, 1.35, 0);
+               opacGroup.add(mon);
+               const opacLabel = makeLabel((n.label || 'OPAC TERMINAL').toUpperCase(), { bg: '#1e1b4b', fg: '#a5b4fc', scale: 0.65 });
+               opacLabel.position.y = 2.0;
+               opacGroup.add(opacLabel);
+               opacGroup.position.set(n.x, n.y, n.z);
+               scene.add(opacGroup);
+           } else if (n.type === 'circular_table') {
+               const tableGroup = new THREE.Group();
+               // Round table top
+               const topGeo = new THREE.CylinderGeometry(1.3, 1.3, 0.08, 32);
+               const topMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.55 });
+               const tableTop = new THREE.Mesh(topGeo, topMat);
+               tableTop.position.y = 0.75;
+               tableGroup.add(tableTop);
+               // Center leg
+               const legGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.75, 16);
+               const legMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7 });
+               const leg = new THREE.Mesh(legGeo, legMat);
+               leg.position.y = 0.375;
+               tableGroup.add(leg);
+               // Base disc
+               const baseGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.04, 24);
+               const baseMesh = new THREE.Mesh(baseGeo, legMat);
+               baseMesh.position.y = 0.02;
+               tableGroup.add(baseMesh);
+               // 4 surrounding circular chairs
+               const chairGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.45, 16);
+               const chairMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.6 });
+               const chairOffsets = [[1.2, 0], [-1.2, 0], [0, 1.2], [0, -1.2]];
+               chairOffsets.forEach(([cx, cz]) => {
+                 const chair = new THREE.Mesh(chairGeo, chairMat);
+                 chair.position.set(cx, 0.225, cz);
+                 tableGroup.add(chair);
+               });
+               const tableLabel = makeLabel((n.label || 'STUDY TABLE').toUpperCase(), { bg: '#451a03', fg: '#fcd34d', scale: 0.6 });
+               tableLabel.position.y = 1.6;
+               tableGroup.add(tableLabel);
+               tableGroup.position.set(n.x, n.y, n.z);
+               scene.add(tableGroup);
            } else if (n.type === 'stairs' && !k.endsWith('_dest')) {
                const stairGroup = new THREE.Group();
                const stairMat = new THREE.MeshStandardMaterial({ color: 0x6b7590, roughness: 0.6 });

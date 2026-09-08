@@ -31,6 +31,7 @@ api.interceptors.response.use(
 // Auth endpoints
 export const login = (data) => api.post('/auth/login', data);
 export const guestLogin = (guest_id) => api.post('/auth/guest-login', { guest_id });
+export const studentQuickAccess = () => api.post('/auth/student-quick-access');
 export const register = (data) => api.post('/auth/register', data);
 export const getProfile = () => api.get('/auth/profile');
 export const changePassword = (data) => api.put('/auth/change-password', data);

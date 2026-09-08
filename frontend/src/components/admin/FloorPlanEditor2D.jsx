@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   X, Save, RotateCw, Trash2, Plus, Move, ZoomIn, ZoomOut, Maximize2, 
-  Grid, MapPin, Layers, DoorOpen, ArrowUpDown, Undo2, Check, AlertCircle, Sparkles, PlusCircle, CheckCircle2
+  Grid, MapPin, Layers, DoorOpen, ArrowUpDown, Undo2, Check, AlertCircle, 
+  Sparkles, PlusCircle, CheckCircle2, LogOut, Radio, Search, Disc, Monitor
 } from 'lucide-react';
 
 const SNAP_STEP = 1.0; // Snap to 1 meter increments
@@ -393,6 +394,134 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
     setAddModalType(null);
   };
 
+  // Open Add Exit Door Dialog
+  const openAddExitModal = (customCoord = null) => {
+    setNewPoiName(`Exit Door Floor ${activeFloor}`);
+    setSpawnCoord(customCoord || { x: mousePos.x || 0, z: mousePos.z || 6 });
+    setAddModalType('exit');
+  };
+
+  // Confirm Add Exit Door
+  const handleConfirmAddExit = () => {
+    const name = newPoiName.trim() || `Exit Door Floor ${activeFloor}`;
+    const newPoi = {
+      id: `exit_${Date.now()}`,
+      type: 'exit',
+      floor: activeFloor,
+      name,
+      x: applySnap(spawnCoord.x || 0),
+      z: applySnap(spawnCoord.z || 6),
+      rotation: 0
+    };
+
+    setConfig(prev => ({
+      ...prev,
+      custom_layout: {
+        ...(prev.custom_layout || {}),
+        pois: [...(prev.custom_layout?.pois || []), newPoi]
+      }
+    }));
+    setSelectedId(newPoi.id);
+    setSelectedType('poi');
+    setAddModalType(null);
+  };
+
+  // Open Add RFID Kiosk Dialog
+  const openAddRfidModal = (customCoord = null) => {
+    setNewPoiName(`RFID Kiosk Floor ${activeFloor}`);
+    setSpawnCoord(customCoord || { x: mousePos.x || -4, z: mousePos.z || -4 });
+    setAddModalType('rfid_kiosk');
+  };
+
+  // Confirm Add RFID Kiosk
+  const handleConfirmAddRfid = () => {
+    const name = newPoiName.trim() || `RFID Kiosk Floor ${activeFloor}`;
+    const newPoi = {
+      id: `rfid_${Date.now()}`,
+      type: 'rfid_kiosk',
+      floor: activeFloor,
+      name,
+      x: applySnap(spawnCoord.x || -4),
+      z: applySnap(spawnCoord.z || -4),
+      rotation: 0
+    };
+
+    setConfig(prev => ({
+      ...prev,
+      custom_layout: {
+        ...(prev.custom_layout || {}),
+        pois: [...(prev.custom_layout?.pois || []), newPoi]
+      }
+    }));
+    setSelectedId(newPoi.id);
+    setSelectedType('poi');
+    setAddModalType(null);
+  };
+
+  // Open Add OPAC Kiosk Dialog
+  const openAddOpacModal = (customCoord = null) => {
+    setNewPoiName(`OPAC Terminal Floor ${activeFloor}`);
+    setSpawnCoord(customCoord || { x: mousePos.x || 4, z: mousePos.z || -4 });
+    setAddModalType('opac_kiosk');
+  };
+
+  // Confirm Add OPAC Kiosk
+  const handleConfirmAddOpac = () => {
+    const name = newPoiName.trim() || `OPAC Terminal Floor ${activeFloor}`;
+    const newPoi = {
+      id: `opac_${Date.now()}`,
+      type: 'opac_kiosk',
+      floor: activeFloor,
+      name,
+      x: applySnap(spawnCoord.x || 4),
+      z: applySnap(spawnCoord.z || -4),
+      rotation: 0
+    };
+
+    setConfig(prev => ({
+      ...prev,
+      custom_layout: {
+        ...(prev.custom_layout || {}),
+        pois: [...(prev.custom_layout?.pois || []), newPoi]
+      }
+    }));
+    setSelectedId(newPoi.id);
+    setSelectedType('poi');
+    setAddModalType(null);
+  };
+
+  // Open Add Circular Table Dialog
+  const openAddTableModal = (customCoord = null) => {
+    setNewPoiName(`Circular Table Floor ${activeFloor}`);
+    setSpawnCoord(customCoord || { x: mousePos.x || 0, z: mousePos.z || 0 });
+    setAddModalType('circular_table');
+  };
+
+  // Confirm Add Circular Table
+  const handleConfirmAddTable = () => {
+    const name = newPoiName.trim() || `Circular Table Floor ${activeFloor}`;
+    const newPoi = {
+      id: `table_${Date.now()}`,
+      type: 'circular_table',
+      floor: activeFloor,
+      name,
+      x: applySnap(spawnCoord.x || 0),
+      z: applySnap(spawnCoord.z || 0),
+      rotation: 0
+    };
+
+    setConfig(prev => ({
+      ...prev,
+      custom_layout: {
+        ...(prev.custom_layout || {}),
+        pois: [...(prev.custom_layout?.pois || []), newPoi]
+      }
+    }));
+    setSelectedId(newPoi.id);
+    setSelectedType('poi');
+    setAddModalType(null);
+  };
+
   // Open Add Stairs Dialog
   const openAddStairsModal = (customCoord = null) => {
     setNewPoiName(`Staircase Floor ${activeFloor}`);
@@ -624,13 +753,73 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
             {addModalType === 'entrance' && (
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">Entrance Name</label>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Entrance Door Name</label>
                   <input
                     type="text"
                     value={newPoiName}
                     onChange={(e) => setNewPoiName(e.target.value)}
-                    placeholder="e.g. Main Entrance, North Door"
+                    placeholder="e.g. Main Entrance Door, North Gate"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </div>
+              </div>
+            )}
+
+            {addModalType === 'exit' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Exit Door Name</label>
+                  <input
+                    type="text"
+                    value={newPoiName}
+                    onChange={(e) => setNewPoiName(e.target.value)}
+                    placeholder="e.g. Emergency Exit Door, South Exit"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-100"
+                  />
+                </div>
+              </div>
+            )}
+
+            {addModalType === 'rfid_kiosk' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">RFID Self-Service Kiosk Name</label>
+                  <input
+                    type="text"
+                    value={newPoiName}
+                    onChange={(e) => setNewPoiName(e.target.value)}
+                    placeholder="e.g. RFID Check-in / Checkout Kiosk 1"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                  />
+                </div>
+              </div>
+            )}
+
+            {addModalType === 'opac_kiosk' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">OPAC Catalog Search Terminal Name</label>
+                  <input
+                    type="text"
+                    value={newPoiName}
+                    onChange={(e) => setNewPoiName(e.target.value)}
+                    placeholder="e.g. OPAC Search Terminal A"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+              </div>
+            )}
+
+            {addModalType === 'circular_table' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Circular Reading Table Name</label>
+                  <input
+                    type="text"
+                    value={newPoiName}
+                    onChange={(e) => setNewPoiName(e.target.value)}
+                    placeholder="e.g. Round Discussion Table 1"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
                   />
                 </div>
               </div>
@@ -674,6 +863,10 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
                 onClick={() => {
                   if (addModalType === 'rack') handleConfirmAddRack();
                   else if (addModalType === 'entrance') handleConfirmAddEntrance();
+                  else if (addModalType === 'exit') handleConfirmAddExit();
+                  else if (addModalType === 'rfid_kiosk') handleConfirmAddRfid();
+                  else if (addModalType === 'opac_kiosk') handleConfirmAddOpac();
+                  else if (addModalType === 'circular_table') handleConfirmAddTable();
                   else if (addModalType === 'stairs') handleConfirmAddStairs();
                 }}
                 className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-600/20"
@@ -686,15 +879,15 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
       )}
       
       {/* TOP HEADER BAR */}
-      <div className="h-16 px-6 bg-white border-b border-slate-200 flex items-center justify-between z-20 shrink-0 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700">
+      <div className="h-16 px-6 bg-white border-b border-slate-200 flex items-center justify-between z-20 shrink-0 shadow-sm overflow-x-auto">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 shrink-0">
             <Layers size={16} className="text-blue-600" />
-            <span className="text-xs font-bold tracking-wide">2D Floor Plan Blueprint Editor</span>
+            <span className="text-xs font-bold tracking-wide">Floor Plan Editor</span>
           </div>
 
           {/* Floor Switcher Tabs & Floor Management */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1 shrink-0">
             {[...Array(config.floors)].map((_, i) => (
               <button
                 key={i}
@@ -729,10 +922,11 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
           </div>
 
           {/* Quick Add Actions */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
             <button
               onClick={() => openAddRackModal()}
               className="px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 flex items-center gap-1 transition-all"
+              title="Add Book Rack"
             >
               <Plus size={13} /> + Rack
             </button>
@@ -740,20 +934,54 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
             <button
               onClick={() => openAddEntranceModal()}
               className="px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 flex items-center gap-1 transition-all"
+              title="Add Entrance Open Door"
             >
               <DoorOpen size={13} /> + Entrance
             </button>
 
             <button
-              onClick={() => openAddStairsModal()}
+              onClick={() => openAddExitModal()}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 flex items-center gap-1 transition-all"
+              title="Add Exit Door"
+            >
+              <LogOut size={13} /> + Exit
+            </button>
+
+            <button
+              onClick={() => openAddRfidModal()}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 flex items-center gap-1 transition-all"
+              title="Add RFID Self-Service Kiosk"
+            >
+              <Radio size={13} /> + RFID
+            </button>
+
+            <button
+              onClick={() => openAddOpacModal()}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 flex items-center gap-1 transition-all"
+              title="Add OPAC Catalog Terminal"
+            >
+              <Monitor size={13} /> + OPAC
+            </button>
+
+            <button
+              onClick={() => openAddTableModal()}
               className="px-2.5 py-1 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 flex items-center gap-1 transition-all"
+              title="Add Round Discussion Table"
+            >
+              <Disc size={13} /> + Table
+            </button>
+
+            <button
+              onClick={() => openAddStairsModal()}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 flex items-center gap-1 transition-all"
+              title="Add Staircase"
             >
               <ArrowUpDown size={13} /> + Stairs
             </button>
           </div>
 
-          <span className="text-[11px] text-slate-500 font-medium bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
-            {floorRacks.length} Racks · {floorPois.length} POIs
+          <span className="text-[11px] text-slate-500 font-medium bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 shrink-0">
+            {floorRacks.length} Racks · {floorPois.length} Fixtures
           </span>
         </div>
 
@@ -969,11 +1197,31 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
             );
           })}
 
-          {/* POIS ON CURRENT FLOOR */}
+          {/* POIS & FIXTURES ON CURRENT FLOOR */}
           {floorPois.map(poi => {
             const pos = worldToScreen(poi.x, poi.z);
             const isSelected = selectedId === poi.id && selectedType === 'poi';
             const isDragging = draggingId === poi.id;
+
+            let icon = <DoorOpen size={14} className="text-emerald-600 shrink-0" />;
+            let badgeClass = isSelected ? 'bg-emerald-50 border-2 border-emerald-600 ring-4 ring-emerald-500/20 shadow-md text-emerald-900' : 'bg-emerald-50 border border-emerald-300 text-emerald-800';
+            
+            if (poi.type === 'exit') {
+              icon = <LogOut size={14} className="text-rose-600 shrink-0" />;
+              badgeClass = isSelected ? 'bg-rose-50 border-2 border-rose-600 ring-4 ring-rose-500/20 shadow-md text-rose-900' : 'bg-rose-50 border border-rose-300 text-rose-800';
+            } else if (poi.type === 'rfid_kiosk') {
+              icon = <Radio size={14} className="text-cyan-600 shrink-0" />;
+              badgeClass = isSelected ? 'bg-cyan-50 border-2 border-cyan-600 ring-4 ring-cyan-500/20 shadow-md text-cyan-900' : 'bg-cyan-50 border border-cyan-300 text-cyan-800';
+            } else if (poi.type === 'opac_kiosk') {
+              icon = <Monitor size={14} className="text-indigo-600 shrink-0" />;
+              badgeClass = isSelected ? 'bg-indigo-50 border-2 border-indigo-600 ring-4 ring-indigo-500/20 shadow-md text-indigo-900' : 'bg-indigo-50 border border-indigo-300 text-indigo-800';
+            } else if (poi.type === 'circular_table') {
+              icon = <Disc size={14} className="text-amber-600 shrink-0" />;
+              badgeClass = isSelected ? 'bg-amber-50 border-2 border-amber-600 ring-4 ring-amber-500/20 shadow-md text-amber-900 rounded-full' : 'bg-amber-50 border border-amber-300 text-amber-800 rounded-full';
+            } else if (poi.type === 'stairs') {
+              icon = <ArrowUpDown size={14} className="text-purple-600 shrink-0" />;
+              badgeClass = isSelected ? 'bg-purple-50 border-2 border-purple-600 ring-4 ring-purple-500/20 shadow-md text-purple-900' : 'bg-purple-50 border border-purple-300 text-purple-800';
+            }
 
             return (
               <div
@@ -985,13 +1233,9 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
                   transform: 'translate(-50%, -50%)',
                   zIndex: isSelected || isDragging ? 30 : 15
                 }}
-                className={`absolute px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-move select-none shadow-sm ${
-                  poi.type === 'entrance' 
-                    ? isSelected ? 'bg-emerald-50 border-2 border-emerald-600 ring-4 ring-emerald-500/20 shadow-md text-emerald-900' : 'bg-emerald-50 border border-emerald-300 text-emerald-800'
-                    : isSelected ? 'bg-amber-50 border-2 border-amber-600 ring-4 ring-amber-500/20 shadow-md text-amber-900' : 'bg-amber-50 border border-amber-300 text-amber-800'
-                }`}
+                className={`absolute px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-move select-none shadow-sm ${badgeClass}`}
               >
-                {poi.type === 'entrance' ? <DoorOpen size={14} className="text-emerald-600 shrink-0" /> : <ArrowUpDown size={14} className="text-amber-600 shrink-0" />}
+                {icon}
                 <span className="text-[10px] font-bold whitespace-nowrap">{poi.name || poi.type}</span>
               </div>
             );
