@@ -23,8 +23,8 @@ class SpeechRecognitionManager {
 
     this.hasSpoken = false;
     this.speechFrames = 0;
-    this.SILENCE_THRESHOLD = 2.5; // Highly responsive to all voice levels
-    this.PAUSE_SILENCE_DURATION = 800; // 800ms natural conversational pause
+    this.SILENCE_THRESHOLD = 8.0; // Distinguishes real voice from background noise & fan hum
+    this.PAUSE_SILENCE_DURATION = 650; // 650ms natural pause for ultra-responsive turnaround
     this.MAX_SILENCE_TIMEOUT = 5000; // 5 seconds of initial idle silence
     this.FFT_SIZE = 512;
 
@@ -109,16 +109,19 @@ class SpeechRecognitionManager {
       };
 
       this.mediaRecorder.onstop = async () => {
-        // Send to Whisper if speech was detected or multiple audio chunks collected
-        if (this.audioChunks.length > 0 && (this.hasSpoken || this.audioChunks.length >= 3)) {
+        // Send to Whisper ONLY if real speech was confirmed and audio contains sufficient data
+        if (this.audioChunks.length > 0 && this.hasSpoken) {
           const audioBlob = new Blob(this.audioChunks, { type: mimeType || 'audio/webm' });
-          console.log(`[STT] MediaRecorder stopped. Size: ${audioBlob.size} bytes, hasSpoken: ${this.hasSpoken}, chunks: ${this.audioChunks.length}`);
-          await this.sendForTranscription(audioBlob);
-        } else {
-          console.log(`[STT] MediaRecorder stopped. No speech detected. Dropped ${this.audioChunks.length} chunks.`);
-          if (this.silenceTimeoutCallback) {
-            this.silenceTimeoutCallback();
+          if (audioBlob.size >= 3500) {
+            console.log(`[STT] MediaRecorder stopped. Size: ${audioBlob.size} bytes, hasSpoken: ${this.hasSpoken}, chunks: ${this.audioChunks.length}`);
+            await this.sendForTranscription(audioBlob);
+            return;
           }
+        }
+        
+        console.log(`[STT] MediaRecorder stopped. No speech detected or audio below threshold. Dropped.`);
+        if (this.silenceTimeoutCallback) {
+          this.silenceTimeoutCallback();
         }
       };
 
@@ -168,7 +171,8 @@ class SpeechRecognitionManager {
 
       if (maxVolume > this.SILENCE_THRESHOLD) {
         this.speechFrames += 1;
-        if (this.speechFrames >= 1) {
+        // Require at least 2 consecutive speech frames (200ms) to confirm genuine speech
+        if (this.speechFrames >= 2) {
           if (!this.hasSpoken) {
             this.hasSpoken = true;
             if (this.speechDetectedCallback) {
@@ -180,7 +184,7 @@ class SpeechRecognitionManager {
       } else {
         this.speechFrames = Math.max(0, this.speechFrames - 1);
         const now = Date.now();
-        // End of speech: 800ms natural conversational pause after speaking
+        // End of speech: 650ms natural conversational pause after real speech
         if (this.hasSpoken && (now - silenceStart > this.PAUSE_SILENCE_DURATION)) {
           if (this.speechEndedCallback) {
             this.speechEndedCallback();

@@ -305,7 +305,7 @@ def get_groq_whisper_client():
 
 @app.post("/api/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...)):
-    """Ultra-fast Groq Whisper transcription with English language optimization and domain prompting."""
+    """Ultra-fast Groq Whisper transcription with English vocabulary guidance and strict silence/hallucination filtering."""
     client = get_groq_whisper_client()
     if not client:
         raise HTTPException(status_code=500, detail="Groq API key not configured")
@@ -315,18 +315,48 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         temp_audio_path = temp_audio.name
 
     try:
+        file_size = os.path.getsize(temp_audio_path)
+        if file_size < 3000:
+            print(f"[TRANSCRIBE] Audio file too small ({file_size} bytes), returning empty transcript.")
+            return {"text": ""}
+
         with open(temp_audio_path, "rb") as file:
+            audio_bytes = file.read()
             transcription = client.audio.transcriptions.create(
-                file=(audio.filename or "recording.webm", file.read()),
+                file=(audio.filename or "recording.webm", audio_bytes),
                 model="whisper-large-v3-turbo",
                 language="en",
-                prompt="Library inquiry regarding books, authors, rack locations, shelf availability, and 3D campus navigation.",
+                prompt="Library books, catalog search, rack numbers, shelf availability, author, ISBN.",
                 response_format="json",
                 temperature=0.0
             )
         
         result_text = (transcription.text or "").strip()
-        print(f"[TRANSCRIBE] Whisper result: '{result_text}'")
+        
+        # Filter known Whisper silence hallucinations and prompt repetitions
+        normalized = result_text.lower().strip().rstrip(".,!?")
+        hallucination_phrases = [
+            "library inquiry",
+            "important part of the program",
+            "thanks for watching",
+            "thank you for watching",
+            "subtitles by",
+            "amara.org",
+            "subscribe",
+            "watching",
+            "thank you.",
+            "thank you",
+            "you",
+            "bye",
+            "goodbye."
+        ]
+        
+        # If the transcript matches a hallucination exactly or is empty, return empty
+        if not result_text or normalized in hallucination_phrases or any(h in normalized for h in ["library inquiry is a", "important part of the program", "subtitles by", "amara.org"]):
+            print(f"[TRANSCRIBE] Filtered out silence/hallucination transcript: '{result_text}'")
+            return {"text": ""}
+
+        print(f"[TRANSCRIBE] Whisper valid result: '{result_text}'")
         return {"text": result_text}
     except Exception as e:
         print(f"[TRANSCRIBE] Error: {e}")
