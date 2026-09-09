@@ -454,25 +454,19 @@ const LoginPage = () => {
         {showGuestCards && guests.length > 0 && (
           <section className="w-full bg-slate-900/90 backdrop-blur-2xl rounded-[1.5rem] sm:rounded-[2rem] border border-pink-500/40 shadow-2xl shadow-pink-950/40 p-4 sm:p-6 relative overflow-hidden flex flex-col shrink-0 animate-fade-in-scale">
             
-            {/* Header with VIP Badge */}
-            <div className="flex items-center justify-between mb-4 shrink-0 pb-3 border-b border-slate-800/80">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3 shrink-0 pb-2.5 border-b border-slate-800/80">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-pink-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-pink-500/30 shrink-0">
-                  <HeartHandshake size={18} />
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-gradient-to-tr from-pink-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-pink-500/30 shrink-0">
+                  <HeartHandshake size={17} />
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-black text-white tracking-tight flex items-center gap-2">
                     <span>Distinguished Guest Access</span>
                     <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-ping" />
                   </h3>
-                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium mt-0.5">
-                    Tap your guest card to enter with your personalized voice AI greeting
-                  </p>
                 </div>
               </div>
-              <span className="text-[10px] font-extrabold text-pink-300 bg-pink-950/90 border border-pink-700/70 px-3 py-1 rounded-full uppercase tracking-widest shadow-xs shrink-0">
-                VIP Access Active
-              </span>
             </div>
 
             {/* Guest Cards Grid */}
@@ -520,12 +514,8 @@ const LoginPage = () => {
                     </div>
 
                     {/* Bottom CTA Bar */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5 group-hover:text-pink-300 transition-colors truncate">
-                        <Volume2 size={13} className="text-pink-400 shrink-0" />
-                        <span className="truncate">Spoken Welcome Greeting Ready</span>
-                      </span>
-                      <div className="px-3.5 py-1.5 rounded-xl bg-pink-600/30 group-hover:bg-pink-600 text-pink-200 group-hover:text-white text-xs font-bold transition-all shadow-md group-hover:shadow-pink-600/30 flex items-center gap-1.5 shrink-0">
+                    <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-end">
+                      <div className="px-4 py-1.5 rounded-xl bg-pink-600/30 group-hover:bg-pink-600 text-pink-200 group-hover:text-white text-xs font-bold transition-all shadow-md group-hover:shadow-pink-600/30 flex items-center gap-1.5 shrink-0">
                         <span>{guestLoadingId === guest.id ? 'Entering...' : 'Tap to Enter'}</span>
                         <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
                       </div>

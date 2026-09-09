@@ -187,6 +187,8 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
     setZoom(newZoom);
   };
 
+  const rafRef = useRef(null);
+
   // Pointer Down (Pan vs Select)
   const handlePointerDown = (e) => {
     if (e.target.id === 'canvas-bg' || e.target.tagName === 'svg') {
@@ -197,50 +199,57 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
   };
 
   const handlePointerMove = (e) => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const coords = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
-      setMousePos(coords);
-    }
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    if (isPanning) {
-      setPan({
-        x: e.clientX - panStartRef.current.x,
-        y: e.clientY - panStartRef.current.y
-      });
-    } else if (draggingId) {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+
+    rafRef.current = requestAnimationFrame(() => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        const mouseWorld = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
-        const newX = applySnap(mouseWorld.x - dragOffset.x);
-        const newZ = applySnap(mouseWorld.z - dragOffset.z);
+        const coords = screenToWorld(clientX - rect.left, clientY - rect.top);
+        setMousePos(coords);
 
-        setConfig(prev => {
-          const next = { ...prev };
-          const layout = { ...next.custom_layout };
-          
-          if (selectedType === 'rack' && layout.racks && layout.racks[draggingId]) {
-            layout.racks[draggingId] = {
-              ...layout.racks[draggingId],
-              x: newX,
-              z: newZ
-            };
-          } else if (selectedType === 'poi' && layout.pois) {
-            layout.pois = layout.pois.map(p => {
-              if (p.id === draggingId) {
-                return { ...p, x: newX, z: newZ };
-              }
-              return p;
-            });
-          }
-          next.custom_layout = layout;
-          return next;
-        });
+        if (isPanning) {
+          setPan({
+            x: clientX - panStartRef.current.x,
+            y: clientY - panStartRef.current.y
+          });
+        } else if (draggingId) {
+          const newX = applySnap(coords.x - dragOffset.x);
+          const newZ = applySnap(coords.z - dragOffset.z);
+
+          setConfig(prev => {
+            const layout = { ...prev.custom_layout };
+            
+            if (selectedType === 'rack' && layout.racks && layout.racks[draggingId]) {
+              const cur = layout.racks[draggingId];
+              if (cur.x === newX && cur.z === newZ) return prev;
+              layout.racks = {
+                ...layout.racks,
+                [draggingId]: { ...cur, x: newX, z: newZ }
+              };
+            } else if (selectedType === 'poi' && layout.pois) {
+              let changed = false;
+              layout.pois = layout.pois.map(p => {
+                if (p.id === draggingId) {
+                  if (p.x === newX && p.z === newZ) return p;
+                  changed = true;
+                  return { ...p, x: newX, z: newZ };
+                }
+                return p;
+              });
+              if (!changed) return prev;
+            }
+            return { ...prev, custom_layout: layout };
+          });
+        }
       }
-    }
+    });
   };
 
   const handlePointerUp = () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
     setIsPanning(false);
     setDraggingId(null);
   };

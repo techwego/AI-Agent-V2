@@ -712,48 +712,6 @@ const VoiceAssistant = () => {
       </header>
 
       {/* ========================================================================= */}
-      {/* VIP DISTINGUISHED GUEST WELCOME BANNER (Rendered when guest is active)    */}
-      {/* ========================================================================= */}
-      {guestData && (
-        <div className="bg-gradient-to-r from-pink-950/90 via-slate-900/95 to-purple-950/90 border-b border-pink-500/40 px-3 sm:px-6 py-2 z-15 shrink-0 shadow-lg animate-fade-in-scale">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl p-0.5 bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 shadow-md shadow-pink-500/30 shrink-0">
-                <div className="w-full h-full rounded-[14px] overflow-hidden bg-slate-950 flex items-center justify-center">
-                  {guestData.image_url ? (
-                    <img src={guestData.image_url} alt={guestData.name} className="w-full h-full object-cover object-top" />
-                  ) : (
-                    <span className="font-black text-pink-300 text-base">{guestData.name?.charAt(0)}</span>
-                  )}
-                </div>
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-pink-300 bg-pink-950 border border-pink-700/60 px-2 py-0.5 rounded-md shadow-xs">
-                    VIP Distinguished Dignitary
-                  </span>
-                </div>
-                <h2 className="text-xs sm:text-sm font-black text-white truncate mt-0.5">
-                  Welcome to {systemProfile.library_name || 'Anna University Central Library'}, {guestData.name}
-                </h2>
-                {guestData.about && (
-                  <p className="text-[10px] sm:text-[11px] text-indigo-200 truncate font-medium">
-                    {guestData.about}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-[10px] font-extrabold text-pink-300 bg-pink-500/15 border border-pink-500/30 shadow-xs flex items-center gap-1.5">
-                <HeartHandshake size={13} className="text-pink-400" />
-                <span>VIP Session</span>
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
       {/* 2. MAIN CENTER AREA: Dedicated Voice or Chat Assistant */}
       {/* ========================================================================= */}
       <main className="flex-1 flex overflow-hidden relative max-w-7xl w-full mx-auto px-3 sm:px-6 py-2 sm:py-3 z-10">
@@ -769,14 +727,30 @@ const VoiceAssistant = () => {
               
               {/* Single Top Title Banner */}
               {guestData ? (
-                <div className="flex flex-col items-center text-center gap-1 shrink-0 mb-2 animate-fade-in-scale">
-                  <div className="inline-flex items-center gap-1.5 px-3.5 py-0.5 rounded-full bg-pink-950/80 border border-pink-500/40 text-pink-300 text-[10px] font-bold shadow-md backdrop-blur-md">
-                    <HeartHandshake size={12} className="text-pink-400" />
-                    <span>Distinguished Guest Welcome · {guestData.name}</span>
+                <div className="flex flex-col items-center text-center gap-2 shrink-0 mb-3 animate-fade-in-scale">
+                  {/* High-Definition Center Guest Portrait */}
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-1 bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 shadow-xl shadow-pink-500/30 shrink-0">
+                    <div className="w-full h-full rounded-[14px] overflow-hidden bg-slate-950 flex items-center justify-center">
+                      {guestData.image_url ? (
+                        <img 
+                          src={guestData.image_url} 
+                          alt={guestData.name} 
+                          className="w-full h-full object-cover object-top brightness-105 contrast-105 select-none" 
+                        />
+                      ) : (
+                        <span className="font-black text-pink-300 text-xl">{guestData.name?.charAt(0)}</span>
+                      )}
+                    </div>
                   </div>
+
                   <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-tight">
-                    Welcome to {systemProfile.library_name || 'Central Library'}, {guestData.name}!
+                    Welcome to {systemProfile.library_name || 'Anna University Central Library'}, {guestData.name}!
                   </h2>
+                  {guestData.about && (
+                    <p className="text-xs sm:text-sm text-indigo-200 font-semibold max-w-xl">
+                      {guestData.about}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center text-center gap-1 shrink-0 mb-2">
@@ -1133,7 +1107,7 @@ const VoiceAssistant = () => {
 
             {/* Turn-by-Turn Guidance Overlay */}
             {routeSteps.length > 0 && (
-              <div className="absolute bottom-16 sm:bottom-6 left-3 sm:left-6 max-w-sm bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3.5 shadow-xl z-20 space-y-1.5">
+              <div className="absolute bottom-6 left-3 sm:left-6 max-w-sm bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3.5 shadow-xl z-20 space-y-1.5">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-400 uppercase tracking-wider font-mono">
                   <Navigation size={13} /> Route Instructions
                 </div>
@@ -1147,26 +1121,6 @@ const VoiceAssistant = () => {
                 </div>
               </div>
             )}
-
-            {/* Quick Ask AI Chat Bar inside the Map */}
-            <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-3">
-              <form onSubmit={(e) => handleTextSend(e, fsInput)} className="flex gap-2 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-700/80 shadow-xl">
-                <input
-                  type="text"
-                  value={fsInput}
-                  onChange={(e) => setFsInput(e.target.value)}
-                  placeholder={`Ask ${systemProfile.agent_name || 'Assistant'} for directions to any book or rack...`}
-                  className="flex-1 bg-transparent px-3 py-1.5 text-xs text-slate-100 placeholder-slate-400 focus:outline-none font-medium"
-                />
-                <button
-                  type="submit"
-                  disabled={!fsInput.trim()}
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-30 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center gap-1 active:scale-[0.97]"
-                >
-                  <Send size={12} /> Send
-                </button>
-              </form>
-            </div>
           </div>
 
         </div>
