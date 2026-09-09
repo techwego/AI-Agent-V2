@@ -182,9 +182,11 @@ const VoiceAssistant = () => {
       stateManager.setState(State.PROCESSING);
     });
 
-    // When TTS starts speaking out loud, transition state to SPEAKING
+    // When TTS starts speaking out loud, transition state to SPEAKING (unless currently INTRODUCING)
     ttsManager.onStartSpeaking(() => {
-      stateManager.setState(State.SPEAKING);
+      if (stateManager.getState() !== State.INTRODUCING) {
+        stateManager.setState(State.SPEAKING);
+      }
     });
 
     sttManager.onTranscription((text) => {
