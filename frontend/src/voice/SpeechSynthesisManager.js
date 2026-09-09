@@ -302,7 +302,7 @@ class SpeechSynthesisManager {
       }
 
       const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.rate = 1.05; // Natural, fluent conversational tempo
+      utterance.rate = 1.10; // Fast, energetic and natural speaking cadence (v2 tone)
       utterance.pitch = 1.0; // Warm, natural authentic tone
 
       const selectedVoice = this.findBestMatchingVoice(cleanText);

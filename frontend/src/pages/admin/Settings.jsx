@@ -7,40 +7,31 @@ import {
 import { useToast } from '../../components/Toast';
 import ttsManager from '../../voice/SpeechSynthesisManager';
 
-// Curated Feel-Good, Indian Tamil & English Voice Personas
+// Curated Distinct, Unique Voice Personas (Microsoft Natural & Google)
 const CURATED_VOICES = [
   {
-    group: '🇮🇳 Tamil Voice Agents (தமிழ் · Microsoft Natural & Google)',
+    group: '⭐ Default Natural Voice (Fast, Warm & Fluent)',
     options: [
-      { id: 'ta-IN-Pallavi', name: 'Microsoft Pallavi (Tamil Female · Natural & Warm)', desc: 'Official Microsoft Tamil India Natural Voice (Recommended)' },
-      { id: 'ta-IN-Valluvar', name: 'Microsoft Valluvar (Tamil Male · Clear & Authoritative)', desc: 'Official Microsoft Tamil India Natural Male Voice' },
-      { id: 'ta-LK-Saranya', name: 'Microsoft Saranya (Tamil Female · Sri Lanka Natural)', desc: 'Official Microsoft Tamil Sri Lanka Natural Voice' },
-      { id: 'ta-LK-Kumar', name: 'Microsoft Kumar (Tamil Male · Sri Lanka Clear)', desc: 'Official Microsoft Tamil Sri Lanka Male Voice' },
-      { id: 'ta-IN-Anbu', name: 'Microsoft Anbu (Tamil Male · Conversational)', desc: 'Microsoft Tamil Conversational Voice' },
-      { id: 'ta-IN-Google', name: 'Google தமிழ் (Tamil India · Natural Expressive)', desc: 'Google Chrome Tamil India Natural Voice' }
+      { id: 'ta-IN-Pallavi', name: 'Microsoft Pallavi (Natural · Tamil & Indian Warm Tone)', desc: 'Official Microsoft Natural Voice — Fast, Warm & Natural Tone (Default Recommended)' }
     ]
   },
   {
-    group: '🇮🇳 Indian English (Female & Feel-Good)',
+    group: '🇮🇳 Indian & Regional Personas (Distinct Authentic Tones)',
     options: [
-      { id: 'en-IN-Pallavi', name: 'Microsoft Pallavi (Indian English Female · Natural & Warm)', desc: 'Official Microsoft Indian English Natural Voice' },
-      { id: 'en-IN-Neerja', name: 'Microsoft Neerja (Indian English Female · Natural & Crisp)', desc: 'Clear South Asian academic tone' },
-      { id: 'en-IN-Heera', name: 'Microsoft Heera (Indian English Female · Clear & Articulate)', desc: 'Crisp, articulate library assistant' },
-      { id: 'en-IN-Swara', name: 'Microsoft Swara (Indian English Female · Expressive & Friendly)', desc: 'Modern, engaging Indian university guide' },
-      { id: 'en-IN-Priya', name: 'Priya (Indian English Female · Calm & Helpful)', desc: 'Gentle, clear and helpful assistant' },
-      { id: 'en-IN-Kavya', name: 'Kavya (Indian English Female · Professional)', desc: 'Fluent, friendly campus guide' }
+      { id: 'en-IN-Neerja', name: 'Microsoft Neerja (Indian English · Crisp & Academic)', desc: 'Clear South Asian academic tone' },
+      { id: 'ta-IN-Valluvar', name: 'Microsoft Valluvar (Tamil · Deep Authoritative Male)', desc: 'Distinctive natural Tamil male voice' },
+      { id: 'ta-IN-Google', name: 'Google தமிழ் (Tamil · Natural Chrome Voice)', desc: 'Google Chrome Tamil synthesis' }
     ]
   },
   {
-    group: '🌍 International Feel-Good Personas (Female)',
+    group: '🌍 International Natural Personas (Distinct Voices)',
     options: [
-      { id: 'Google US English', name: 'Google US English (Chrome Female · Crisp & Clear)', desc: 'Official Google Chrome Clear Voice (Recommended)' },
-      { id: 'Microsoft Zira', name: 'Microsoft Zira (Windows Female · Natural & Clear)', desc: 'Official Windows Natural Clear Voice' },
-      { id: 'en-US-Jenny', name: 'Microsoft Jenny (US Female · Warm & Cheerful)', desc: 'Upbeat and supportive assistant' },
-      { id: 'en-US-Aria', name: 'Microsoft Aria (US Female · Friendly & Modern)', desc: 'Smooth, highly natural AI companion' },
-      { id: 'en-GB-Sonia', name: 'Microsoft Sonia (UK Female · Formal & Elegant)', desc: 'Polished British academic accent' },
-      { id: 'en-GB-Libby', name: 'Microsoft Libby (UK Female · Melodic & Calm)', desc: 'Soothing, gentle storyteller tone' },
-      { id: 'en-AU-Natasha', name: 'Microsoft Natasha (Australian Female · Clear)', desc: 'Clear, modern international accent' }
+      { id: 'Microsoft Zira', name: 'Microsoft Zira (US Female · Clear & Articulate)', desc: 'Windows Built-in Crisp Clear Female' },
+      { id: 'Google US English', name: 'Google US English (US Female · Smooth & Natural)', desc: 'Google Chrome Built-in Natural Female' },
+      { id: 'en-US-Jenny', name: 'Microsoft Jenny (US Female · Warm & Cheerful)', desc: 'Modern expressive natural voice' },
+      { id: 'en-US-Aria', name: 'Microsoft Aria (US Female · Confident & Modern)', desc: 'Polished conversational companion' },
+      { id: 'en-US-Guy', name: 'Microsoft Guy (US Male · Natural & Friendly)', desc: 'Modern professional male tone' },
+      { id: 'en-GB-Sonia', name: 'Microsoft Sonia (UK Female · British Academic)', desc: 'Polished British accent' }
     ]
   }
 ];
