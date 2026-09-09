@@ -469,18 +469,18 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Guest Cards Grid */}
-            <div className={`grid gap-4 ${
-              guests.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'
-            }`}>
+            {/* Guest Cards Single Horizontal Row */}
+            <div className="flex flex-row items-stretch gap-3 sm:gap-4 overflow-x-auto pb-1.5 pt-0.5 custom-scrollbar snap-x snap-mandatory flex-nowrap">
               {guests.map((guest) => (
                 <div
                   key={guest.id}
                   onClick={() => handleGuestCardClick(guest)}
-                  className="group relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-850 via-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 border border-slate-700/80 hover:border-pink-500/60 transition-all duration-300 shadow-xl hover:shadow-pink-500/20 cursor-pointer flex flex-col sm:flex-row items-center sm:items-stretch gap-4 sm:gap-5 active:scale-[0.98]"
+                  className={`group relative p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-850 via-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 border border-slate-700/80 hover:border-pink-500/60 transition-all duration-300 shadow-xl hover:shadow-pink-500/20 cursor-pointer flex items-center gap-3.5 sm:gap-4 active:scale-[0.98] snap-start shrink-0 ${
+                    guests.length <= 2 ? 'flex-1 min-w-[260px]' : 'w-[280px] sm:w-[320px]'
+                  }`}
                 >
                   {/* High-Definition Guest Portrait Photo */}
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl p-1 bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 shadow-lg shadow-pink-500/25 shrink-0 group-hover:scale-105 group-hover:rotate-1 transition-all duration-300">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-1 bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 shadow-lg shadow-pink-500/25 shrink-0 group-hover:scale-105 group-hover:rotate-1 transition-all duration-300">
                     <div className="w-full h-full rounded-[14px] overflow-hidden bg-slate-950 flex items-center justify-center">
                       {guest.image_url ? (
                         <img 
@@ -498,26 +498,26 @@ const LoginPage = () => {
                   </div>
 
                   {/* Guest Information & Greeting Action */}
-                  <div className="flex-1 flex flex-col justify-between text-center sm:text-left min-w-0">
+                  <div className="flex-1 flex flex-col justify-between min-w-0 h-full py-0.5">
                     <div>
-                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-pink-500/15 border border-pink-500/30 text-pink-300 text-[10px] font-extrabold uppercase tracking-wider mb-1">
+                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-pink-500/15 border border-pink-500/30 text-pink-300 text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider mb-1">
                         <span>VIP Dignitary</span>
                       </div>
-                      <h4 className="text-base sm:text-lg font-black text-white group-hover:text-pink-200 transition-colors truncate">
+                      <h4 className="text-sm sm:text-base font-black text-white group-hover:text-pink-200 transition-colors truncate">
                         {guest.name}
                       </h4>
                       {guest.about && (
-                        <p className="text-xs text-indigo-200 font-semibold truncate mt-0.5">
+                        <p className="text-[11px] sm:text-xs text-indigo-200 font-semibold truncate mt-0.5">
                           {guest.about}
                         </p>
                       )}
                     </div>
 
                     {/* Bottom CTA Bar */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-end">
-                      <div className="px-4 py-1.5 rounded-xl bg-pink-600/30 group-hover:bg-pink-600 text-pink-200 group-hover:text-white text-xs font-bold transition-all shadow-md group-hover:shadow-pink-600/30 flex items-center gap-1.5 shrink-0">
+                    <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-end">
+                      <div className="px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl bg-pink-600/30 group-hover:bg-pink-600 text-pink-200 group-hover:text-white text-[11px] sm:text-xs font-bold transition-all shadow-md group-hover:shadow-pink-600/30 flex items-center gap-1.5 shrink-0">
                         <span>{guestLoadingId === guest.id ? 'Entering...' : 'Tap to Enter'}</span>
-                        <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>
                   </div>

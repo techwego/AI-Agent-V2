@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   X, Save, RotateCw, Trash2, Plus, Move, ZoomIn, ZoomOut, Maximize2, 
   Grid, MapPin, Layers, DoorOpen, ArrowUpDown, Undo2, Check, AlertCircle, 
-  Sparkles, PlusCircle, CheckCircle2, LogOut, Radio, Search, Disc, Monitor
+  Sparkles, PlusCircle, CheckCircle2, LogOut, Radio, Search, Disc, Monitor, Info
 } from 'lucide-react';
 
 const SNAP_STEP = 1.0; // Snap to 1 meter increments
@@ -499,6 +499,38 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
     setAddModalType(null);
   };
 
+  // Open Add Info Desk Dialog
+  const openAddInfoModal = (customCoord = null) => {
+    setNewPoiName(`Info & Help Desk Floor ${activeFloor}`);
+    setSpawnCoord(customCoord || { x: mousePos.x || 0, z: mousePos.z || -2 });
+    setAddModalType('info_table');
+  };
+
+  // Confirm Add Info Desk
+  const handleConfirmAddInfo = () => {
+    const name = newPoiName.trim() || `Info & Help Desk Floor ${activeFloor}`;
+    const newPoi = {
+      id: `info_${Date.now()}`,
+      type: 'info_table',
+      floor: activeFloor,
+      name,
+      x: applySnap(spawnCoord.x || 0),
+      z: applySnap(spawnCoord.z || -2),
+      rotation: 0
+    };
+
+    setConfig(prev => ({
+      ...prev,
+      custom_layout: {
+        ...(prev.custom_layout || {}),
+        pois: [...(prev.custom_layout?.pois || []), newPoi]
+      }
+    }));
+    setSelectedId(newPoi.id);
+    setSelectedType('poi');
+    setAddModalType(null);
+  };
+
   // Open Add Circular Table Dialog
   const openAddTableModal = (customCoord = null) => {
     setNewPoiName(`Circular Table Floor ${activeFloor}`);
@@ -819,6 +851,21 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
               </div>
             )}
 
+            {addModalType === 'info_table' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Information & Help Desk Name</label>
+                  <input
+                    type="text"
+                    value={newPoiName}
+                    onChange={(e) => setNewPoiName(e.target.value)}
+                    placeholder="e.g. Information & Reception Desk 1"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
+                  />
+                </div>
+              </div>
+            )}
+
             {addModalType === 'circular_table' && (
               <div className="space-y-3">
                 <div>
@@ -873,6 +920,7 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
                   if (addModalType === 'rack') handleConfirmAddRack();
                   else if (addModalType === 'entrance') handleConfirmAddEntrance();
                   else if (addModalType === 'exit') handleConfirmAddExit();
+                  else if (addModalType === 'info_table') handleConfirmAddInfo();
                   else if (addModalType === 'rfid_kiosk') handleConfirmAddRfid();
                   else if (addModalType === 'opac_kiosk') handleConfirmAddOpac();
                   else if (addModalType === 'circular_table') handleConfirmAddTable();
@@ -954,6 +1002,14 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
               title="Add Exit Door"
             >
               <LogOut size={13} /> + Exit
+            </button>
+
+            <button
+              onClick={() => openAddInfoModal()}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 flex items-center gap-1 transition-all"
+              title="Add Information & Reception Desk"
+            >
+              <Info size={13} /> + Info Desk
             </button>
 
             <button
@@ -1055,8 +1111,15 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
           </button>
 
           <button
-            onClick={() => openAddStairsModal()}
+            onClick={() => openAddInfoModal()}
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-all shadow-sm active:scale-95"
+          >
+            <Info size={14} /> + Info Desk
+          </button>
+
+          <button
+            onClick={() => openAddStairsModal()}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-all shadow-sm active:scale-95"
           >
             <ArrowUpDown size={14} /> + Stairs
           </button>
@@ -1218,6 +1281,9 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
             if (poi.type === 'exit') {
               icon = <LogOut size={14} className="text-rose-600 shrink-0" />;
               badgeClass = isSelected ? 'bg-rose-50 border-2 border-rose-600 ring-4 ring-rose-500/20 shadow-md text-rose-900' : 'bg-rose-50 border border-rose-300 text-rose-800';
+            } else if (poi.type === 'info_table' || poi.type === 'help_desk') {
+              icon = <Info size={14} className="text-amber-600 shrink-0" />;
+              badgeClass = isSelected ? 'bg-amber-50 border-2 border-amber-600 ring-4 ring-amber-500/20 shadow-md text-amber-900' : 'bg-amber-50 border border-amber-300 text-amber-800';
             } else if (poi.type === 'rfid_kiosk') {
               icon = <Radio size={14} className="text-cyan-600 shrink-0" />;
               badgeClass = isSelected ? 'bg-cyan-50 border-2 border-cyan-600 ring-4 ring-cyan-500/20 shadow-md text-cyan-900' : 'bg-cyan-50 border border-cyan-300 text-cyan-800';

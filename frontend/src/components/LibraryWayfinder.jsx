@@ -1231,150 +1231,273 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
            
             if (n.type === 'entrance') {
                 const entranceGroup = new THREE.Group();
-                // Enterprise RFID Security Gate Pedestals (Left & Right)
-                const gateGeo = new THREE.BoxGeometry(0.12, 1.6, 0.45);
-                const gateMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.2 });
-                const acrylicMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.6, roughness: 0.1 });
-                const ledMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
-
-                [-1.1, 1.1].forEach(gx => {
-                  const post = new THREE.Mesh(gateGeo, gateMat);
-                  post.position.set(gx, 0.8, 0);
+                
+                // Architectural Open Portal Gateway Posts (Always Open Portal)
+                const postMat = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.7, roughness: 0.3 });
+                [-1.35, 1.35].forEach(gx => {
+                  const post = new THREE.Mesh(new THREE.BoxGeometry(0.18, 3.2, 0.45), postMat);
+                  post.position.set(gx, 1.6, 0);
                   entranceGroup.add(post);
-
-                  const acrylic = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.4, 0.35), acrylicMat);
-                  acrylic.position.set(gx, 0.8, 0);
-                  entranceGroup.add(acrylic);
-
-                  const led = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 0.46), ledMat);
-                  led.position.set(gx, 1.61, 0);
+                  // Vertical Golden LED Accent Strip
+                  const led = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.8, 0.04), new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
+                  led.position.set(gx > 0 ? gx - 0.08 : gx + 0.08, 1.5, 0.23);
                   entranceGroup.add(led);
                 });
 
-                // Glass Double Doors
-                const glassMat = new THREE.MeshStandardMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.35, roughness: 0.1 });
-                const handleMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.2 });
-                
-                const leftGlass = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.2, 0.04), glassMat);
-                leftGlass.position.set(-0.5, 1.1, 0.2);
-                leftGlass.rotation.y = 0.35;
-                entranceGroup.add(leftGlass);
-
-                const rightGlass = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.2, 0.04), glassMat);
-                rightGlass.position.set(0.5, 1.1, 0.2);
-                rightGlass.rotation.y = -0.35;
-                entranceGroup.add(rightGlass);
-
-                // Stainless Steel Overhead Arch Canopy
-                const archGeo = new THREE.BoxGeometry(2.6, 0.15, 0.4);
-                const archMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.3 });
-                const arch = new THREE.Mesh(archGeo, archMat);
-                arch.position.set(0, 2.6, 0);
+                // Top Cross Arch Header
+                const arch = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.22, 0.45), postMat);
+                arch.position.set(0, 3.1, 0);
                 entranceGroup.add(arch);
 
-                // Emerald glowing threshold portal on floor
+                // Reference-Style Hanging Directional Signboard (Yellow Tab + ENTRANCE + Arrow)
+                const signCanvas = document.createElement('canvas');
+                signCanvas.width = 512;
+                signCanvas.height = 128;
+                const sCtx = signCanvas.getContext('2d');
+                sCtx.fillStyle = '#18181b';
+                sCtx.beginPath(); sCtx.roundRect(0, 0, 512, 128, 24); sCtx.fill();
+                sCtx.fillStyle = '#f59e0b';
+                sCtx.beginPath(); sCtx.roundRect(0, 0, 130, 128, [24, 0, 0, 24]); sCtx.fill();
+                sCtx.fillStyle = '#18181b';
+                sCtx.font = 'bold 50px sans-serif';
+                sCtx.textAlign = 'center';
+                sCtx.textBaseline = 'middle';
+                sCtx.fillText('🚪', 65, 64);
+                sCtx.fillStyle = '#ffffff';
+                sCtx.font = 'bold 44px sans-serif';
+                sCtx.textAlign = 'left';
+                sCtx.fillText((n.label || 'Entrance').toUpperCase(), 155, 64);
+                sCtx.fillStyle = '#f59e0b';
+                sCtx.font = 'bold 52px sans-serif';
+                sCtx.textAlign = 'right';
+                sCtx.fillText('➔', 485, 64);
+
+                const signTex = new THREE.CanvasTexture(signCanvas);
+                const signMesh = new THREE.Mesh(
+                  new THREE.BoxGeometry(2.5, 0.65, 0.08),
+                  new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.3 })
+                );
+                signMesh.position.set(0, 2.5, 0);
+                entranceGroup.add(signMesh);
+
+                // Always Open Wide Glass Wing Accents (Folded to sides)
+                const glassMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.35, roughness: 0.1 });
+                const leftGlass = new THREE.Mesh(new THREE.BoxGeometry(0.75, 2.6, 0.04), glassMat);
+                leftGlass.position.set(-1.0, 1.4, 0.35);
+                leftGlass.rotation.y = Math.PI / 3;
+                entranceGroup.add(leftGlass);
+
+                const rightGlass = new THREE.Mesh(new THREE.BoxGeometry(0.75, 2.6, 0.04), glassMat);
+                rightGlass.position.set(1.0, 1.4, 0.35);
+                rightGlass.rotation.y = -Math.PI / 3;
+                entranceGroup.add(rightGlass);
+
+                // Emerald glowing threshold passage on floor
                 const threshGeo = new THREE.PlaneGeometry(2.4, 1.4);
-                const threshMat = new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+                const threshMat = new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.45, side: THREE.DoubleSide });
                 const thresh = new THREE.Mesh(threshGeo, threshMat);
                 thresh.rotation.x = -Math.PI / 2;
                 thresh.position.set(0, 0.03, 0);
                 entranceGroup.add(thresh);
 
-                // Overhead neon badge
-                const entranceText = (n.label || 'MAIN ENTRANCE').toUpperCase();
-                const pinLabel = makeLabel(entranceText, { bg: '#064e3b', fg: '#34d399', scale: 0.75 });
-                pinLabel.position.y = 3.2;
-                entranceGroup.add(pinLabel);
                 entranceGroup.position.set(n.x, n.y, n.z);
+                if (n.rotation) entranceGroup.rotation.y = (n.rotation * Math.PI) / 180;
                 scene.add(entranceGroup);
             } else if (n.type === 'exit') {
                 const exitGroup = new THREE.Group();
-                // Anthracite Metallic Door Frame
-                const frameMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.5, roughness: 0.4 });
-                const frameTop = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.16, 0.2), frameMat);
-                frameTop.position.set(0, 2.4, 0);
-                exitGroup.add(frameTop);
-                [-1.15, 1.15].forEach(fx => {
-                  const sidePost = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.4, 0.2), frameMat);
-                  sidePost.position.set(fx, 1.2, 0);
-                  exitGroup.add(sidePost);
+                
+                // Architectural Open Exit Portal Posts (Always Open)
+                const postMat = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.7, roughness: 0.3 });
+                [-1.35, 1.35].forEach(gx => {
+                  const post = new THREE.Mesh(new THREE.BoxGeometry(0.18, 3.2, 0.45), postMat);
+                  post.position.set(gx, 1.6, 0);
+                  exitGroup.add(post);
+                  // Red LED Accent Strip
+                  const led = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.8, 0.04), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+                  led.position.set(gx > 0 ? gx - 0.08 : gx + 0.08, 1.5, 0.23);
+                  exitGroup.add(led);
                 });
 
-                // Frosted Emergency Doors with Red Crash Push Bars
-                const exitGlassMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.45, roughness: 0.2 });
-                const crashBarMat = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.4, roughness: 0.3 });
-                [-0.55, 0.55].forEach(dx => {
-                  const door = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.3, 0.05), exitGlassMat);
-                  door.position.set(dx, 1.15, 0);
+                const arch = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.22, 0.45), postMat);
+                arch.position.set(0, 3.1, 0);
+                exitGroup.add(arch);
+
+                // Reference-Style Hanging Directional Exit Signboard (Yellow Tab + EXIT + Running Man)
+                const exitCanvas = document.createElement('canvas');
+                exitCanvas.width = 512;
+                exitCanvas.height = 128;
+                const eCtx = exitCanvas.getContext('2d');
+                eCtx.fillStyle = '#18181b';
+                eCtx.beginPath(); eCtx.roundRect(0, 0, 512, 128, 24); eCtx.fill();
+                eCtx.fillStyle = '#f59e0b';
+                eCtx.beginPath(); eCtx.roundRect(0, 0, 130, 128, [24, 0, 0, 24]); eCtx.fill();
+                eCtx.fillStyle = '#18181b';
+                eCtx.font = 'bold 50px sans-serif';
+                eCtx.textAlign = 'center';
+                eCtx.textBaseline = 'middle';
+                eCtx.fillText('🏃', 65, 64);
+                eCtx.fillStyle = '#ffffff';
+                eCtx.font = 'bold 44px sans-serif';
+                eCtx.textAlign = 'left';
+                eCtx.fillText((n.label || 'Exit').toUpperCase(), 155, 64);
+                eCtx.fillStyle = '#f59e0b';
+                eCtx.font = 'bold 52px sans-serif';
+                eCtx.textAlign = 'right';
+                eCtx.fillText('➔', 485, 64);
+
+                const exitTex = new THREE.CanvasTexture(exitCanvas);
+                const exitSignMesh = new THREE.Mesh(
+                  new THREE.BoxGeometry(2.5, 0.65, 0.08),
+                  new THREE.MeshStandardMaterial({ map: exitTex, roughness: 0.3 })
+                );
+                exitSignMesh.position.set(0, 2.5, 0);
+                exitGroup.add(exitSignMesh);
+
+                // Open Door Wings folded back
+                const exitGlassMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.35, roughness: 0.1 });
+                [-1.0, 1.0].forEach((dx, idx) => {
+                  const door = new THREE.Mesh(new THREE.BoxGeometry(0.75, 2.6, 0.04), exitGlassMat);
+                  door.position.set(dx, 1.4, 0.35);
+                  door.rotation.y = idx === 0 ? Math.PI / 3 : -Math.PI / 3;
                   exitGroup.add(door);
-
-                  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.8, 12), crashBarMat);
-                  bar.rotation.z = Math.PI / 2;
-                  bar.position.set(dx, 1.0, 0.05);
-                  exitGroup.add(bar);
                 });
 
-                // Ruby Glowing Floor Decal
-                const threshGeo = new THREE.PlaneGeometry(2.2, 1.2);
+                // Ruby Glowing Floor Passage
+                const threshGeo = new THREE.PlaneGeometry(2.4, 1.4);
                 const threshMat = new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
                 const thresh = new THREE.Mesh(threshGeo, threshMat);
                 thresh.rotation.x = -Math.PI / 2;
                 thresh.position.set(0, 0.03, 0);
                 exitGroup.add(thresh);
 
-                // Overhead Illuminated Emergency Exit Sign Box
-                const signBoxGeo = new THREE.BoxGeometry(1.2, 0.35, 0.12);
-                const signBoxMat = new THREE.MeshStandardMaterial({ color: 0x064e3b, emissive: 0x10b981, emissiveIntensity: 0.6 });
-                const signBox = new THREE.Mesh(signBoxGeo, signBoxMat);
-                signBox.position.set(0, 2.7, 0);
-                exitGroup.add(signBox);
-
-                const exitLabel = makeLabel((n.label || 'EMERGENCY EXIT').toUpperCase(), { bg: '#881337', fg: '#fda4af', scale: 0.7 });
-                exitLabel.position.y = 3.3;
-                exitGroup.add(exitLabel);
                 exitGroup.position.set(n.x, n.y, n.z);
+                if (n.rotation) exitGroup.rotation.y = (n.rotation * Math.PI) / 180;
                 scene.add(exitGroup);
+            } else if (n.type === 'info_table' || n.type === 'help_desk') {
+                // ── Reference-Exact Curved Modern INFO Counter ──
+                const infoGroup = new THREE.Group();
+                
+                // Front Curved Matte Black Counter Facade with "INFO" Typography
+                const infoCanvas = document.createElement('canvas');
+                infoCanvas.width = 512;
+                infoCanvas.height = 256;
+                const iCtx = infoCanvas.getContext('2d');
+                iCtx.fillStyle = '#18181b';
+                iCtx.fillRect(0, 0, 512, 256);
+                iCtx.fillStyle = '#ffffff';
+                iCtx.font = '900 130px sans-serif';
+                iCtx.textAlign = 'center';
+                iCtx.textBaseline = 'middle';
+                iCtx.fillText('INFO', 256, 128);
+                const infoTex = new THREE.CanvasTexture(infoCanvas);
+
+                // Outer U-Shape Counter Base
+                const counterMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.4, metalness: 0.2 });
+                const frontBase = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.05, 0.5), counterMat);
+                frontBase.position.set(0, 0.525, 0.5);
+                infoGroup.add(frontBase);
+
+                // Front "INFO" Decal Plate
+                const infoPlate = new THREE.Mesh(
+                  new THREE.PlaneGeometry(2.1, 0.85),
+                  new THREE.MeshBasicMaterial({ map: infoTex, transparent: true })
+                );
+                infoPlate.position.set(0, 0.525, 0.76);
+                infoGroup.add(infoPlate);
+
+                // Left & Right Curved Return Wings
+                [-1.1, 1.1].forEach(wx => {
+                  const wing = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.05, 1.2), counterMat);
+                  wing.position.set(wx, 0.525, -0.1);
+                  infoGroup.add(wing);
+                });
+
+                // Honey/Amber Wood Countertop Ledge with Rounded Corners
+                const woodLedgeMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.35, metalness: 0.1 });
+                const mainLedge = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.1, 0.65), woodLedgeMat);
+                mainLedge.position.set(0, 1.1, 0.5);
+                infoGroup.add(mainLedge);
+
+                [-1.15, 1.15].forEach(lx => {
+                  const sideLedge = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.1, 1.3), woodLedgeMat);
+                  sideLedge.position.set(lx, 1.1, -0.15);
+                  infoGroup.add(sideLedge);
+                });
+
+                // Inner Desk Surface for Staff Workstation
+                const innerDesk = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.05, 0.9), new THREE.MeshStandardMaterial({ color: 0x334155 }));
+                innerDesk.position.set(0, 0.75, 0.0);
+                infoGroup.add(innerDesk);
+
+                // Modern Terminal Screen / Tablet on Countertop
+                const tabletGeo = new THREE.BoxGeometry(0.35, 0.25, 0.03);
+                const tabletMat = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, emissive: 0x0ea5e9, emissiveIntensity: 0.5 });
+                const tablet = new THREE.Mesh(tabletGeo, tabletMat);
+                tablet.rotation.x = -0.35;
+                tablet.position.set(0.65, 1.25, 0.5);
+                infoGroup.add(tablet);
+
+                // Modern Ergonomic Office Chair Behind Desk
+                const chairMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.5 });
+                const chairSeat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.5), chairMat);
+                chairSeat.position.set(0, 0.48, -0.5);
+                infoGroup.add(chairSeat);
+
+                const chairBack = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.06), chairMat);
+                chairBack.position.set(0, 0.78, -0.72);
+                infoGroup.add(chairBack);
+
+                const chairLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.45, 12), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9 }));
+                chairLeg.position.set(0, 0.24, -0.5);
+                infoGroup.add(chairLeg);
+
+                // Overhead Floating Badge
+                const infoLabel = makeLabel((n.label || 'INFORMATION & HELP DESK').toUpperCase(), { bg: '#451a03', fg: '#fbbf24', scale: 0.65 });
+                infoLabel.position.y = 2.3;
+                infoGroup.add(infoLabel);
+
+                infoGroup.position.set(n.x, n.y, n.z);
+                if (n.rotation) infoGroup.rotation.y = (n.rotation * Math.PI) / 180;
+                scene.add(infoGroup);
             } else if (n.type === 'rfid_kiosk') {
+                // ── Reference-Exact Standing Directory & RFID Totem ──
                 const rfidGroup = new THREE.Group();
-                // Enterprise 3M Kiosk Sculpted Body (Navy Graphite Metallic)
-                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.7, roughness: 0.3 });
-                const bodyGeo = new THREE.BoxGeometry(0.7, 1.2, 0.5);
-                const body = new THREE.Mesh(bodyGeo, bodyMat);
-                body.position.y = 0.6;
-                rfidGroup.add(body);
+                
+                // Standing Slim Pillar (Black Body with Curved Edges)
+                const totemMat = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.7, roughness: 0.3 });
+                const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.65, 2.1, 0.18), totemMat);
+                pillar.position.y = 1.05;
+                rfidGroup.add(pillar);
 
-                // Horizontal RFID Book Return & Checkout Scan Bed
-                const bedGeo = new THREE.BoxGeometry(0.74, 0.08, 0.45);
-                const bedMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, emissive: 0x0284c7, emissiveIntensity: 0.4, roughness: 0.2 });
-                const bed = new THREE.Mesh(bedGeo, bedMat);
-                bed.position.set(0, 0.95, 0.15);
-                rfidGroup.add(bed);
+                // Yellow Rounded Header Cap (Matching "2 LEVEL" totem in reference image)
+                const headerCap = new THREE.Mesh(
+                  new THREE.BoxGeometry(0.65, 0.32, 0.2),
+                  new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.3 })
+                );
+                headerCap.position.y = 2.05;
+                rfidGroup.add(headerCap);
 
-                // Tilted 24-inch Interactive Touch Console Screen
-                const screenBezelGeo = new THREE.BoxGeometry(0.72, 0.52, 0.04);
-                const screenBezelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9, roughness: 0.2 });
-                const screenBezel = new THREE.Mesh(screenBezelGeo, screenBezelMat);
-                screenBezel.rotation.x = -0.38;
-                screenBezel.position.set(0, 1.42, 0.05);
-                rfidGroup.add(screenBezel);
-
-                const screenDisplayGeo = new THREE.PlaneGeometry(0.66, 0.46);
-                const screenDisplayMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+                // Digital Interactive Screen / Directory Graphic
+                const screenDisplayGeo = new THREE.PlaneGeometry(0.55, 1.25);
+                const screenDisplayMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, emissive: 0x0284c7, emissiveIntensity: 0.45 });
                 const screenDisplay = new THREE.Mesh(screenDisplayGeo, screenDisplayMat);
-                screenDisplay.position.set(0, 0, 0.025);
-                screenBezel.add(screenDisplay);
+                screenDisplay.position.set(0, 1.2, 0.095);
+                rfidGroup.add(screenDisplay);
 
-                // Base Stability Foot Plate
-                const footGeo = new THREE.BoxGeometry(0.85, 0.04, 0.65);
-                const foot = new THREE.Mesh(footGeo, bodyMat);
-                foot.position.y = 0.02;
+                // Base Foot Stator Plate
+                const foot = new THREE.Mesh(
+                  new THREE.BoxGeometry(0.85, 0.05, 0.45),
+                  new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.5 })
+                );
+                foot.position.y = 0.025;
                 rfidGroup.add(foot);
 
-                // Overhead floating neon badge
-                const rfidLabel = makeLabel((n.label || 'RFID SELF-CHECKOUT').toUpperCase(), { bg: '#083344', fg: '#38bdf8', scale: 0.65 });
-                rfidLabel.position.y = 2.05;
+                const rfidLabel = makeLabel((n.label || 'RFID & DIRECTORY TOTEM').toUpperCase(), { bg: '#083344', fg: '#38bdf8', scale: 0.65 });
+                rfidLabel.position.y = 2.45;
                 rfidGroup.add(rfidLabel);
+
                 rfidGroup.position.set(n.x, n.y, n.z);
+                if (n.rotation) rfidGroup.rotation.y = (n.rotation * Math.PI) / 180;
                 scene.add(rfidGroup);
             } else if (n.type === 'opac_kiosk') {
                 const opacGroup = new THREE.Group();
@@ -1408,7 +1531,9 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
                 const opacLabel = makeLabel((n.label || 'OPAC CATALOG TERMINAL').toUpperCase(), { bg: '#1e1b4b', fg: '#a5b4fc', scale: 0.65 });
                 opacLabel.position.y = 2.1;
                 opacGroup.add(opacLabel);
+
                 opacGroup.position.set(n.x, n.y, n.z);
+                if (n.rotation) opacGroup.rotation.y = (n.rotation * Math.PI) / 180;
                 scene.add(opacGroup);
             } else if (n.type === 'circular_table') {
                 const tableGroup = new THREE.Group();
@@ -1470,7 +1595,9 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
                 const tableLabel = makeLabel((n.label || 'COLLABORATION POD').toUpperCase(), { bg: '#451a03', fg: '#fcd34d', scale: 0.6 });
                 tableLabel.position.y = 1.7;
                 tableGroup.add(tableLabel);
+
                 tableGroup.position.set(n.x, n.y, n.z);
+                if (n.rotation) tableGroup.rotation.y = (n.rotation * Math.PI) / 180;
                 scene.add(tableGroup);
             } else if (n.type === 'stairs' && !k.endsWith('_dest')) {
                 const stairGroup = new THREE.Group();
