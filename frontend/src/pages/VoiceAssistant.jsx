@@ -441,6 +441,18 @@ const VoiceAssistant = () => {
         }
       }
 
+      // If full response was completely empty, provide an informative verbal response
+      if (!fullResponse.trim()) {
+        const fallbackMsg = "Could you please specify the book title, author, or rack number you are looking for?";
+        fullResponse = fallbackMsg;
+        setVoiceMessages(prev => {
+          const next = [...prev];
+          next[next.length - 1] = { role: 'assistant', content: fallbackMsg, timestamp: Date.now() };
+          return next;
+        });
+        ttsManager.enqueue(fallbackMsg);
+      }
+
       // Flush remaining speech buffer
       const remainingSpeech = speechBuffer.replace(/<ROUTE_[^>]*>?/gi, '').trim();
       if (remainingSpeech) {
@@ -490,8 +502,21 @@ const VoiceAssistant = () => {
 
     } catch (err) {
       console.error('Stream Voice AI error:', err);
+      const errorMsg = "I had trouble generating a response. Please ask your question again.";
+      setVoiceMessages(prev => {
+        const next = [...prev];
+        if (next.length > 0 && next[next.length - 1].role === 'assistant' && !next[next.length - 1].content) {
+          next[next.length - 1] = { role: 'assistant', content: errorMsg, timestamp: Date.now() };
+          return next;
+        }
+        return [...next, { role: 'assistant', content: errorMsg, timestamp: Date.now() }];
+      });
+      ttsManager.speak(errorMsg, () => {
+        if (stateManager.setState(State.LISTENING)) {
+          sttManager.startListening();
+        }
+      });
       showToast('Failed to generate voice response. Please try again.', 'error');
-      stateManager.setState(State.IDLE);
     }
   }, [showToast]);
 
@@ -929,7 +954,16 @@ const VoiceAssistant = () => {
                           {msg.interim && (
                             <span className="inline-block w-1.5 h-3.5 mr-1 bg-amber-400 animate-pulse align-middle" />
                           )}
-                          {msg.content}
+                          {msg.content ? (
+                            msg.content
+                          ) : (
+                            <span className="flex items-center gap-1.5 text-slate-400 py-0.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce [animation-delay:0.2s]" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce [animation-delay:0.4s]" />
+                              <span className="text-[11px] font-mono text-slate-400 ml-1">Thinking...</span>
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))
