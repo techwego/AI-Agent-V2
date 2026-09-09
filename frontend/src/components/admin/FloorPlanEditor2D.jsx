@@ -66,7 +66,7 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
     }
   }, []);
 
-  // When selected rack changes, initialize temp rack inputs
+  // When selected item changes, initialize temp input values
   useEffect(() => {
     setSidebarSaved(false);
     if (selectedType === 'rack' && selectedId && config.custom_layout?.racks?.[selectedId]) {
@@ -79,6 +79,26 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
         setTempRackName(p.name || p.type);
       }
     }
+  }, [selectedId, selectedType, config.custom_layout]);
+
+  // Keyboard shortcuts (R for rotate, Del for delete, Esc for deselect)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (selectedId && selectedType) {
+        if (e.key === 'r' || e.key === 'R') {
+          e.preventDefault();
+          handleRotate(selectedId, selectedType);
+        } else if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault();
+          handleDelete(selectedId, selectedType);
+        } else if (e.key === 'Escape') {
+          setSelectedId(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedId, selectedType, config.custom_layout]);
 
   // Helper to generate default layout from standard rows x cols
@@ -1238,8 +1258,9 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
             const pos = worldToScreen(rack.x, rack.z);
             const isSelected = selectedId === rack.code && selectedType === 'rack';
             const isDragging = draggingId === rack.code;
+            const rot = rack.rotation || 0;
 
-            const isRotated = (rack.rotation || 0) === 90 || (rack.rotation || 0) === 270;
+            const isRotated = rot === 90 || rot === 270;
             const widthPx = (isRotated ? RACK_DEPTH_M : RACK_WIDTH_M) * zoom;
             const depthPx = (isRotated ? RACK_WIDTH_M : RACK_DEPTH_M) * zoom;
 
@@ -1248,6 +1269,11 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
             return (
               <div
                 key={rack.code}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedId(rack.code);
+                  setSelectedType('rack');
+                }}
                 onPointerDown={(e) => startDragItem(e, rack.code, 'rack', rack.x, rack.z)}
                 style={{
                   left: `${pos.x}px`,
@@ -1263,7 +1289,12 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
                     : 'bg-white border border-slate-300 hover:border-blue-400 hover:shadow-md'
                 }`}
               >
-                <span className="font-mono font-bold text-xs text-blue-700 tracking-tight leading-none">{rack.code}</span>
+                <div className="flex items-center gap-1 leading-none">
+                  <span className="font-mono font-bold text-xs text-blue-700 tracking-tight">{rack.code}</span>
+                  {rot !== 0 && (
+                    <span className="text-[8px] font-mono text-blue-500 bg-blue-100 px-1 rounded">{rot}°</span>
+                  )}
+                </div>
                 <span className="text-[9px] text-slate-500 font-medium truncate max-w-full leading-tight mt-0.5">{displayName}</span>
               </div>
             );
@@ -1274,6 +1305,7 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
             const pos = worldToScreen(poi.x, poi.z);
             const isSelected = selectedId === poi.id && selectedType === 'poi';
             const isDragging = draggingId === poi.id;
+            const rot = poi.rotation || 0;
 
             let icon = <DoorOpen size={14} className="text-emerald-600 shrink-0" />;
             let badgeClass = isSelected ? 'bg-emerald-50 border-2 border-emerald-600 ring-4 ring-emerald-500/20 shadow-md text-emerald-900' : 'bg-emerald-50 border border-emerald-300 text-emerald-800';
@@ -1301,17 +1333,25 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
             return (
               <div
                 key={poi.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedId(poi.id);
+                  setSelectedType('poi');
+                }}
                 onPointerDown={(e) => startDragItem(e, poi.id, 'poi', poi.x, poi.z)}
                 style={{
                   left: `${pos.x}px`,
                   top: `${pos.y}px`,
-                  transform: 'translate(-50%, -50%)',
+                  transform: `translate(-50%, -50%) rotate(${rot}deg)`,
                   zIndex: isSelected || isDragging ? 30 : 15
                 }}
                 className={`absolute px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-move select-none shadow-sm ${badgeClass}`}
               >
                 {icon}
                 <span className="text-[10px] font-bold whitespace-nowrap">{poi.name || poi.type}</span>
+                {rot !== 0 && (
+                  <span className="text-[8px] font-mono px-1 py-0.2 bg-black/10 rounded font-semibold">{rot}°</span>
+                )}
               </div>
             );
           })}
@@ -1348,7 +1388,20 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
                     <input
                       type="text"
                       value={tempRackName}
-                      onChange={(e) => setTempRackName(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTempRackName(val);
+                        setConfig(prev => {
+                          const layout = { ...(prev.custom_layout || {}) };
+                          if (layout.racks && layout.racks[selectedId]) {
+                            layout.racks = {
+                              ...layout.racks,
+                              [selectedId]: { ...layout.racks[selectedId], name: val }
+                            };
+                          }
+                          return { ...prev, custom_layout: layout };
+                        });
+                      }}
                       placeholder="e.g. Artificial Intelligence"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600"
                     />
@@ -1357,14 +1410,14 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
                   {/* SAVE BUTTON FOR RACK NAME & CODE */}
                   <button
                     onClick={handleSaveSidebarProperties}
-                    className={`w-full py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm ${
+                    className={`w-full py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer active:scale-95 ${
                       sidebarSaved 
                         ? 'bg-emerald-600 text-white' 
                         : 'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}
                   >
                     {sidebarSaved ? (
-                      <><CheckCircle2 size={14} /> Saved!</>
+                      <><CheckCircle2 size={14} /> Saved & Applied!</>
                     ) : (
                       <><Save size={14} /> Apply Details</>
                     )}
@@ -1452,21 +1505,31 @@ export default function FloorPlanEditor2D({ initialConfig, config: propConfig, o
                     <input
                       type="text"
                       value={tempRackName}
-                      onChange={(e) => setTempRackName(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTempRackName(val);
+                        setConfig(prev => {
+                          const layout = { ...(prev.custom_layout || {}) };
+                          if (layout.pois) {
+                            layout.pois = layout.pois.map(p => p.id === selectedId ? { ...p, name: val } : p);
+                          }
+                          return { ...prev, custom_layout: layout };
+                        });
+                      }}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-purple-600"
                     />
                   </div>
 
                   <button
                     onClick={handleSaveSidebarProperties}
-                    className={`w-full py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm ${
+                    className={`w-full py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer active:scale-95 ${
                       sidebarSaved 
                         ? 'bg-emerald-600 text-white' 
                         : 'bg-purple-600 hover:bg-purple-700 text-white'
                     }`}
                   >
                     {sidebarSaved ? (
-                      <><CheckCircle2 size={14} /> Saved!</>
+                      <><CheckCircle2 size={14} /> Saved & Applied!</>
                     ) : (
                       <><Save size={14} /> Apply Details</>
                     )}

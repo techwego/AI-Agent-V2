@@ -26,6 +26,34 @@ const LoginPage = () => {
   const [showGuestCards, setShowGuestCards] = useState(false);
   const [guests, setGuests] = useState([]);
   const [guestLoadingId, setGuestLoadingId] = useState(null);
+  const guestScrollRef = useRef(null);
+  const [isHoveringGuests, setIsHoveringGuests] = useState(false);
+
+  // Auto-scrolling horizontal guest cards
+  useEffect(() => {
+    if (!showGuestCards || guests.length <= 1) return;
+    
+    let animId;
+    const speed = 0.55; // Smooth horizontal pixels per frame
+
+    const step = () => {
+      if (guestScrollRef.current && !isHoveringGuests) {
+        const el = guestScrollRef.current;
+        const maxScroll = el.scrollWidth - el.clientWidth;
+        
+        if (maxScroll > 5) {
+          el.scrollLeft += speed;
+          if (el.scrollLeft >= maxScroll - 1) {
+            el.scrollLeft = 0; // Seamless loop back to beginning
+          }
+        }
+      }
+      animId = requestAnimationFrame(step);
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
+  }, [showGuestCards, guests.length, isHoveringGuests]);
 
   // Plasma Voice Core Interactive State: 'WAITING' | 'LISTENING' | 'THINKING' | 'SPEAKING'
   const [plasmaState, setPlasmaState] = useState('WAITING');
@@ -469,8 +497,15 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Guest Cards Single Horizontal Row */}
-            <div className="flex flex-row items-stretch gap-3 sm:gap-4 overflow-x-auto pb-1.5 pt-0.5 custom-scrollbar snap-x snap-mandatory flex-nowrap">
+            {/* Guest Cards Single Horizontal Auto-Scrolling Row */}
+            <div 
+              ref={guestScrollRef}
+              onMouseEnter={() => setIsHoveringGuests(true)}
+              onMouseLeave={() => setIsHoveringGuests(false)}
+              onTouchStart={() => setIsHoveringGuests(true)}
+              onTouchEnd={() => setIsHoveringGuests(false)}
+              className="flex flex-row items-stretch gap-3 sm:gap-4 overflow-x-auto pb-1.5 pt-0.5 custom-scrollbar snap-x snap-mandatory flex-nowrap scroll-smooth"
+            >
               {guests.map((guest) => (
                 <div
                   key={guest.id}
