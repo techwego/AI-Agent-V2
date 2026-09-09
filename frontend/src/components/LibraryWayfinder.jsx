@@ -651,11 +651,13 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const ro = routeObjsRef.current;
     if (ro.ribbon) scene.remove(ro.ribbon);
     if (ro.tube) scene.remove(ro.tube);
+    if (ro.baseTube) scene.remove(ro.baseTube);
     if (ro.glow) scene.remove(ro.glow);
     if (ro.comet) scene.remove(ro.comet);
     if (ro.beacon) scene.remove(ro.beacon);
     ro.ribbon = null;
     ro.tube = null;
+    ro.baseTube = null;
     ro.glow = null;
     ro.comet = null;
     ro.beacon = null;
@@ -788,50 +790,41 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     const curve = new THREE.CatmullRomCurve3(densePts, false, 'catmullrom', 0.05); // low tension for tight corners
     routeCurveRef.current = curve;
 
-    const totalLen = curve.getLength();
-    
-    // Create animated dash texture
-    const dashCanvas = document.createElement('canvas');
-    dashCanvas.width = 128;
-    dashCanvas.height = 32;
-    const dashCtx = dashCanvas.getContext('2d');
-    dashCtx.fillStyle = '#ffffff';
-    dashCtx.fillRect(0,0,64,32); // half white, half transparent
-    const dashTex = new THREE.CanvasTexture(dashCanvas);
-    dashTex.wrapS = THREE.RepeatWrapping;
-    dashTex.wrapT = THREE.RepeatWrapping;
-    dashTex.repeat.set(totalLen * 2, 1);
-    
-    // Lightweight, highly visible route tube with animated dashes
-    const tubeGeo = new THREE.TubeGeometry(curve, Math.min(128, Math.max(48, result.path.length * 10)), 0.22, 8, false);
-    const tubeMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, map: dashTex, transparent: true, opacity: 0.95, depthTest: false });
-    const routeTube = new THREE.Mesh(tubeGeo, tubeMat);
-    routeTube.geometry.setDrawRange(0, Infinity);
-    routeTube.renderOrder = 999;
-    scene.add(routeTube);
-    routeObjsRef.current.tube = routeTube;
-    routeObjsRef.current.dashTex = dashTex;
+    // 1. Solid Dark Route Line (Casing + Core Track)
+    // Outer casing / shadow for high contrast on light library tiles
+    const darkCasingGeo = new THREE.TubeGeometry(curve, Math.min(192, Math.max(64, result.path.length * 12)), 0.24, 12, false);
+    const darkCasingMat = new THREE.MeshBasicMaterial({ color: 0x020617, depthTest: false, transparent: true, opacity: 0.95 });
+    const darkCasingMesh = new THREE.Mesh(darkCasingGeo, darkCasingMat);
+    darkCasingMesh.renderOrder = 997;
+    scene.add(darkCasingMesh);
+    routeObjsRef.current.baseTube = darkCasingMesh;
 
-    // Outer glow tube for crisp visibility from all angles
-    const glowGeo = new THREE.TubeGeometry(curve, Math.min(128, Math.max(48, result.path.length * 10)), 0.44, 8, false);
-    const glowMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.25, depthTest: false });
-    const glowTube = new THREE.Mesh(glowGeo, glowMat);
-    glowTube.geometry.setDrawRange(0, Infinity);
-    glowTube.renderOrder = 998;
-    scene.add(glowTube);
-    routeObjsRef.current.glow = glowTube;
+    // Inner crisp dark slate track line
+    const darkLineGeo = new THREE.TubeGeometry(curve, Math.min(192, Math.max(64, result.path.length * 12)), 0.16, 12, false);
+    const darkLineMat = new THREE.MeshBasicMaterial({ color: 0x1e293b, depthTest: false });
+    const darkLineMesh = new THREE.Mesh(darkLineGeo, darkLineMat);
+    darkLineMesh.renderOrder = 998;
+    scene.add(darkLineMesh);
+    routeObjsRef.current.tube = darkLineMesh;
 
-    // Comet (flowing energy pulse along the path - crisp moving white ball)
+    // 2. Crisp Moving White Ball gliding on the dark line
     const cometGroup = new THREE.Group();
     const headMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 16), headMat);
-    head.renderOrder = 1000;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 20, 20), headMat);
+    head.renderOrder = 1001;
     cometGroup.add(head);
+
+    // Soft white aura around the moving ball
+    const haloMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthTest: false });
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.52, 16, 16), haloMat);
+    halo.renderOrder = 1000;
+    cometGroup.add(halo);
+
     const trail = [];
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 6; i++) {
       const m = new THREE.Mesh(
-        new THREE.SphereGeometry(0.35 - i * 0.05, 12, 12),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 - i * 0.12, depthTest: false })
+        new THREE.SphereGeometry(0.30 - i * 0.04, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 - i * 0.1, depthTest: false })
       );
       m.renderOrder = 1000 - i;
       cometGroup.add(m);
@@ -927,13 +920,8 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       diamond.rotation.y = bT * 1.5;
       diamond.position.y = 5.2 + Math.sin(bT * 2) * 0.3;
       pillarMat.opacity = 0.25 + Math.sin(bT * 3) * 0.15;
-      
-      // Animated flowing dashes
-      if (routeObjsRef.current.dashTex) {
-        routeObjsRef.current.dashTex.offset.x -= 0.025;
-      }
 
-      // Continuous loop of flowing energy pulse along the entire path
+      // Continuous loop of glowing white ball gliding on the dark line
       const cometT = (bT % duration) / duration;
       const currentPoint = curve.getPointAt(Math.min(0.999, Math.max(0.001, cometT)));
       
