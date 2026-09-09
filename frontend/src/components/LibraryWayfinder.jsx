@@ -511,6 +511,52 @@ function createFloorRackDecal(code, name) {
   return mesh;
 }
 
+function createPathRibbonGeometry(curve, numSegments = 128, width = 0.55) {
+  const positions = [];
+  const indices = [];
+  const uvs = [];
+
+  for (let i = 0; i <= numSegments; i++) {
+    const t = i / numSegments;
+    const pt = curve.getPointAt(t);
+    const tangent = curve.getTangentAt(t);
+    
+    // Normal perpendicular to tangent on XZ plane
+    let normal = new THREE.Vector3(-tangent.z, 0, tangent.x);
+    if (normal.lengthSq() < 0.0001) {
+      normal.set(1, 0, 0);
+    } else {
+      normal.normalize();
+    }
+
+    const halfW = width / 2;
+    const leftPt = pt.clone().addScaledVector(normal, halfW);
+    const rightPt = pt.clone().addScaledVector(normal, -halfW);
+
+    positions.push(leftPt.x, leftPt.y, leftPt.z);
+    positions.push(rightPt.x, rightPt.y, rightPt.z);
+
+    uvs.push(0, t);
+    uvs.push(1, t);
+
+    if (i < numSegments) {
+      const v0 = i * 2;
+      const v1 = i * 2 + 1;
+      const v2 = (i + 1) * 2;
+      const v3 = (i + 1) * 2 + 1;
+      indices.push(v0, v1, v2);
+      indices.push(v1, v3, v2);
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
 const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackClick, onRouteComplete, onConfigLoaded, activeFloor = 'both', overrideConfig }, ref) => {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -764,49 +810,58 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         const prevN = nodes[result.path[index - 1]];
         return new THREE.Vector3(
            n.x * 0.15 + prevN.x * 0.85,
-           n.y + 0.9,
+           n.y + 0.06,
            n.z * 0.15 + prevN.z * 0.85
         );
       }
-      return new THREE.Vector3(n.x, n.y + 0.9, n.z);
+      return new THREE.Vector3(n.x, n.y + 0.06, n.z);
     });
     if (pts.length === 1) {
-       pts.push(pts[0].clone().add(new THREE.Vector3(0, 0.1, 0))); // Prevent curve crash for single-node paths
+       pts.push(pts[0].clone().add(new THREE.Vector3(0, 0.05, 0))); // Prevent curve crash for single-node paths
     }
     
-    // Insert points every 0.8 meters to force the CatmullRomCurve to stay strictly on the straight grid lines
+    // Insert points every 0.6 meters to force the CatmullRomCurve to stay strictly on the straight grid lines
     const densePts = [];
     for (let i = 0; i < pts.length - 1; i++) {
       const p1 = pts[i];
       const p2 = pts[i+1];
       const dist = p1.distanceTo(p2);
-      const segments = Math.max(2, Math.ceil(dist / 0.8));
+      const segments = Math.max(2, Math.ceil(dist / 0.6));
       for (let j = 0; j < segments; j++) {
         densePts.push(p1.clone().lerp(p2, j / segments));
       }
     }
     densePts.push(pts[pts.length - 1]);
     
-    const curve = new THREE.CatmullRomCurve3(densePts, false, 'catmullrom', 0.05); // low tension for tight corners
+    const curve = new THREE.CatmullRomCurve3(densePts, false, 'catmullrom', 0.02); // low tension for sharp walkway turns
     routeCurveRef.current = curve;
     const totalLen = curve.getLength();
 
-    // 1. Solid Dark Route Line (Casing + Core Track)
-    // Outer casing / shadow for high contrast on light library tiles
-    const darkCasingGeo = new THREE.TubeGeometry(curve, Math.min(192, Math.max(64, result.path.length * 12)), 0.24, 12, false);
-    const darkCasingMat = new THREE.MeshBasicMaterial({ color: 0x020617, depthTest: false, transparent: true, opacity: 0.95 });
-    const darkCasingMesh = new THREE.Mesh(darkCasingGeo, darkCasingMat);
-    darkCasingMesh.renderOrder = 997;
-    scene.add(darkCasingMesh);
-    routeObjsRef.current.baseTube = darkCasingMesh;
+    const ribbonSegments = Math.min(256, Math.max(64, result.path.length * 16));
 
-    // Inner crisp dark slate track line
-    const darkLineGeo = new THREE.TubeGeometry(curve, Math.min(192, Math.max(64, result.path.length * 12)), 0.16, 12, false);
-    const darkLineMat = new THREE.MeshBasicMaterial({ color: 0x1e293b, depthTest: false });
-    const darkLineMesh = new THREE.Mesh(darkLineGeo, darkLineMat);
-    darkLineMesh.renderOrder = 998;
-    scene.add(darkLineMesh);
-    routeObjsRef.current.tube = darkLineMesh;
+    // 1. Outer Dark Line Border Track (Width: 0.70m, Jet Black Casing)
+    const outerRibbonGeo = createPathRibbonGeometry(curve, ribbonSegments, 0.70);
+    const outerRibbonMat = new THREE.MeshBasicMaterial({ color: 0x020617, side: THREE.DoubleSide, depthTest: false });
+    const outerRibbonMesh = new THREE.Mesh(outerRibbonGeo, outerRibbonMat);
+    outerRibbonMesh.renderOrder = 995;
+    scene.add(outerRibbonMesh);
+    routeObjsRef.current.baseTube = outerRibbonMesh;
+
+    // 2. Inner Solid Dark Slate Ribbon (Width: 0.46m, Slate-900 High Contrast Track)
+    const innerRibbonGeo = createPathRibbonGeometry(curve, ribbonSegments, 0.46);
+    const innerRibbonMat = new THREE.MeshBasicMaterial({ color: 0x1e293b, side: THREE.DoubleSide, depthTest: false });
+    const innerRibbonMesh = new THREE.Mesh(innerRibbonGeo, innerRibbonMat);
+    innerRibbonMesh.renderOrder = 996;
+    scene.add(innerRibbonMesh);
+    routeObjsRef.current.ribbon = innerRibbonMesh;
+
+    // 3. Central Dark 3D Spine Rail (Radius: 0.12m, Deep Charcoal Cable)
+    const spineGeo = new THREE.TubeGeometry(curve, Math.min(192, Math.max(48, result.path.length * 12)), 0.12, 10, false);
+    const spineMat = new THREE.MeshBasicMaterial({ color: 0x0f172a, depthTest: false });
+    const spineMesh = new THREE.Mesh(spineGeo, spineMat);
+    spineMesh.renderOrder = 997;
+    scene.add(spineMesh);
+    routeObjsRef.current.tube = spineMesh;
 
     // 2. Crisp Moving White Ball gliding on the dark line
     const cometGroup = new THREE.Group();

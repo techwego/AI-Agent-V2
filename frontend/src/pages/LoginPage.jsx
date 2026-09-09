@@ -478,7 +478,7 @@ const LoginPage = () => {
               .animate-guest-marquee {
                 display: flex;
                 width: max-content;
-                animation: guestMarqueeGlide ${Math.max(16, guests.length * 7)}s linear infinite;
+                animation: guestMarqueeGlide ${Math.max(14, guests.length * 6.5)}s linear infinite;
                 will-change: transform;
                 transform-style: preserve-3d;
                 backface-visibility: hidden;
@@ -487,12 +487,16 @@ const LoginPage = () => {
               .animate-guest-marquee:hover {
                 animation-play-state: paused;
               }
+              .guest-mask-fade {
+                mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
+                -webkit-mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
+              }
             `}</style>
 
-            {/* Guest Cards Infinite Glide Track */}
-            <div className="relative w-full overflow-hidden py-1">
+            {/* Guest Cards Infinite Glide Track with Enterprise Edge-Fade */}
+            <div className="relative w-full overflow-hidden py-2 guest-mask-fade">
               <div 
-                className={guests.length > 1 ? "animate-guest-marquee flex flex-row items-stretch gap-3 sm:gap-4" : "flex flex-row items-stretch justify-center gap-3 sm:gap-4 w-full"}
+                className={guests.length > 1 ? "animate-guest-marquee flex flex-row items-stretch gap-3.5 sm:gap-4.5 px-2" : "flex flex-row items-stretch justify-center gap-3.5 sm:gap-4.5 w-full px-2"}
                 onTouchStart={(e) => {
                   e.currentTarget.style.animationPlayState = 'paused';
                 }}
@@ -504,45 +508,56 @@ const LoginPage = () => {
                   <div
                     key={`${guest.id}_${idx}`}
                     onClick={() => handleGuestCardClick(guest)}
-                    className="w-[280px] sm:w-[320px] group relative p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-850 via-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 border border-slate-700/80 hover:border-pink-500/60 transition-all duration-300 shadow-xl hover:shadow-pink-500/20 cursor-pointer flex items-center gap-3.5 sm:gap-4 active:scale-[0.98] shrink-0"
+                    className="w-[290px] sm:w-[330px] group relative p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl bg-slate-900/90 hover:bg-slate-850/95 border border-slate-700/80 hover:border-pink-500/70 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-pink-500/20 cursor-pointer flex items-center gap-3.5 sm:gap-4 active:scale-[0.98] shrink-0 backdrop-blur-xl"
                   >
-                    {/* High-Definition Guest Portrait Photo */}
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-1 bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 shadow-lg shadow-pink-500/25 shrink-0 group-hover:scale-105 group-hover:rotate-1 transition-all duration-300">
-                      <div className="w-full h-full rounded-[14px] overflow-hidden bg-slate-950 flex items-center justify-center">
-                        {guest.image_url ? (
-                          <img 
-                            src={guest.image_url} 
-                            alt={guest.name} 
-                            className="w-full h-full object-cover object-top brightness-105 contrast-105 select-none" 
-                            style={{ imageRendering: 'auto' }}
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-tr from-indigo-900 to-slate-900 flex items-center justify-center text-white font-black text-xl">
-                            {guest.name.charAt(0)}
-                          </div>
-                        )}
+                    {/* High-Definition Guest Portrait Photo with VIP Status Ring */}
+                    <div className="relative shrink-0">
+                      <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl p-0.5 bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 shadow-lg shadow-pink-500/30 group-hover:scale-105 group-hover:rotate-1 transition-all duration-300">
+                        <div className="w-full h-full rounded-[14px] overflow-hidden bg-slate-950 flex items-center justify-center">
+                          {guest.image_url ? (
+                            <img 
+                              src={guest.image_url} 
+                              alt={guest.name} 
+                              className="w-full h-full object-cover object-top brightness-105 contrast-105 select-none" 
+                              style={{ imageRendering: 'auto' }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-tr from-indigo-900 to-slate-900 flex items-center justify-center text-white font-black text-xl">
+                              {guest.name.charAt(0)}
+                            </div>
+                          )}
+                        </div>
                       </div>
+                      {/* Live Online VIP Dot */}
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-slate-900 shadow-sm flex items-center justify-center">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                      </span>
                     </div>
 
                     {/* Guest Information & Greeting Action */}
                     <div className="flex-1 flex flex-col justify-between min-w-0 h-full py-0.5">
                       <div>
                         <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-pink-500/15 border border-pink-500/30 text-pink-300 text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider mb-1">
+                          <Sparkles size={10} className="text-pink-400" />
                           <span>VIP Dignitary</span>
                         </div>
                         <h4 className="text-sm sm:text-base font-black text-white group-hover:text-pink-200 transition-colors truncate">
                           {guest.name}
                         </h4>
                         {guest.about && (
-                          <p className="text-[11px] sm:text-xs text-indigo-200 font-semibold truncate mt-0.5">
+                          <p className="text-[11px] sm:text-xs text-indigo-200/90 font-medium truncate mt-0.5">
                             {guest.about}
                           </p>
                         )}
                       </div>
 
-                      {/* Bottom CTA Bar */}
-                      <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-end">
-                        <div className="px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl bg-pink-600/30 group-hover:bg-pink-600 text-pink-200 group-hover:text-white text-[11px] sm:text-xs font-bold transition-all shadow-md group-hover:shadow-pink-600/30 flex items-center gap-1.5 shrink-0">
+                      {/* Bottom Luxury CTA Bar */}
+                      <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                          <Radio size={10} className="text-emerald-400 animate-pulse" />
+                          <span>Ready</span>
+                        </span>
+                        <div className="px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl bg-pink-600/30 group-hover:bg-gradient-to-r group-hover:from-pink-600 group-hover:to-rose-600 text-pink-200 group-hover:text-white text-[11px] sm:text-xs font-bold transition-all shadow-md group-hover:shadow-pink-600/30 flex items-center gap-1.5 shrink-0">
                           <span>{guestLoadingId === guest.id ? 'Entering...' : 'Tap to Enter'}</span>
                           <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
                         </div>
