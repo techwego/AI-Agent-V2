@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getAnalytics } from '../../api/client';
-import { BookOpen, Users, Building2, MessageSquare, UploadCloud, UserCheck, RefreshCw, Download, BarChart3, TrendingUp, AlertTriangle } from 'lucide-react';
+import { BookOpen, Users, Building2, MessageSquare, UploadCloud, UserCheck, RefreshCw, Download, BarChart3, TrendingUp, AlertTriangle, Flame } from 'lucide-react';
 
 const StatCard = ({ title, value, icon: Icon, colorClass, isLoading }) => (
   <div className="bg-white rounded-3xl border border-slate-200 p-6 flex items-center space-x-4 shadow-sm">
@@ -93,6 +93,29 @@ const Analytics = () => {
       document.body.removeChild(a);
     } catch (err) {
       console.error('Error downloading Excel file:', err);
+    }
+  };
+
+  const handleExportDemandBooksExcel = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/analytics/export-demand-books-excel', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to generate High Demand Excel report');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `high_demand_books_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Error downloading High Demand Excel file:', err);
     }
   };
 
@@ -254,19 +277,29 @@ const Analytics = () => {
         {/* Top Missing Books Card */}
         <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <AlertTriangle size={14} className="text-amber-500" />
                 <span>Missing Book Demands</span>
               </h3>
-              <button
-                onClick={handleExportMissingBooksExcel}
-                className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200 transition-colors flex items-center gap-1 cursor-pointer"
-                title="Export detailed report to Excel"
-              >
-                <Download size={10} />
-                <span>Export Excel</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={handleExportDemandBooksExcel}
+                  className="text-[10px] font-bold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded-lg border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                  title="Export High-Demand books (≥10 student requests) to Excel for urgent acquisition"
+                >
+                  <Flame size={11} className="text-rose-600 animate-pulse" />
+                  <span>Demand Books (≥10)</span>
+                </button>
+                <button
+                  onClick={handleExportMissingBooksExcel}
+                  className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200 transition-colors flex items-center gap-1 cursor-pointer active:scale-95"
+                  title="Export all missing book search queries to Excel"
+                >
+                  <Download size={10} />
+                  <span>All Missing</span>
+                </button>
+              </div>
             </div>
             <p className="text-[11px] text-slate-400 mb-4">Books searched by students that are not currently in the catalog.</p>
             

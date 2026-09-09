@@ -34,8 +34,8 @@ function dijkstra(nodes, startId, endId) {
 
 function buildDynamicGraph(config) {
   const nodes = {};
-  function addNode(id, x, y, z, label, type, floor, code) {
-    nodes[id] = { x, y: y + 0.15, z, label: label || id, type, floor, code, edges: [] };
+  function addNode(id, x, y, z, label, type, floor, code, rotation = 0) {
+    nodes[id] = { x, y: y + 0.15, z, label: label || id, type, floor, code, rotation: rotation || 0, edges: [] };
   }
   function addEdge(a, b, w) {
     if(!nodes[a] || !nodes[b]) return;
@@ -62,7 +62,7 @@ function buildDynamicGraph(config) {
       const aisleId = 'aisle_r_' + r.code;
       const customName = r.name || (config.custom_racks && config.custom_racks[r.code] ? config.custom_racks[r.code] : 'Rack ' + r.code);
 
-      addNode(rackId, r.x, fy, r.z, customName, 'rack', f, r.code);
+      addNode(rackId, r.x, fy, r.z, customName, 'rack', f, r.code, r.rotation || 0);
 
       // Place aisle waypoint offset by 1.8m
       const isRotated = (r.rotation || 0) === 90 || (r.rotation || 0) === 270;
@@ -134,7 +134,7 @@ function buildDynamicGraph(config) {
       const poiId = poi.id || (poi.type + '_' + idx);
       const poiLabel = poi.name || (poi.type === 'entrance' ? 'Entrance' : 'Stairs Floor ' + f);
 
-      addNode(poiId, poi.x, fy, poi.z, poiLabel, poi.type, f);
+      addNode(poiId, poi.x, fy, poi.z, poiLabel, poi.type, f, null, poi.rotation || 0);
 
       // Connect POI to the closest safe navmesh grid node on this floor
       const floorGrids = Object.keys(nodes).filter(k => nodes[k].floor === f && nodes[k].type === 'grid');
