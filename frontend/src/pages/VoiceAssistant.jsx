@@ -1,11 +1,12 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   LogOut, User, Send, Sparkles, Search, Mic, Map, X, MessageSquare, 
   Compass, Navigation, ArrowRight, CornerDownRight, 
   GraduationCap, Volume2, BookOpen, Clock, HelpCircle, Layers, Radio,
-  Megaphone, Bell, Calendar, Tag, ChevronRight, Shield, ShieldCheck, HeartHandshake
+  Megaphone, Bell, Calendar, Tag, ChevronRight, Shield, ShieldCheck, HeartHandshake,
+  ArrowRightLeft
 } from 'lucide-react';
 import LibraryWayfinder from '../components/LibraryWayfinder';
 import InteractiveVideoAvatar from '../components/InteractiveVideoAvatar';
@@ -50,6 +51,7 @@ const VoiceAssistant = () => {
   const [routeSteps, setRouteSteps] = useState([]);
   const [activeCirculars, setActiveCirculars] = useState([]);
   const [guestData, setGuestData] = useState(null);
+  const [mapConfig, setMapConfig] = useState(null);
   const [systemProfile, setSystemProfile] = useState(() => ({
     agent_name: localStorage.getItem('cached_agent_name') || 'Sam',
     greeting_message: localStorage.getItem('cached_greeting_message') || 'How can I assist you today?',
@@ -604,17 +606,110 @@ const VoiceAssistant = () => {
 
   const handleRackClick = useCallback((rackId) => {
     setRouteTo(rackId);
-    showToast(`Destination set to Rack ${rackId}`, 'info');
+    showToast(`Navigating to Rack ${rackId}`, 'info');
   }, [showToast]);
 
   const handleRouteComplete = useCallback((destCode, steps) => {
-    // onRouteComplete provides destCode as first arg, steps as second
     setRouteSteps(steps || []);
   }, []);
 
   const handleConfigLoaded = useCallback((c) => {
-    setTotalFloors(c.floors || 2);
+    if (c) {
+      setMapConfig(c);
+      setTotalFloors(c.floors || 2);
+    }
   }, []);
+
+  // Compute available start points from mapConfig
+  const availableStarts = useMemo(() => {
+    const list = [
+      { id: 'entrance', label: '🚪 Main Entrance' }
+    ];
+    if (mapConfig?.custom_layout?.pois && Array.isArray(mapConfig.custom_layout.pois)) {
+      mapConfig.custom_layout.pois.forEach((poi, idx) => {
+        const poiId = poi.id || (poi.type + '_' + idx);
+        const icon = poi.type === 'info' ? 'ℹ️ ' : poi.type === 'rfid' ? '📡 ' : poi.type === 'stairs' ? '🪜 ' : '📍 ';
+        list.push({ id: poiId, label: `${icon}${poi.name || poiId}` });
+      });
+    } else {
+      list.push(
+        { id: 'poi_infodesk', label: 'ℹ️ Information / Help Desk' },
+        { id: 'poi_rfid', label: '📡 RFID Return Station' },
+        { id: 'stairs_1', label: '🪜 Stairs Floor 1' },
+        { id: 'stairs_2', label: '🪜 Stairs Floor 2' }
+      );
+    }
+
+    if (mapConfig?.custom_layout?.racks) {
+      Object.values(mapConfig.custom_layout.racks).forEach(r => {
+        const customName = r.name || (mapConfig.custom_racks && mapConfig.custom_racks[r.code]) || `Rack ${r.code}`;
+        list.push({ id: 'r' + r.code, label: `📚 Rack ${r.code} (${customName})` });
+      });
+    } else if (mapConfig?.rows_per_floor && mapConfig?.cols_per_row) {
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      let rackIdx = 0;
+      for (let f = 0; f < (mapConfig.floors || 2); f++) {
+        for (let r = 0; r < mapConfig.rows_per_floor; r++) {
+          const rowLetter = alphabet[rackIdx % alphabet.length];
+          rackIdx++;
+          for (let c = 0; c < mapConfig.cols_per_row; c++) {
+            const code = rowLetter + (c + 1);
+            const customName = (mapConfig.custom_racks && mapConfig.custom_racks[code]) || `Rack ${code}`;
+            list.push({ id: 'r' + code, label: `📚 Rack ${code} (${customName})` });
+          }
+        }
+      }
+    }
+    return list;
+  }, [mapConfig]);
+
+  // Compute available destinations from mapConfig
+  const availableDestinations = useMemo(() => {
+    const list = [];
+    if (mapConfig?.custom_layout?.racks) {
+      Object.values(mapConfig.custom_layout.racks).forEach(r => {
+        const customName = r.name || (mapConfig.custom_racks && mapConfig.custom_racks[r.code]) || `Rack ${r.code}`;
+        list.push({ id: r.code, label: `Rack ${r.code} · ${customName}` });
+      });
+    } else if (mapConfig?.rows_per_floor && mapConfig?.cols_per_row) {
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      let rackIdx = 0;
+      for (let f = 0; f < (mapConfig.floors || 2); f++) {
+        for (let r = 0; r < mapConfig.rows_per_floor; r++) {
+          const rowLetter = alphabet[rackIdx % alphabet.length];
+          rackIdx++;
+          for (let c = 0; c < mapConfig.cols_per_row; c++) {
+            const code = rowLetter + (c + 1);
+            const customName = (mapConfig.custom_racks && mapConfig.custom_racks[code]) || `Rack ${code}`;
+            list.push({ id: code, label: `Rack ${code} · ${customName}` });
+          }
+        }
+      }
+    }
+
+    if (mapConfig?.custom_layout?.pois && Array.isArray(mapConfig.custom_layout.pois)) {
+      mapConfig.custom_layout.pois.forEach((poi, idx) => {
+        const poiId = poi.id || (poi.type + '_' + idx);
+        const icon = poi.type === 'info' ? 'ℹ️ ' : poi.type === 'rfid' ? '📡 ' : '📍 ';
+        list.push({ id: poiId, label: `${icon}${poi.name || poiId}` });
+      });
+    } else {
+      list.push(
+        { id: 'infodesk', label: 'ℹ️ Information / Help Desk' },
+        { id: 'rfid', label: '📡 RFID Return Station' }
+      );
+    }
+    return list;
+  }, [mapConfig]);
+
+  const handleSwapRoute = () => {
+    if (!routeTo) return;
+    const oldFrom = routeFrom;
+    const oldTo = routeTo;
+    setRouteFrom(oldTo.startsWith('r') ? oldTo : 'r' + oldTo);
+    setRouteTo(oldFrom.replace(/^r/i, ''));
+    showToast('Swapped route direction', 'info');
+  };
 
   const handleCloseFullscreenMap = () => {
     setIsMapFullscreen(false);
@@ -1018,27 +1113,68 @@ const VoiceAssistant = () => {
         <div className="flex-1 flex flex-col m-0 sm:m-3 bg-slate-900/90 backdrop-blur-2xl rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-700/70">
           
           {/* Wayfinder Header Toolbar */}
-          <div className="px-4 py-3 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800 flex items-center justify-between z-30 shrink-0 shadow-xs flex-wrap gap-2">
+          <div className="px-4 py-3 bg-slate-950/85 backdrop-blur-xl border-b border-slate-800 flex items-center justify-between z-30 shrink-0 shadow-xs flex-wrap gap-2.5">
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs shadow-md shadow-blue-600/20">
                 <Compass className="animate-spin-slow" size={14} />
                 <span>3D Indoor Wayfinder</span>
               </div>
 
-              {routeTo && (
-                <div className="flex items-center gap-1.5 bg-amber-950/80 border border-amber-800/60 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-300 shadow-xs font-mono">
-                  <Navigation size={12} className="text-amber-400" />
-                  <span>From: {routeFrom || 'Entrance'}</span>
-                  <ArrowRight size={11} className="text-amber-400" />
-                  <span className="font-extrabold text-amber-200">Rack {routeTo}</span>
+              {/* Interactive Start Point & Destination Selectors */}
+              <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 px-2 py-1 rounded-xl shadow-xs flex-wrap">
+                {/* START SELECTOR */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-bold uppercase text-cyan-400 font-mono">From:</span>
+                  <select
+                    value={routeFrom || 'entrance'}
+                    onChange={(e) => setRouteFrom(e.target.value)}
+                    className="bg-slate-800 text-slate-100 text-xs font-semibold px-2 py-1 rounded-lg border border-slate-700 focus:outline-none focus:border-cyan-400 cursor-pointer"
+                  >
+                    {availableStarts.map((st) => (
+                      <option key={st.id} value={st.id}>
+                        {st.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
+
+                {/* SWAP BUTTON */}
+                <button
+                  onClick={handleSwapRoute}
+                  disabled={!routeTo}
+                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+                  title="Reverse start and destination"
+                >
+                  <ArrowRightLeft size={12} />
+                </button>
+
+                {/* DESTINATION SELECTOR */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-bold uppercase text-emerald-400 font-mono">To:</span>
+                  <select
+                    value={routeTo || ''}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setRouteTo(e.target.value);
+                      }
+                    }}
+                    className="bg-slate-800 text-amber-200 text-xs font-bold px-2 py-1 rounded-lg border border-slate-700 focus:outline-none focus:border-emerald-400 cursor-pointer max-w-[160px] sm:max-w-[200px] truncate"
+                  >
+                    <option value="" disabled>-- Select Rack / POI --</option>
+                    {availableDestinations.map((dst) => (
+                      <option key={dst.id} value={dst.id}>
+                        {dst.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
               {/* Floor Switcher */}
               <div className="flex items-center bg-slate-800/90 p-0.5 rounded-xl border border-slate-700/70 gap-0.5">
                 <button
                   onClick={() => setActiveFloor('both')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
                     activeFloor === 'both' 
                       ? 'bg-blue-600 text-white shadow-xs' 
                       : 'text-slate-400 hover:text-white'
@@ -1050,7 +1186,7 @@ const VoiceAssistant = () => {
                   <button
                     key={i+1}
                     onClick={() => setActiveFloor(String(i+1))}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
                       activeFloor === String(i+1) 
                         ? 'bg-blue-600 text-white shadow-xs' 
                         : 'text-slate-400 hover:text-white'

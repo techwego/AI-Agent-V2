@@ -557,6 +557,38 @@ function createPathRibbonGeometry(curve, numSegments = 128, width = 0.55) {
   return geo;
 }
 
+function createDirectionalChevronTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  
+  // High contrast deep slate background
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, 256, 64);
+  
+  // Neon cyan glow chevron arrows >>>
+  ctx.fillStyle = '#38bdf8';
+  ctx.shadowColor = '#06b6d4';
+  ctx.shadowBlur = 6;
+  for (let x = 16; x < 256; x += 48) {
+    ctx.beginPath();
+    ctx.moveTo(x, 14);
+    ctx.lineTo(x + 20, 32);
+    ctx.lineTo(x, 50);
+    ctx.lineTo(x + 10, 50);
+    ctx.lineTo(x + 30, 32);
+    ctx.lineTo(x + 10, 14);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
 const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackClick, onRouteComplete, onConfigLoaded, activeFloor = 'both', overrideConfig }, ref) => {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -701,12 +733,15 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     if (ro.glow) scene.remove(ro.glow);
     if (ro.comet) scene.remove(ro.comet);
     if (ro.beacon) scene.remove(ro.beacon);
+    if (ro.startMarker) scene.remove(ro.startMarker);
     ro.ribbon = null;
     ro.tube = null;
     ro.baseTube = null;
     ro.glow = null;
+    ro.flowTex = null;
     ro.comet = null;
     ro.beacon = null;
+    ro.startMarker = null;
     if (ro.animId) cancelAnimationFrame(ro.animId);
     ro.animId = null;
     routeCurveRef.current = null;
@@ -810,14 +845,14 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
         const prevN = nodes[result.path[index - 1]];
         return new THREE.Vector3(
            n.x * 0.15 + prevN.x * 0.85,
-           n.y + 0.06,
+           n.y + 0.18,
            n.z * 0.15 + prevN.z * 0.85
         );
       }
-      return new THREE.Vector3(n.x, n.y + 0.06, n.z);
+      return new THREE.Vector3(n.x, n.y + 0.18, n.z);
     });
     if (pts.length === 1) {
-       pts.push(pts[0].clone().add(new THREE.Vector3(0, 0.05, 0))); // Prevent curve crash for single-node paths
+       pts.push(pts[0].clone().add(new THREE.Vector3(0, 0.1, 0))); // Prevent curve crash for single-node paths
     }
     
     // Insert points every 0.6 meters to force the CatmullRomCurve to stay strictly on the straight grid lines
@@ -837,42 +872,37 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     routeCurveRef.current = curve;
     const totalLen = curve.getLength();
 
-    const ribbonSegments = Math.min(256, Math.max(64, result.path.length * 16));
+    const tubeSegments = Math.min(256, Math.max(64, result.path.length * 14));
 
-    // 1. Outer Dark Line Border Track (Width: 0.70m, Jet Black Casing)
-    const outerRibbonGeo = createPathRibbonGeometry(curve, ribbonSegments, 0.70);
-    const outerRibbonMat = new THREE.MeshBasicMaterial({ color: 0x020617, side: THREE.DoubleSide, depthTest: false });
-    const outerRibbonMesh = new THREE.Mesh(outerRibbonGeo, outerRibbonMat);
-    outerRibbonMesh.renderOrder = 995;
-    scene.add(outerRibbonMesh);
-    routeObjsRef.current.baseTube = outerRibbonMesh;
+    // 1. Solid Outer Dark Navigation Track (Radius: 0.22m, Deep Slate-950)
+    const darkTubeGeo = new THREE.TubeGeometry(curve, tubeSegments, 0.22, 12, false);
+    const darkTubeMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.35, metalness: 0.1 });
+    const darkTubeMesh = new THREE.Mesh(darkTubeGeo, darkTubeMat);
+    darkTubeMesh.renderOrder = 997;
+    scene.add(darkTubeMesh);
+    routeObjsRef.current.tube = darkTubeMesh;
 
-    // 2. Inner Solid Dark Slate Ribbon (Width: 0.46m, Slate-900 High Contrast Track)
-    const innerRibbonGeo = createPathRibbonGeometry(curve, ribbonSegments, 0.46);
-    const innerRibbonMat = new THREE.MeshBasicMaterial({ color: 0x1e293b, side: THREE.DoubleSide, depthTest: false });
-    const innerRibbonMesh = new THREE.Mesh(innerRibbonGeo, innerRibbonMat);
-    innerRibbonMesh.renderOrder = 996;
-    scene.add(innerRibbonMesh);
-    routeObjsRef.current.ribbon = innerRibbonMesh;
+    // 2. Inner Directional Animated Flow Rail (Flowing Cyan Chevrons >>>)
+    const flowTex = createDirectionalChevronTexture();
+    flowTex.repeat.set(Math.max(2, totalLen * 1.2), 1);
+    const flowGeo = new THREE.TubeGeometry(curve, tubeSegments, 0.14, 12, false);
+    const flowMat = new THREE.MeshBasicMaterial({ map: flowTex, transparent: true, opacity: 0.95 });
+    const flowTube = new THREE.Mesh(flowGeo, flowMat);
+    flowTube.renderOrder = 998;
+    scene.add(flowTube);
+    routeObjsRef.current.glow = flowTube;
+    routeObjsRef.current.flowTex = flowTex;
 
-    // 3. Central Dark 3D Spine Rail (Radius: 0.12m, Deep Charcoal Cable)
-    const spineGeo = new THREE.TubeGeometry(curve, Math.min(192, Math.max(48, result.path.length * 12)), 0.12, 10, false);
-    const spineMat = new THREE.MeshBasicMaterial({ color: 0x0f172a, depthTest: false });
-    const spineMesh = new THREE.Mesh(spineGeo, spineMat);
-    spineMesh.renderOrder = 997;
-    scene.add(spineMesh);
-    routeObjsRef.current.tube = spineMesh;
-
-    // 2. Crisp Moving White Ball gliding on the dark line
+    // 3. Crisp Moving White Ball gliding along the track
     const cometGroup = new THREE.Group();
-    const headMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
+    const headMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 20, 20), headMat);
     head.renderOrder = 1001;
     cometGroup.add(head);
 
     // Soft white aura around the moving ball
-    const haloMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthTest: false });
-    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.52, 16, 16), haloMat);
+    const haloMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 });
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 16), haloMat);
     halo.renderOrder = 1000;
     cometGroup.add(halo);
 
@@ -880,7 +910,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     for (let i = 1; i <= 6; i++) {
       const m = new THREE.Mesh(
         new THREE.SphereGeometry(0.30 - i * 0.04, 12, 12),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 - i * 0.1, depthTest: false })
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 - i * 0.1 })
       );
       m.renderOrder = 1000 - i;
       cometGroup.add(m);
@@ -890,6 +920,41 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     routeObjsRef.current.comet = cometGroup;
     const trailPts = [];
 
+    // 4. Start Point Waypoint Marker (Cyan Beacon Ring & Badge)
+    const startNode = nodes[resolvedFrom];
+    const startMarkerGroup = new THREE.Group();
+    startMarkerGroup.position.set(startNode.x, startNode.y - 0.15, startNode.z);
+    
+    const startRingGeo = new THREE.RingGeometry(0.8, 1.1, 32);
+    const startRingMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, side: THREE.DoubleSide, transparent: true, opacity: 0.75 });
+    const startRing = new THREE.Mesh(startRingGeo, startRingMat);
+    startRing.rotation.x = -Math.PI / 2;
+    startRing.position.y = 0.05;
+    startMarkerGroup.add(startRing);
+
+    const startCanvas = document.createElement('canvas');
+    startCanvas.width = 256;
+    startCanvas.height = 64;
+    const sCtx = startCanvas.getContext('2d');
+    sCtx.fillStyle = 'rgba(6, 182, 212, 0.9)';
+    sCtx.beginPath(); sCtx.roundRect(0, 0, 256, 64, 8); sCtx.fill();
+    sCtx.fillStyle = '#ffffff';
+    sCtx.font = 'bold 22px sans-serif';
+    sCtx.textAlign = 'center';
+    sCtx.textBaseline = 'middle';
+    const startLabelStr = (startNode.label && startNode.label !== 'walkway') ? startNode.label : (fromId === 'entrance' ? 'Main Entrance' : 'Start Point');
+    sCtx.fillText(`🚩 START: ${startLabelStr}`, 128, 32);
+
+    const startTex = new THREE.CanvasTexture(startCanvas);
+    const startMat = new THREE.SpriteMaterial({ map: startTex, depthTest: false });
+    const startSprite = new THREE.Sprite(startMat);
+    startSprite.scale.set(3.2, 0.8, 1);
+    startSprite.position.y = 3.6;
+    startMarkerGroup.add(startSprite);
+    scene.add(startMarkerGroup);
+    routeObjsRef.current.startMarker = startMarkerGroup;
+
+    // 5. Destination Beacon (Emerald Green Pillar, Rings & Billboard)
     const destNode = nodes[endNode];
     const physicalCode = destNode.code || destCode;
     const displayName = destNode.label && destNode.label !== ('Rack ' + destNode.code) ? destNode.label : `Rack ${destCode}`;
@@ -976,6 +1041,11 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
       diamond.rotation.y = bT * 1.5;
       diamond.position.y = 5.2 + Math.sin(bT * 2) * 0.3;
       pillarMat.opacity = 0.25 + Math.sin(bT * 3) * 0.15;
+
+      // Animate flowing chevron texture forward along the path
+      if (routeObjsRef.current.flowTex) {
+        routeObjsRef.current.flowTex.offset.x -= 0.02;
+      }
 
       // Continuous loop of glowing white ball gliding on the dark line
       const cometT = (bT % duration) / duration;
@@ -1788,6 +1858,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     function loop() {
       reqIdRef.current = requestAnimationFrame(loop);
+      if (!container || container.clientWidth < 10 || container.clientHeight < 10) return;
       const scene = sceneRef.current;
       const camera = cameraRef.current;
       const minimapCamera = minimapCameraRef.current;

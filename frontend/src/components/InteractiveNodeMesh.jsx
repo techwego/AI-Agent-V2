@@ -52,14 +52,15 @@ const InteractiveNodeMesh = () => {
       width = w;
       height = h;
 
-      canvas.width = w * (window.devicePixelRatio || 1);
-      canvas.height = h * (window.devicePixelRatio || 1);
-      ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.scale(dpr, dpr);
 
       // ── Spatial Grid-Based Seeding (No clumping, perfectly smooth) ──
       nodes = [];
-      const cols = 7;
-      const rows = 5;
+      const cols = 6;
+      const rows = 4;
       const cellW = w / cols;
       const cellH = h / rows;
 
@@ -107,6 +108,10 @@ const InteractiveNodeMesh = () => {
     canvas.addEventListener('mouseleave', handleMouseLeave);
 
     const animate = () => {
+      if (document.hidden) {
+        animId = requestAnimationFrame(animate);
+        return;
+      }
       ctx.clearRect(0, 0, width, height);
       time += 16.6;
 
@@ -123,9 +128,10 @@ const InteractiveNodeMesh = () => {
         // Smooth mouse interactive displacement
         const dx = node.x - mouse.x;
         const dy = node.y - mouse.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        const distSq = dx * dx + dy * dy;
 
-        if (dist < mouse.radius && mouse.isHovered) {
+        if (distSq < mouse.radius * mouse.radius && mouse.isHovered) {
+          const dist = Math.sqrt(distSq);
           const force = (1 - dist / mouse.radius) * 22;
           const angle = Math.atan2(dy, dx);
           node.offsetX += Math.cos(angle) * force * 0.20;
@@ -142,14 +148,18 @@ const InteractiveNodeMesh = () => {
 
       // ─── 2. DRAW DYNAMIC ORGANIC CONSTELLATION CONNECTIONS ───
       const activeEdges = [];
+      const maxDistSq = maxLinkDistance * maxLinkDistance;
 
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const dx = nodes[i].x - nodes[j].x;
+          if (Math.abs(dx) > maxLinkDistance) continue;
           const dy = nodes[i].y - nodes[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (Math.abs(dy) > maxLinkDistance) continue;
+          const distSq = dx * dx + dy * dy;
 
-          if (dist < maxLinkDistance) {
+          if (distSq < maxDistSq) {
+            const dist = Math.sqrt(distSq);
             const ratio = 1 - dist / maxLinkDistance;
             const lineOpacity = Math.pow(ratio, 1.3) * 0.38;
 
