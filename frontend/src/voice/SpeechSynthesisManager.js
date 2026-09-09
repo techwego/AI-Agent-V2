@@ -36,8 +36,8 @@ class SpeechSynthesisManager {
       try {
         const available = window.speechSynthesis.getVoices();
         if (available && available.length > 0) {
-          // STRICT ENGLISH WHITELIST: Never allow non-English voices (ta-IN, hi-IN, etc.) to pollute synthesis
-          this.voices = available.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+          // Allow English (en-*), Tamil (ta-*), and installed system voices
+          this.voices = available;
         }
       } catch (e) {
         console.warn('Voice loading error:', e);
@@ -114,7 +114,7 @@ class SpeechSynthesisManager {
       .replace(/<ROUTE_TO:[^>]+>/gi, '')
       .replace(/<ROUTE_[^>]+>/gi, '')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/[^\x00-\x7F]/g, ' ') // Strip non-ASCII / non-Latin characters to prevent regional language leakage
+      .replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, ' ') // Preserve Tamil \u0B80-\u0BFF and English characters cleanly
       .trim();
     return this.expandHonorifics(cleaned);
   }
@@ -126,7 +126,7 @@ class SpeechSynthesisManager {
     const maleKeywords = [
       'male', 'david', 'ravi', 'prabhat', 'george', 'guy', 'ryan', 'stefan', 
       'richard', 'oliver', 'james', 'connor', 'mitchell', 'russell', 'sean', 
-      'benjamin', 'mark', 'michael', 'paul', 'tom', 'alex', 'daniel', 'fred', 'brian'
+      'benjamin', 'mark', 'michael', 'paul', 'tom', 'alex', 'daniel', 'fred', 'brian', 'valluvar', 'kumar'
     ];
     return maleKeywords.some(m => name.includes(m) || uri.includes(m));
   }
@@ -137,9 +137,13 @@ class SpeechSynthesisManager {
     const femaleKeywords = [
       'female', 'woman', 'girl', 'pallavi', 'neerja', 'swara', 'heera', 'priya', 
       'kavya', 'zira', 'jenny', 'aria', 'sonia', 'libby', 'natasha', 'ava', 
-      'emma', 'samantha', 'victoria', 'karen', 'moira', 'tessa', 'google us english'
+      'emma', 'samantha', 'victoria', 'karen', 'moira', 'tessa', 'google us english', 'saranya'
     ];
     return femaleKeywords.some(f => name.includes(f)) || !this.isMale(v);
+  }
+
+  isTamilText(text) {
+    return /[\u0B80-\u0BFF]/.test(text || '');
   }
 
   findBestMatchingVoice() {
@@ -155,118 +159,122 @@ class SpeechSynthesisManager {
     }
     if (!allVoices || allVoices.length === 0) return null;
 
-    // STRICT ENGLISH ONLY: Exclude non-English TTS voices
-    const voices = allVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
-    if (voices.length === 0) return allVoices[0] || null;
-
-    let preset = (this.getVoice() || '').trim();
-    // Sanitize non-English regional language names to pallavi
-    if (/[\u0B80-\u0BFF]/.test(preset) || preset.toLowerCase().includes('tamil') || preset.toLowerCase().includes('hindi')) {
-      preset = 'pallavi';
-    } else {
-      preset = preset.toLowerCase();
-    }
+    let preset = (this.getVoice() || '').trim().toLowerCase();
 
     // 1. Exact Name or VoiceURI Match
-    const exact = voices.find(v => v.name.toLowerCase() === preset || v.voiceURI.toLowerCase() === preset);
+    const exact = allVoices.find(v => (v.name && v.name.toLowerCase() === preset) || (v.voiceURI && v.voiceURI.toLowerCase() === preset));
     if (exact) return exact;
 
-    // 2. Keyword Matches for Indian Female Admin Presets
-    if (preset.includes('pallavi')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('pallavi')) ||
-                    voices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !this.isMale(v) && this.isFemale(v));
+    // 2. Tamil Voice Matching (Microsoft Pallavi Tamil, Valluvar, Saranya, Kumar, Anbu, Google Tamil)
+    if (preset.startsWith('ta-') || preset.includes('tamil') || preset.includes('தமிழ்')) {
+      const tamilVoices = allVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('ta'));
+      if (preset.includes('valluvar')) {
+        const m = tamilVoices.find(v => v.name.toLowerCase().includes('valluvar'));
+        if (m) return m;
+      }
+      if (preset.includes('saranya')) {
+        const m = tamilVoices.find(v => v.name.toLowerCase().includes('saranya'));
+        if (m) return m;
+      }
+      if (preset.includes('kumar')) {
+        const m = tamilVoices.find(v => v.name.toLowerCase().includes('kumar'));
+        if (m) return m;
+      }
+      if (preset.includes('anbu')) {
+        const m = tamilVoices.find(v => v.name.toLowerCase().includes('anbu'));
+        if (m) return m;
+      }
+      if (preset.includes('pallavi')) {
+        const m = tamilVoices.find(v => v.name.toLowerCase().includes('pallavi'));
+        if (m) return m;
+      }
+      if (preset.includes('google')) {
+        const m = tamilVoices.find(v => v.name.toLowerCase().includes('google'));
+        if (m) return m;
+      }
+      if (tamilVoices.length > 0) return tamilVoices[0];
+    }
+
+    // 3. Indian English Female Matching (en-IN-Pallavi, Neerja, Heera, Swara, Priya, Kavya)
+    if (preset.includes('pallavi') && !preset.startsWith('ta-')) {
+      const match = allVoices.find(v => v.name.toLowerCase().includes('pallavi') && (v.lang.toLowerCase().startsWith('en') || !v.lang.toLowerCase().startsWith('ta'))) ||
+                    allVoices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !this.isMale(v) && this.isFemale(v));
       if (match) return match;
     }
 
     if (preset.includes('neerja')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('neerja')) ||
-                    voices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !this.isMale(v) && this.isFemale(v));
-      if (match) return match;
-    }
-
-    if (preset.includes('swara')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('swara')) ||
-                    voices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !this.isMale(v) && this.isFemale(v));
+      const match = allVoices.find(v => v.name.toLowerCase().includes('neerja')) ||
+                    allVoices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !this.isMale(v) && this.isFemale(v));
       if (match) return match;
     }
 
     if (preset.includes('heera')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('heera')) ||
-                    voices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !this.isMale(v) && this.isFemale(v));
+      const match = allVoices.find(v => v.name.toLowerCase().includes('heera')) ||
+                    allVoices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !this.isMale(v) && this.isFemale(v));
+      if (match) return match;
+    }
+
+    if (preset.includes('swara')) {
+      const match = allVoices.find(v => v.name.toLowerCase().includes('swara')) ||
+                    allVoices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !this.isMale(v) && this.isFemale(v));
       if (match) return match;
     }
 
     if (preset.includes('kavya') || preset.includes('priya')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('kavya') || v.name.toLowerCase().includes('priya')) ||
-                    voices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !this.isMale(v) && this.isFemale(v));
+      const match = allVoices.find(v => v.name.toLowerCase().includes('kavya') || v.name.toLowerCase().includes('priya')) ||
+                    allVoices.find(v => (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) && !this.isMale(v) && this.isFemale(v));
       if (match) return match;
     }
 
+    // 4. Windows / Chrome / Natural English Keyword Matching
     if (preset.includes('zira')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('zira') && !this.isMale(v));
+      const match = allVoices.find(v => v.name.toLowerCase().includes('zira') && !this.isMale(v));
       if (match) return match;
     }
 
     if (preset.includes('google') || preset.includes('chrome')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('google') && !this.isMale(v)) ||
-                    voices.find(v => v.name.toLowerCase().includes('google'));
-      if (match) return match;
-    }
-
-    if (preset.includes('aria')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('aria') && !this.isMale(v));
+      const match = allVoices.find(v => v.name.toLowerCase().includes('google') && v.lang.toLowerCase().startsWith('en') && !this.isMale(v)) ||
+                    allVoices.find(v => v.name.toLowerCase().includes('google') && v.lang.toLowerCase().startsWith('en'));
       if (match) return match;
     }
 
     if (preset.includes('jenny')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('jenny') && !this.isMale(v));
+      const match = allVoices.find(v => v.name.toLowerCase().includes('jenny') && !this.isMale(v));
+      if (match) return match;
+    }
+
+    if (preset.includes('aria')) {
+      const match = allVoices.find(v => v.name.toLowerCase().includes('aria') && !this.isMale(v));
       if (match) return match;
     }
 
     if (preset.includes('sonia')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('sonia') && !this.isMale(v));
+      const match = allVoices.find(v => v.name.toLowerCase().includes('sonia') && !this.isMale(v));
       if (match) return match;
     }
 
     if (preset.includes('libby')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('libby') && !this.isMale(v));
+      const match = allVoices.find(v => v.name.toLowerCase().includes('libby') && !this.isMale(v));
       if (match) return match;
     }
 
     if (preset.includes('natasha')) {
-      const match = voices.find(v => v.name.toLowerCase().includes('natasha') && !this.isMale(v));
+      const match = allVoices.find(v => v.name.toLowerCase().includes('natasha') && !this.isMale(v));
       if (match) return match;
     }
 
-    // 3. Indian English Female Regional Fallback (Strictly Reject Male e.g. Ravi)
-    if (preset.includes('en-in') || preset.includes('india') || preset.includes('indian') || preset.includes('pallavi')) {
-      const inFemale = voices.find(v => 
-        (v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('en_in')) &&
-        !this.isMale(v) &&
-        (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('woman') || v.name.toLowerCase().includes('heera') || v.name.toLowerCase().includes('pallavi') || v.name.toLowerCase().includes('neerja'))
-      );
-      if (inFemale) return inFemale;
-    }
-
-    // 4. US / UK English Regional Female Fallbacks
-    if (preset.includes('en-gb') || preset.includes('uk')) {
-      const ukVoice = voices.find(v => v.lang.toLowerCase().includes('en-gb') && !this.isMale(v));
-      if (ukVoice) return ukVoice;
-    }
-
-    // 5. Pleasant Female English Voice Default (Natural / Neural / Samantha / Zira / Jenny / Aria)
-    const pleasantFemale = voices.find(v => 
-      v.lang.startsWith('en') && 
+    // 5. Fallback strictly to Pleasant Clear Female English Voice
+    const englishVoices = allVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+    const pleasantFemale = englishVoices.find(v => 
       !this.isMale(v) &&
       (v.name.includes('Natural') || v.name.includes('Neural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Ava') || v.name.includes('Jenny') || v.name.includes('Aria') || v.name.includes('Neerja') || v.name.includes('Heera'))
     );
     if (pleasantFemale) return pleasantFemale;
 
-    const anyFemale = voices.find(v => v.lang.startsWith('en') && !this.isMale(v));
+    const anyFemale = englishVoices.find(v => !this.isMale(v));
     if (anyFemale) return anyFemale;
 
-    // Fallback strictly to English
-    return voices.find(v => v.lang.startsWith('en')) || voices[0];
+    return englishVoices[0] || allVoices[0];
   }
 
   speakWithWebSpeech(cleanText, onEnd, isRetry = false) {
@@ -282,21 +290,21 @@ class SpeechSynthesisManager {
       }
 
       const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.rate = 1.08; // Natural, fluent conversational tempo (eliminates sluggish drag)
+      utterance.rate = 1.05; // Natural, fluent conversational tempo
       utterance.pitch = 1.0; // Warm, natural authentic tone
 
       if (!isRetry) {
         const selectedVoice = this.findBestMatchingVoice();
-        if (selectedVoice && selectedVoice.lang && selectedVoice.lang.toLowerCase().startsWith('en')) {
+        if (selectedVoice) {
           utterance.voice = selectedVoice;
-          utterance.lang = selectedVoice.lang;
+          utterance.lang = selectedVoice.lang || (this.isTamilText(cleanText) ? 'ta-IN' : 'en-US');
         } else {
-          utterance.lang = 'en-US';
+          utterance.lang = this.isTamilText(cleanText) ? 'ta-IN' : 'en-US';
         }
       } else {
         // Direct local offline voice fallback to guarantee speech playback
         utterance.voice = null;
-        utterance.lang = 'en-US';
+        utterance.lang = this.isTamilText(cleanText) ? 'ta-IN' : 'en-US';
       }
 
       // Retain reference to prevent Chromium garbage collection of active utterance

@@ -7,17 +7,28 @@ import {
 import { useToast } from '../../components/Toast';
 import ttsManager from '../../voice/SpeechSynthesisManager';
 
-// Curated Feel-Good & Indian Voice Personas with Pallavi as #1
+// Curated Feel-Good, Indian Tamil & English Voice Personas
 const CURATED_VOICES = [
+  {
+    group: '🇮🇳 Tamil Voice Agents (தமிழ் · Microsoft Natural & Google)',
+    options: [
+      { id: 'ta-IN-Pallavi', name: 'Microsoft Pallavi (Tamil Female · Natural & Warm)', desc: 'Official Microsoft Tamil India Natural Voice (Recommended)' },
+      { id: 'ta-IN-Valluvar', name: 'Microsoft Valluvar (Tamil Male · Clear & Authoritative)', desc: 'Official Microsoft Tamil India Natural Male Voice' },
+      { id: 'ta-LK-Saranya', name: 'Microsoft Saranya (Tamil Female · Sri Lanka Natural)', desc: 'Official Microsoft Tamil Sri Lanka Natural Voice' },
+      { id: 'ta-LK-Kumar', name: 'Microsoft Kumar (Tamil Male · Sri Lanka Clear)', desc: 'Official Microsoft Tamil Sri Lanka Male Voice' },
+      { id: 'ta-IN-Anbu', name: 'Microsoft Anbu (Tamil Male · Conversational)', desc: 'Microsoft Tamil Conversational Voice' },
+      { id: 'ta-IN-Google', name: 'Google தமிழ் (Tamil India · Natural Expressive)', desc: 'Google Chrome Tamil India Natural Voice' }
+    ]
+  },
   {
     group: '🇮🇳 Indian English (Female & Feel-Good)',
     options: [
-      { id: 'en-IN-Pallavi', name: 'Pallavi (Indian Female · Natural & Warm)', desc: 'Official Microsoft Indian English Natural Voice (Recommended)' },
-      { id: 'en-IN-Neerja', name: 'Neerja (Indian Female · Natural & Crisp)', desc: 'Clear South Asian academic tone' },
-      { id: 'en-IN-Swara', name: 'Swara (Indian Female · Expressive & Friendly)', desc: 'Modern, engaging Indian university guide' },
-      { id: 'en-IN-Heera', name: 'Heera (Indian Female · Clear & Articulate)', desc: 'Crisp, articulate library assistant' },
-      { id: 'en-IN-Priya', name: 'Priya (Indian Female · Calm & Helpful)', desc: 'Gentle, clear and helpful assistant' },
-      { id: 'en-IN-Kavya', name: 'Kavya (Indian Female · Professional)', desc: 'Fluent, friendly campus guide' }
+      { id: 'en-IN-Pallavi', name: 'Microsoft Pallavi (Indian English Female · Natural & Warm)', desc: 'Official Microsoft Indian English Natural Voice' },
+      { id: 'en-IN-Neerja', name: 'Microsoft Neerja (Indian English Female · Natural & Crisp)', desc: 'Clear South Asian academic tone' },
+      { id: 'en-IN-Heera', name: 'Microsoft Heera (Indian English Female · Clear & Articulate)', desc: 'Crisp, articulate library assistant' },
+      { id: 'en-IN-Swara', name: 'Microsoft Swara (Indian English Female · Expressive & Friendly)', desc: 'Modern, engaging Indian university guide' },
+      { id: 'en-IN-Priya', name: 'Priya (Indian English Female · Calm & Helpful)', desc: 'Gentle, clear and helpful assistant' },
+      { id: 'en-IN-Kavya', name: 'Kavya (Indian English Female · Professional)', desc: 'Fluent, friendly campus guide' }
     ]
   },
   {
@@ -25,11 +36,11 @@ const CURATED_VOICES = [
     options: [
       { id: 'Google US English', name: 'Google US English (Chrome Female · Crisp & Clear)', desc: 'Official Google Chrome Clear Voice (Recommended)' },
       { id: 'Microsoft Zira', name: 'Microsoft Zira (Windows Female · Natural & Clear)', desc: 'Official Windows Natural Clear Voice' },
-      { id: 'en-US-Jenny', name: 'Jenny (US Female · Warm & Cheerful)', desc: 'Upbeat and supportive assistant' },
-      { id: 'en-US-Aria', name: 'Aria (US Female · Friendly & Modern)', desc: 'Smooth, highly natural AI companion' },
-      { id: 'en-GB-Sonia', name: 'Sonia (UK Female · Formal & Elegant)', desc: 'Polished British academic accent' },
-      { id: 'en-GB-Libby', name: 'Libby (UK Female · Melodic & Calm)', desc: 'Soothing, gentle storyteller tone' },
-      { id: 'en-AU-Natasha', name: 'Natasha (Australian Female · Clear)', desc: 'Clear, modern international accent' }
+      { id: 'en-US-Jenny', name: 'Microsoft Jenny (US Female · Warm & Cheerful)', desc: 'Upbeat and supportive assistant' },
+      { id: 'en-US-Aria', name: 'Microsoft Aria (US Female · Friendly & Modern)', desc: 'Smooth, highly natural AI companion' },
+      { id: 'en-GB-Sonia', name: 'Microsoft Sonia (UK Female · Formal & Elegant)', desc: 'Polished British academic accent' },
+      { id: 'en-GB-Libby', name: 'Microsoft Libby (UK Female · Melodic & Calm)', desc: 'Soothing, gentle storyteller tone' },
+      { id: 'en-AU-Natasha', name: 'Microsoft Natasha (Australian Female · Clear)', desc: 'Clear, modern international accent' }
     ]
   }
 ];
@@ -58,7 +69,8 @@ const Settings = () => {
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         const voices = window.speechSynthesis.getVoices();
         if (voices && voices.length > 0) {
-          setSystemVoices(voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en')));
+          // Include both Tamil (ta) and English (en) system voices
+          setSystemVoices(voices.filter(v => v.lang && (v.lang.toLowerCase().startsWith('ta') || v.lang.toLowerCase().startsWith('en'))));
         }
       }
     };
@@ -91,7 +103,7 @@ const Settings = () => {
       }
     } catch (err) {
       console.error('Failed to fetch settings:', err);
-      showToast('Failed to load settings', 'error');
+      showToast('Failed to load institution settings.', 'error');
     } finally {
       setLoading(false);
     }
@@ -99,13 +111,20 @@ const Settings = () => {
 
   useEffect(() => {
     fetchSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setSettings(prev => ({ ...prev, [name]: value }));
+    setSettings(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
     if (name === 'voice_preset') {
       ttsManager.setVoice(value);
+      localStorage.setItem('preferred_voice', value);
+      localStorage.setItem('cached_voice_preset', value);
     }
   };
 
@@ -114,12 +133,18 @@ const Settings = () => {
     ttsManager.setVoice(settings.voice_preset);
     setTestingVoice(true);
 
-    const hour = new Date().getHours();
-    let greeting = 'Good evening';
-    if (hour < 12) greeting = 'Good morning';
-    else if (hour < 17) greeting = 'Good afternoon';
+    const isTamil = (settings.voice_preset || '').toLowerCase().startsWith('ta-') || (settings.voice_preset || '').toLowerCase().includes('tamil');
 
-    const testPhrase = `${greeting}! I am ${settings.agent_name || 'Sam'}, your AI Library Assistant at ${settings.library_name || 'Anna University'}. ${settings.greeting_message || 'How can I assist your research today?'}`;
+    let testPhrase = '';
+    if (isTamil) {
+      testPhrase = `வணக்கம்! நான் ${settings.agent_name || 'உங்கள் உதவியாளர்'}, ${settings.library_name || 'மத்திய நூலகத்தில்'} உங்களுக்கு உதவ தயாராக உள்ளேன். எந்த புத்தகத்தை நீங்கள் தேடுகிறீர்கள்?`;
+    } else {
+      const hour = new Date().getHours();
+      let greeting = 'Good evening';
+      if (hour < 12) greeting = 'Good morning';
+      else if (hour < 17) greeting = 'Good afternoon';
+      testPhrase = `${greeting}! I am ${settings.agent_name || 'Sam'}, your AI Library Assistant at ${settings.library_name || 'Anna University'}. ${settings.greeting_message || 'How can I assist your research today?'}`;
+    }
     
     ttsManager.speak(testPhrase, () => {
       setTestingVoice(false);
