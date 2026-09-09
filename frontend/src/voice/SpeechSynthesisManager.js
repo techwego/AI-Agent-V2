@@ -363,6 +363,181 @@ class SpeechSynthesisManager {
     }
   }
 
+  hasNativeMicrosoftVoice(cleanText = '') {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false;
+    let voices = [];
+    try {
+      voices = window.speechSynthesis.getVoices() || [];
+    } catch (e) {}
+    if (!voices || voices.length === 0) voices = this.voices || [];
+
+    const preset = (this.getVoice() || '').toLowerCase();
+    return voices.some(v => {
+      const n = (v.name || '').toLowerCase();
+      if (preset.includes('pallavi') && n.includes('pallavi')) return true;
+      if (preset.includes('neerja') && n.includes('neerja')) return true;
+      if (preset.includes('valluvar') && n.includes('valluvar')) return true;
+      if (preset.includes('swara') && n.includes('swara')) return true;
+      if (n.includes('online (natural)') || (n.includes('microsoft') && n.includes('natural'))) return true;
+      return false;
+    });
+  }
+
+  async speakWithServerTTS(cleanText, onEnd) {
+    let audioUrl = null;
+    let finished = false;
+    const finish = () => {
+      if (!finished) {
+        finished = true;
+        this.emitLipSyncEvent({ type: 'stop', text: cleanText });
+        if (audioUrl) {
+          try { URL.revokeObjectURL(audioUrl); } catch (e) {}
+        }
+        if (onEnd) onEnd();
+      }
+    };
+
+    try {
+      const API_ROOT = import.meta.env.VITE_API_URL
+        ? (import.meta.env.VITE_API_URL.endsWith('/api') ? import.meta.env.VITE_API_URL : `${import.meta.env.VITE_API_URL}/api`)
+        : '/api';
+
+      const res = await fetch(`${API_ROOT}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: cleanText,
+          voice: this.getVoice()
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error(`Server TTS error: ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      audioUrl = URL.createObjectURL(blob);
+
+      if (!this.audioElement) {
+        this.audioElement = new Audio();
+      }
+
+      this.audioElement.src = audioUrl;
+      this.audioElement.playbackRate = 1.0;
+
+      this.audioElement.onplay = () => {
+        this.emitLipSyncEvent({ type: 'start', text: cleanText });
+        if (this.onStartSpeakingCallback) {
+          try { this.onStartSpeakingCallback(); } catch (e) {}
+        }
+      };
+
+      this.audioElement.ontimeupdate = () => {
+        if (this.audioElement && this.audioElement.duration > 0) {
+          const progress = this.audioElement.currentTime / this.audioElement.duration;
+          const words = cleanText.split(/\s+/);
+          const wordIndex = Math.min(words.length - 1, Math.floor(progress * words.length));
+          this.emitLipSyncEvent({
+            type: 'boundary',
+            charIndex: 0,
+            word: words[wordIndex] || '',
+            charLength: (words[wordIndex] || '').length,
+            elapsedTime: (this.audioElement.currentTime || 0) * 1000
+          });
+        }
+      };
+
+      this.audioElement.onended = () => {
+        finish();
+      };
+
+      this.audioElement.onerror = (e) => {
+        console.warn('Server TTS audio playback error, falling back to Web Speech:', e);
+        this.speakWithWebSpeech(cleanText, onEnd);
+      };
+
+      this.speaking = true;
+      await this.audioElement.play();
+    } catch (err) {
+      console.warn('Server TTS fetch failed, falling back to Web Speech:', err);
+      this.speakWithWebSpeech(cleanText, onEnd);
+    }
+  }
+
+  speakWithWebSpeech(cleanText, onEnd) {
+    if (!('speechSynthesis' in window)) {
+      this.speaking = false;
+      if (onEnd) onEnd();
+      return;
+    }
+
+    try {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 1.10; // Fast, energetic and natural speaking cadence (v2 tone)
+      utterance.pitch = 1.0; // Warm, natural authentic tone
+
+      const selectedVoice = this.findBestMatchingVoice(cleanText);
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+        utterance.lang = selectedVoice.lang || (this.isTamilText(cleanText) ? 'ta-IN' : 'en-US');
+      } else {
+        utterance.lang = this.isTamilText(cleanText) ? 'ta-IN' : 'en-US';
+      }
+
+      // Retain reference to prevent Chromium garbage collection of active utterance
+      this.activeUtterances.add(utterance);
+
+      let isFinished = false;
+      const finish = () => {
+        this.activeUtterances.delete(utterance);
+        if (!isFinished) {
+          isFinished = true;
+          this.emitLipSyncEvent({ type: 'stop', text: cleanText });
+          if (onEnd) onEnd();
+        }
+      };
+
+      utterance.onstart = () => {
+        this.emitLipSyncEvent({ type: 'start', text: cleanText });
+        if (this.onStartSpeakingCallback) {
+          try { this.onStartSpeakingCallback(); } catch (e) {}
+        }
+      };
+
+      utterance.onboundary = (event) => {
+        const charIndex = event.charIndex || 0;
+        const word = cleanText.substring(charIndex).split(/\s+/)[0] || '';
+        this.emitLipSyncEvent({
+          type: 'boundary',
+          charIndex,
+          word,
+          charLength: event.charLength || word.length,
+          elapsedTime: event.elapsedTime || 0
+        });
+      };
+
+      utterance.onend = finish;
+      utterance.onerror = (e) => {
+        this.activeUtterances.delete(utterance);
+        if (e.error !== 'interrupted' && e.error !== 'canceled') {
+          console.warn('Web Speech note:', e.error);
+        }
+        finish();
+      };
+
+      this.speaking = true;
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.error('Web Speech exception:', err);
+      this.emitLipSyncEvent({ type: 'stop', text: cleanText });
+      if (onEnd) onEnd();
+    }
+  }
+
   enqueue(sentence) {
     const clean = this.stripMarkdown(sentence);
     if (!clean) return;
@@ -389,9 +564,17 @@ class SpeechSynthesisManager {
     this.speaking = true;
     const nextSentence = this.queue.shift();
 
-    this.speakWithWebSpeech(nextSentence, () => {
-      this.processQueue();
-    });
+    // In Edge (has native Microsoft Neural voices), use zero-latency WebSpeech
+    // In Chrome/Firefox/Safari (lacks native Microsoft Neural voices), use Server TTS to guarantee identical Microsoft Pallavi Neural voice!
+    if (this.hasNativeMicrosoftVoice(nextSentence)) {
+      this.speakWithWebSpeech(nextSentence, () => {
+        this.processQueue();
+      });
+    } else {
+      this.speakWithServerTTS(nextSentence, () => {
+        this.processQueue();
+      });
+    }
   }
 
   speak(text, onEnd) {
@@ -424,8 +607,11 @@ class SpeechSynthesisManager {
     this.emitLipSyncEvent({ type: 'stop' });
 
     if (this.audioElement) {
-      this.audioElement.pause();
-      this.audioElement.currentTime = 0;
+      try {
+        this.audioElement.pause();
+        this.audioElement.currentTime = 0;
+        this.audioElement.removeAttribute('src');
+      } catch (e) {}
     }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();

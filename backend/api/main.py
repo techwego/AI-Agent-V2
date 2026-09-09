@@ -370,38 +370,61 @@ import uuid
 
 class TTSRequest(BaseModel):
     text: str
+    voice: Optional[str] = None
 
 @app.post("/api/tts")
 async def generate_tts(request: TTSRequest, background_tasks: BackgroundTasks):
-    # Fetch the selected voice from the database
-    voice = "en-US-AriaNeural"
+    # Default to the user's preferred Microsoft Pallavi voice at 1.10x speed (+10%)
+    voice = request.voice or "en-IN-PallaviNeural"
     try:
-        db_gen = get_db()
-        db = next(db_gen)
-        from backend.database.models import LibraryConfig
-        config = db.query(LibraryConfig).first()
-        if config and config.voice_preset:
-            voice = config.voice_preset
+        if not request.voice:
+            db_gen = get_db()
+            db = next(db_gen)
+            from backend.database.models import LibraryConfig
+            config = db.query(LibraryConfig).first()
+            if config and config.voice_preset:
+                voice = config.voice_preset
     except Exception as e:
         print(f"Failed to fetch voice preset: {e}")
+
+    # Standardize voice name for Edge-TTS neural engine
+    v_lower = voice.lower()
+    is_tamil = any(ord(c) >= 0x0B80 and ord(c) <= 0x0BFF for c in request.text)
+    
+    if "pallavi" in v_lower:
+        voice = "ta-IN-PallaviNeural" if is_tamil else "en-IN-PallaviNeural"
+    elif "valluvar" in v_lower:
+        voice = "ta-IN-ValluvarNeural"
+    elif "neerja" in v_lower:
+        voice = "en-IN-NeerjaNeural"
+    elif "swara" in v_lower:
+        voice = "hi-IN-SwaraNeural"
+    elif not voice.endswith("Neural") and "-" in voice:
+        voice = f"{voice}Neural"
         
     temp_filename = f"temp_tts_{uuid.uuid4().hex}.mp3"
     temp_filepath = os.path.join(tempfile.gettempdir(), temp_filename)
     
     tts_generated = False
-    # 1. Try Edge TTS with a 3.0s strict timeout
+    # 1. Try Edge TTS (Microsoft Neural Voices) with 1.10x pace
     try:
-        communicate = edge_tts.Communicate(request.text, voice)
-        await asyncio.wait_for(communicate.save(temp_filepath), timeout=3.0)
+        communicate = edge_tts.Communicate(request.text, voice, rate="+10%")
+        await asyncio.wait_for(communicate.save(temp_filepath), timeout=4.0)
         tts_generated = True
     except Exception as e:
-        print(f"[TTS] Edge-TTS timeout or error ({e}), trying gTTS fallback...")
+        print(f"[TTS] Edge-TTS error ({e}), trying standard rate...")
+        try:
+            communicate = edge_tts.Communicate(request.text, voice)
+            await asyncio.wait_for(communicate.save(temp_filepath), timeout=3.0)
+            tts_generated = True
+        except Exception as e2:
+            print(f"[TTS] Edge-TTS fallback error: {e2}")
 
-    # 2. Fallback to gTTS if Edge TTS failed
+    # 2. Fallback to gTTS if Edge TTS is unreachable
     if not tts_generated:
         try:
             from gtts import gTTS
-            tts = gTTS(text=request.text, lang='en')
+            tts = gTTS(text=request.text, lang='ta' if is_tamil else 'en')
             tts.save(temp_filepath)
             tts_generated = True
             print("[TTS] gTTS fallback generated successfully.")
@@ -409,7 +432,7 @@ async def generate_tts(request: TTSRequest, background_tasks: BackgroundTasks):
             print(f"[TTS] gTTS error: {e}")
 
     if not tts_generated or not os.path.exists(temp_filepath):
-        raise HTTPException(status_code=503, detail="TTS service temporarily unavailable, fallback to browser synthesis")
+        raise HTTPException(status_code=503, detail="TTS service temporarily unavailable")
         
     def cleanup():
         try:
