@@ -789,6 +789,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     
     const curve = new THREE.CatmullRomCurve3(densePts, false, 'catmullrom', 0.05); // low tension for tight corners
     routeCurveRef.current = curve;
+    const totalLen = curve.getLength();
 
     // 1. Solid Dark Route Line (Casing + Core Track)
     // Outer casing / shadow for high contrast on light library tiles
