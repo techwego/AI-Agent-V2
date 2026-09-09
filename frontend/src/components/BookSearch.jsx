@@ -190,11 +190,13 @@ const BookSearch = ({ onShowOnMap }) => {
 
                   {rack && (
                     <button 
+                      type="button"
                       onClick={() => onShowOnMap(rack)}
-                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-blue-950/80 hover:bg-blue-900/80 text-blue-300 rounded-xl text-xs font-bold transition-all border border-blue-800/60 shadow-xs active:scale-95 font-mono"
+                      className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all border border-blue-400/40 shadow-sm shadow-blue-500/20 active:scale-95 cursor-pointer"
+                      title={`View Rack ${rack} on 3D Wayfinder Map`}
                     >
-                      <Compass size={13} className="text-blue-400" />
-                      <span>Rack {rack}</span>
+                      <Compass size={14} className="text-white animate-pulse" />
+                      <span>View on Map · Rack {rack}</span>
                     </button>
                   )}
                 </div>

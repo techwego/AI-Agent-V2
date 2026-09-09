@@ -426,9 +426,10 @@ const VoiceAssistant = () => {
           return next;
         });
 
-        // Split speech buffer on sentence boundaries
+        // Split speech buffer on sentence boundaries or early clause boundaries for ultra-low latency speech playback
         const cleanBuf = speechBuffer.replace(/<ROUTE_[^>]*>?/gi, '');
-        const sentenceMatch = cleanBuf.match(/^([^.!?\n]+[.!?\n]+)\s*(.*)$/s);
+        const sentenceMatch = cleanBuf.match(/^([^.!?\n]+[.!?\n]+)\s*(.*)$/s) || 
+          (!fullResponse.includes('.') && cleanBuf.split(/\s+/).length >= 6 ? cleanBuf.match(/^([^,;:\n]+[,;:\n]+)\s*(.*)$/s) : null);
         if (sentenceMatch) {
           const sentenceToSpeak = sentenceMatch[1].trim();
           speechBuffer = sentenceMatch[2] || '';

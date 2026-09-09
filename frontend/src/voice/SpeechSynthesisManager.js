@@ -202,6 +202,17 @@ class SpeechSynthesisManager {
       if (match) return match;
     }
 
+    if (preset.includes('zira')) {
+      const match = voices.find(v => v.name.toLowerCase().includes('zira') && !this.isMale(v));
+      if (match) return match;
+    }
+
+    if (preset.includes('google') || preset.includes('chrome')) {
+      const match = voices.find(v => v.name.toLowerCase().includes('google') && !this.isMale(v)) ||
+                    voices.find(v => v.name.toLowerCase().includes('google'));
+      if (match) return match;
+    }
+
     if (preset.includes('aria')) {
       const match = voices.find(v => v.name.toLowerCase().includes('aria') && !this.isMale(v));
       if (match) return match;

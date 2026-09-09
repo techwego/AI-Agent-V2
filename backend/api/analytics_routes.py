@@ -151,10 +151,22 @@ def get_analytics(start_date: Optional[str] = None, end_date: Optional[str] = No
 
 @router.get("/logs")
 def get_admin_logs(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    try:
+        cutoff_24h = datetime.utcnow() - timedelta(hours=24)
+        db.query(AdminLog).filter(AdminLog.created_at < cutoff_24h).delete()
+        db.commit()
+    except Exception:
+        db.rollback()
     return db.query(AdminLog).order_by(AdminLog.created_at.desc()).limit(100).all()
 
 @router.get("/chat-logs")
 def get_chat_logs(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    try:
+        cutoff_24h = datetime.utcnow() - timedelta(hours=24)
+        db.query(ConversationHistory).filter(ConversationHistory.created_at < cutoff_24h).delete()
+        db.commit()
+    except Exception:
+        db.rollback()
     logs = db.query(ConversationHistory).order_by(ConversationHistory.created_at.desc()).limit(100).all()
     return logs
 

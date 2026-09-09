@@ -874,26 +874,37 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
 
     const tubeSegments = Math.min(256, Math.max(64, result.path.length * 14));
 
-    // 1. Solid Outer Dark Navigation Track (Radius: 0.22m, Deep Slate-950)
+    // 1. Solid Outer Vibrant Royal Blue Navigation Track (Radius: 0.22m, Royal/Electric Blue)
     const darkTubeGeo = new THREE.TubeGeometry(curve, tubeSegments, 0.22, 12, false);
-    const darkTubeMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.35, metalness: 0.1 });
+    const darkTubeMat = new THREE.MeshStandardMaterial({ 
+      color: 0x1d4ed8, 
+      emissive: 0x1e40af, 
+      emissiveIntensity: 0.4, 
+      roughness: 0.25, 
+      metalness: 0.3 
+    });
     const darkTubeMesh = new THREE.Mesh(darkTubeGeo, darkTubeMat);
     darkTubeMesh.renderOrder = 997;
     scene.add(darkTubeMesh);
     routeObjsRef.current.tube = darkTubeMesh;
 
-    // 2. Inner Directional Animated Flow Rail (Flowing Cyan Chevrons >>>)
+    // 2. Inner Directional Animated Flow Rail (Flowing Neon Cyan/Blue Chevrons >>>)
     const flowTex = createDirectionalChevronTexture();
     flowTex.repeat.set(Math.max(2, totalLen * 1.2), 1);
-    const flowGeo = new THREE.TubeGeometry(curve, tubeSegments, 0.14, 12, false);
-    const flowMat = new THREE.MeshBasicMaterial({ map: flowTex, transparent: true, opacity: 0.95 });
+    const flowGeo = new THREE.TubeGeometry(curve, tubeSegments, 0.15, 12, false);
+    const flowMat = new THREE.MeshBasicMaterial({ 
+      map: flowTex, 
+      transparent: true, 
+      opacity: 0.95,
+      color: 0x38bdf8
+    });
     const flowTube = new THREE.Mesh(flowGeo, flowMat);
     flowTube.renderOrder = 998;
     scene.add(flowTube);
     routeObjsRef.current.glow = flowTube;
     routeObjsRef.current.flowTex = flowTex;
 
-    // 3. Crisp Moving White Ball gliding along the track
+    // 3. Crisp Moving White Ball gliding along the blue track
     const cometGroup = new THREE.Group();
     const headMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 20, 20), headMat);
@@ -901,7 +912,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     cometGroup.add(head);
 
     // Soft white aura around the moving ball
-    const haloMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 });
+    const haloMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45 });
     const halo = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 16), haloMat);
     halo.renderOrder = 1000;
     cometGroup.add(halo);
@@ -910,7 +921,7 @@ const LibraryWayfinder = forwardRef(({ routeTo, routeFrom = 'entrance', onRackCl
     for (let i = 1; i <= 6; i++) {
       const m = new THREE.Mesh(
         new THREE.SphereGeometry(0.30 - i * 0.04, 12, 12),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 - i * 0.1 })
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75 - i * 0.1 })
       );
       m.renderOrder = 1000 - i;
       cometGroup.add(m);

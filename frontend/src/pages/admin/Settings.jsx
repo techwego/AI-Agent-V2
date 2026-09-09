@@ -23,8 +23,10 @@ const CURATED_VOICES = [
   {
     group: '🌍 International Feel-Good Personas (Female)',
     options: [
-      { id: 'en-US-Aria', name: 'Aria (US Female · Friendly & Modern)', desc: 'Smooth, highly natural AI companion' },
+      { id: 'Google US English', name: 'Google US English (Chrome Female · Crisp & Clear)', desc: 'Official Google Chrome Clear Voice (Recommended)' },
+      { id: 'Microsoft Zira', name: 'Microsoft Zira (Windows Female · Natural & Clear)', desc: 'Official Windows Natural Clear Voice' },
       { id: 'en-US-Jenny', name: 'Jenny (US Female · Warm & Cheerful)', desc: 'Upbeat and supportive assistant' },
+      { id: 'en-US-Aria', name: 'Aria (US Female · Friendly & Modern)', desc: 'Smooth, highly natural AI companion' },
       { id: 'en-GB-Sonia', name: 'Sonia (UK Female · Formal & Elegant)', desc: 'Polished British academic accent' },
       { id: 'en-GB-Libby', name: 'Libby (UK Female · Melodic & Calm)', desc: 'Soothing, gentle storyteller tone' },
       { id: 'en-AU-Natasha', name: 'Natasha (Australian Female · Clear)', desc: 'Clear, modern international accent' }
