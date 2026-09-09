@@ -497,67 +497,84 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Guest Cards Single Horizontal Auto-Scrolling Row */}
-            <div 
-              ref={guestScrollRef}
-              onMouseEnter={() => setIsHoveringGuests(true)}
-              onMouseLeave={() => setIsHoveringGuests(false)}
-              onTouchStart={() => setIsHoveringGuests(true)}
-              onTouchEnd={() => setIsHoveringGuests(false)}
-              className="flex flex-row items-stretch gap-3 sm:gap-4 overflow-x-auto pb-1.5 pt-0.5 custom-scrollbar snap-x snap-mandatory flex-nowrap scroll-smooth"
-            >
-              {guests.map((guest) => (
-                <div
-                  key={guest.id}
-                  onClick={() => handleGuestCardClick(guest)}
-                  className={`group relative p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-850 via-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 border border-slate-700/80 hover:border-pink-500/60 transition-all duration-300 shadow-xl hover:shadow-pink-500/20 cursor-pointer flex items-center gap-3.5 sm:gap-4 active:scale-[0.98] snap-start shrink-0 ${
-                    guests.length <= 2 ? 'flex-1 min-w-[260px]' : 'w-[280px] sm:w-[320px]'
-                  }`}
-                >
-                  {/* High-Definition Guest Portrait Photo */}
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-1 bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 shadow-lg shadow-pink-500/25 shrink-0 group-hover:scale-105 group-hover:rotate-1 transition-all duration-300">
-                    <div className="w-full h-full rounded-[14px] overflow-hidden bg-slate-950 flex items-center justify-center">
-                      {guest.image_url ? (
-                        <img 
-                          src={guest.image_url} 
-                          alt={guest.name} 
-                          className="w-full h-full object-cover object-top brightness-105 contrast-105 select-none" 
-                          style={{ imageRendering: 'auto' }}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-tr from-indigo-900 to-slate-900 flex items-center justify-center text-white font-black text-xl">
-                          {guest.name.charAt(0)}
+            {/* Inline Keyframes for Infinite Smooth Marquee */}
+            <style>{`
+              @keyframes guestMarqueeGlide {
+                0% { transform: translate3d(0, 0, 0); }
+                100% { transform: translate3d(-33.333333%, 0, 0); }
+              }
+              .animate-guest-marquee {
+                display: flex;
+                width: max-content;
+                animation: guestMarqueeGlide ${Math.max(16, guests.length * 7)}s linear infinite;
+              }
+              .animate-guest-marquee:hover {
+                animation-play-state: paused;
+              }
+            `}</style>
+
+            {/* Guest Cards Infinite Glide Track */}
+            <div className="relative w-full overflow-hidden py-1">
+              <div 
+                className={guests.length > 1 ? "animate-guest-marquee flex flex-row items-stretch gap-3 sm:gap-4" : "flex flex-row items-stretch justify-center gap-3 sm:gap-4 w-full"}
+                onTouchStart={(e) => {
+                  e.currentTarget.style.animationPlayState = 'paused';
+                }}
+                onTouchEnd={(e) => {
+                  e.currentTarget.style.animationPlayState = 'running';
+                }}
+              >
+                {(guests.length > 1 ? [...guests, ...guests, ...guests] : guests).map((guest, idx) => (
+                  <div
+                    key={`${guest.id}_${idx}`}
+                    onClick={() => handleGuestCardClick(guest)}
+                    className="w-[280px] sm:w-[320px] group relative p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-850 via-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 border border-slate-700/80 hover:border-pink-500/60 transition-all duration-300 shadow-xl hover:shadow-pink-500/20 cursor-pointer flex items-center gap-3.5 sm:gap-4 active:scale-[0.98] shrink-0"
+                  >
+                    {/* High-Definition Guest Portrait Photo */}
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-1 bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 shadow-lg shadow-pink-500/25 shrink-0 group-hover:scale-105 group-hover:rotate-1 transition-all duration-300">
+                      <div className="w-full h-full rounded-[14px] overflow-hidden bg-slate-950 flex items-center justify-center">
+                        {guest.image_url ? (
+                          <img 
+                            src={guest.image_url} 
+                            alt={guest.name} 
+                            className="w-full h-full object-cover object-top brightness-105 contrast-105 select-none" 
+                            style={{ imageRendering: 'auto' }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-tr from-indigo-900 to-slate-900 flex items-center justify-center text-white font-black text-xl">
+                            {guest.name.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Guest Information & Greeting Action */}
+                    <div className="flex-1 flex flex-col justify-between min-w-0 h-full py-0.5">
+                      <div>
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-pink-500/15 border border-pink-500/30 text-pink-300 text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider mb-1">
+                          <span>VIP Dignitary</span>
                         </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Guest Information & Greeting Action */}
-                  <div className="flex-1 flex flex-col justify-between min-w-0 h-full py-0.5">
-                    <div>
-                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-pink-500/15 border border-pink-500/30 text-pink-300 text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider mb-1">
-                        <span>VIP Dignitary</span>
+                        <h4 className="text-sm sm:text-base font-black text-white group-hover:text-pink-200 transition-colors truncate">
+                          {guest.name}
+                        </h4>
+                        {guest.about && (
+                          <p className="text-[11px] sm:text-xs text-indigo-200 font-semibold truncate mt-0.5">
+                            {guest.about}
+                          </p>
+                        )}
                       </div>
-                      <h4 className="text-sm sm:text-base font-black text-white group-hover:text-pink-200 transition-colors truncate">
-                        {guest.name}
-                      </h4>
-                      {guest.about && (
-                        <p className="text-[11px] sm:text-xs text-indigo-200 font-semibold truncate mt-0.5">
-                          {guest.about}
-                        </p>
-                      )}
-                    </div>
 
-                    {/* Bottom CTA Bar */}
-                    <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-end">
-                      <div className="px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl bg-pink-600/30 group-hover:bg-pink-600 text-pink-200 group-hover:text-white text-[11px] sm:text-xs font-bold transition-all shadow-md group-hover:shadow-pink-600/30 flex items-center gap-1.5 shrink-0">
-                        <span>{guestLoadingId === guest.id ? 'Entering...' : 'Tap to Enter'}</span>
-                        <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                      {/* Bottom CTA Bar */}
+                      <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-end">
+                        <div className="px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl bg-pink-600/30 group-hover:bg-pink-600 text-pink-200 group-hover:text-white text-[11px] sm:text-xs font-bold transition-all shadow-md group-hover:shadow-pink-600/30 flex items-center gap-1.5 shrink-0">
+                          <span>{guestLoadingId === guest.id ? 'Entering...' : 'Tap to Enter'}</span>
+                          <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
         )}
